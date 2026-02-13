@@ -55,7 +55,7 @@ const EditRecipe = ({ route, navigation }) => {
       
       navigation.goBack(); // 2️⃣ only call once
     } catch (err) {
-      console.error('❌ Failed to save recipe:', err);
+      console.error('Failed to save recipe:', err);
     }
   };
 
@@ -66,7 +66,12 @@ const EditRecipe = ({ route, navigation }) => {
       keyboardShouldPersistTaps="handled"
     >
       <TouchableOpacity style={styles.edit_backButton} onPress={() => navigation.goBack()}>
-        <Icon name="chevron-back" size={24} color="#333" />
+        <Icon name="chevron-back" style={styles.edit_backButtonIcon} />
+      </TouchableOpacity>
+
+      {/* TODO: IMPLEMENT DELETE BUTTON */}
+      <TouchableOpacity style={styles.deleteRecipeButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.deleteButtonText}>Delete Recipe</Text>
       </TouchableOpacity>
 
       <Text style={styles.edit_header}>{name}</Text>

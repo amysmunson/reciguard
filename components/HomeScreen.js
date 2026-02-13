@@ -4,7 +4,9 @@ import CreateList from './CreateList';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { sampleRecipes } from './samples/sample_recipes';
 import styles from './styles/main_style';
-import { getDB, createTables, seedDatabase, getRecipes, saveRecipe } from '../database/db';
+import NavigationBar from './NavigationBar';
+import { getDB, createTables, seedDatabase, getRecipes } from '../database/db';
+import { addRecipeAndNavigate } from './utils/addRecipe';
 import { useFocusEffect } from '@react-navigation/native';
 
 
@@ -39,34 +41,18 @@ const HomeScreen = ({ navigation, route }) => {
 
   
   const handleAddRecipe = async () => {
-    const newItem = {
-      name: '',
-      id: `temp-${Date.now()}`, // temporary ID
-      ingredients: [],
-      steps: [],
-      authorNotes: [],
-      userNotes: []
-    };
-
-    const db = await getDB();
-    await saveRecipe(db, userId, newItem);
-
-    const updatedRecipes = await getRecipes(db, userId);
-    setLists(updatedRecipes);
-
-    navigation.navigate('InputSelector', { newItem, userId });
+    try {
+      await addRecipeAndNavigate({ userId, navigation, onRecipesUpdated: setLists });
+    } catch (err) {
+      console.log("❌ handleAddRecipe error:", err);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.home_addButton}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        
-        onPress={() => handleAddRecipe()}
-      >
-        <Icon name="plus-square-o" style={styles.home_addButtonText}/>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.home_search} onPress={() => navigation.navigate('Home', { userId })}>
+          <Icon name="search" style={styles.home_searchIcon}  />
+        </TouchableOpacity>
       
       <Text style={styles.header}>Your Recipes</Text>
       <FlatList
@@ -83,33 +69,7 @@ const HomeScreen = ({ navigation, route }) => {
         keyExtractor={(item) => item.id}
       />
 
-      {/* Nav Bar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navButton}  onPress={() => navigation.navigate('Home', { userId })}>
-          <Icon name="home" style={styles.navButtonIcon} />
-          <Text style={styles.navButtonText}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={() => handleAddRecipe()}>
-          <Icon name="plus-square-o" style={styles.navButtonIcon} />
-          <Text style={styles.navButtonText}>Add</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Home', { userId })}>
-          <Icon name="search" style={styles.navButtonIcon}  />
-          <Text style={styles.navButtonText}>Search</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Settings', { userId })}>
-          <Icon name="cogs" style={styles.navButtonIcon}  />
-          <Text style={styles.navButtonText}>Settings</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Home', { userId })}>
-          <Icon name="folder" style={styles.navButtonIcon} />
-          <Text style={styles.navButtonText}>Folders</Text>
-        </TouchableOpacity>
-      </View>
+      <NavigationBar navigation={navigation} userId={userId} onAddPress={handleAddRecipe} />
   
     </View>
   );

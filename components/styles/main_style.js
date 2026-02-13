@@ -40,18 +40,18 @@ const styles = StyleSheet.create({
       textAlign: 'center',
       fontWeight: 'bold',
     },
-    home_addButton: {
+    home_search: {
       position: 'absolute',
       top: 45, // leave space for status bar
       right: 10,
       backgroundColor: '#ffffffff',
-      paddingVertical: 10,
-      paddingHorizontal: 15,
+      paddingVertical: 20,
+      paddingHorizontal: 20,
       borderRadius: 5,
     },
-    home_addButtonText: {
+    home_searchIcon: {
       color: '#333',
-      fontSize: 24,
+      fontSize: 20,
       fontWeight: 'bold',
     },
     bottomNav: {
@@ -82,7 +82,10 @@ const styles = StyleSheet.create({
 //   Recipe Card Styles
     card_container: {
       flex: 1,
-      padding: 20,
+      paddingLeft: 20,
+      paddingRight: 20,
+      paddingTop: 40,
+      paddingBottom: 100,
       backgroundColor: '#fff',
     },
     card_header: {
@@ -90,26 +93,29 @@ const styles = StyleSheet.create({
       fontWeight: 'bold',
       textAlign: 'center',
       marginBottom: 20,
-      paddingTop: 20,
+      paddingTop: 60,
     },
     card_backButton: {
-      top: 50, // leave space for status bar
-      // padding: 10,
       zIndex: 10,
-      // backgroundColor: '#e0e0e0',
-      borderRadius: 6,
-      alignSelf: 'flex-start',   // aligns it to the left
-      // marginTop: 10,
-      // marginBottom: 10,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      // backgroundColor: '#e0e0e0',
-      // borderRadius: 4,
+      paddingTop: 5,
+      position: 'absolute',
+      top: 20,
+      left: -10,
     },
-    card_backButtonText: {
-      color: '#fff',
-      fontSize: 20,
-      fontWeight: 'bold',
+    card_backIcon: {
+      fontSize: 18,
+      color: '#333',
+    },
+    card_edit: {
+      zIndex: 10,
+      paddingTop: 5,
+      position: 'absolute',
+      top: 20,
+      right: 0,
+    },
+    card_editText: {
+      fontSize: 16,
+      color: '#333',
     },
     // Placeholders
     ingredientItems: {
@@ -130,8 +136,10 @@ const styles = StyleSheet.create({
 //   Edit Recipe Styles
     edit_container: {
       flexGrow: 1,
-      padding: 20,
-      paddingTop: 80,
+      paddingLeft: 20,
+      paddingRight: 20,
+      paddingTop: 40,
+      paddingBottom: 50,
       backgroundColor: '#fff',
     },
     edit_header: {
@@ -139,13 +147,18 @@ const styles = StyleSheet.create({
       fontWeight: 'bold',
       textAlign: 'center',
       marginBottom: 20,
+      paddingTop: 60,
     },
     edit_backButton: {
-      position: 'absolute',
-      top: 40,
-      left: 20,
-      padding: 10,
       zIndex: 10,
+      paddingTop: 10,
+      position: 'absolute',
+      top: 60,
+      left: 10,
+    },
+    edit_backButtonIcon: {
+      fontSize: 18,
+      color: '#333',
     },
     ingredients: {
       fontSize: 20,
@@ -167,10 +180,22 @@ const styles = StyleSheet.create({
       fontSize: 16,
       marginRight: 10,
     },
+    deleteRecipeButton: {
+      padding: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'absolute',
+      top: 60,
+      right: 10,
+    },
     deleteButton: {
       padding: 6,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    deleteButtonText: {
+       fontSize: 16,
+       color: '#900',
     },
     noItemsText: {
       fontStyle: 'italic',
@@ -183,6 +208,7 @@ const styles = StyleSheet.create({
       justifyContent: 'center',
       marginTop: 10,
       marginBottom: 20,
+      borderRadius: 20,
     },
     addButtonText: {
       color: '#0066cc',

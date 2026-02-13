@@ -40,10 +40,25 @@ const RecipeCard = ({ route, navigation }) => {
             style={styles.card_backButton}
             onPress={() => navigation.goBack()}
         >
-            <Text style={styles.bottomHugeButtonText}><Icon name="chevron-back" size={18} color="#333" /></Text>
+            <Text style={styles.bottomHugeButtonText}><Icon name="chevron-back" style={styles.card_backIcon}/></Text>
         </TouchableOpacity>
+
+        {/* Button to edit, temp */}
+      {/* <TouchableOpacity style={styles.deleteButton} onPress={() => navigation.navigate('EditRecipe', { userid: userId, recipe: recipe})}>
+            <Text style={styles.deleteButtonText}>Edit</Text>
+      </TouchableOpacity> */}
+      <TouchableOpacity
+        style={styles.card_edit}
+        onPress={() => navigation.navigate('EditRecipe', {
+          userId,
+          recipe: currentRecipe,
+          onGoBack: (updatedRecipe) => setCurrentRecipe(updatedRecipe),
+        })}
+      >
+        <Text style={styles.card_editText}>Edit</Text>
+      </TouchableOpacity>
         
-      <Text style={styles.header}>{recipeName}</Text>
+      <Text style={styles.card_header}>{recipeName}</Text>
       {/* <AddTodo onAddTodo={addTodo} /> */}
       <Text style={styles.subheading}>{"Ingredients"}</Text>
       {ingredients.length > 0 ? (
@@ -86,20 +101,8 @@ const RecipeCard = ({ route, navigation }) => {
       ) : (
         <Text style={{ color: '#888' }}>No items</Text>
       )}
-      {/* Button to edit, temp */}
-      {/* <TouchableOpacity style={styles.deleteButton} onPress={() => navigation.navigate('EditRecipe', { userid: userId, recipe: recipe})}>
-            <Text style={styles.deleteButtonText}>Edit</Text>
-      </TouchableOpacity> */}
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => navigation.navigate('EditRecipe', {
-          userId,
-          recipe: currentRecipe,
-          onGoBack: (updatedRecipe) => setCurrentRecipe(updatedRecipe),
-        })}
-      >
-        <Text style={styles.deleteButtonText}>Edit</Text>
-      </TouchableOpacity>
+      {/* Extra spacing */}
+      <Text style={styles.spacing}>{}</Text>
       <Text style={styles.spacing}>{}</Text>
     </ScrollView>
   );
