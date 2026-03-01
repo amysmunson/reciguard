@@ -1,12 +1,5 @@
-import { createRecipe, getRecipes } from '../../lib/api/recipes';
-
-export const addRecipeAndNavigate = async ({ navigation, onRecipesUpdated }) => {
-  const created = await createRecipe({ name: '' });
-
-  if (onRecipesUpdated) {
-    const updated = await getRecipes();
-    onRecipesUpdated(updated);
-  }
-
-  navigation.navigate('InputSelector', { recipeId: created.id });
+// Kicks off the "add a recipe" flow. Does NOT create a DB row — the row is
+// only inserted when the user hits Save in EditRecipe.
+export const startNewRecipe = ({ navigation }) => {
+  navigation.navigate('InputSelector');
 };
