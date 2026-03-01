@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 
 const PrivacyPolicy = ({ navigation }) => (
   <View style={{ flex: 1, backgroundColor: '#fff' }}>

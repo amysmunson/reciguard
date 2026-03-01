@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 import { getRecipe } from '../lib/api/recipes';
 
 const RecipeCard = ({ route, navigation }) => {

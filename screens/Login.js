@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 import { signIn } from '../lib/api/auth';
 
 const Login = ({ navigation }) => {

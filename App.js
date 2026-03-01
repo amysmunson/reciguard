@@ -1,63 +1,73 @@
-import React, { useEffect , useState } from 'react';
+import React from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import HomeScreen from './components/HomeScreen';
-import RecipeCard from './components/RecipeCard';
-import EditRecipe from './components/EditRecipe';
-import InputSelector from './components/InputSelector';
-import Settings from './components/Settings';
-import { createTables, seedDatabase, deleteDatabase } from './database/db';
 
-export default function App() {
-  const Stack = createStackNavigator();
-  const userId = "1234"; // TODO: Replace with real auth later
+import { AuthProvider, useAuth } from './lib/auth-context';
 
-  const [dbReady, setDbReady] = useState(false); 
+import Landing from './screens/Landing';
+import Login from './screens/Login';
+import SignUp from './screens/SignUp';
+import PrivacyPolicy from './screens/PrivacyPolicy';
 
+import Home from './screens/Home';
+import RecipeCard from './screens/RecipeCard';
+import EditRecipe from './screens/EditRecipe';
+import InputSelector from './screens/InputSelector';
+import Settings from './screens/Settings';
+import Folders from './screens/Folders';
+import FolderDetail from './screens/FolderDetail';
+import Friends from './screens/Friends';
+import FriendProfile from './screens/FriendProfile';
 
-  useEffect(() => {
-  const initDB = async () => {
-    try {
-      await deleteDatabase();
-      console.log("🔹 Initializing DB...");
-      await createTables();
-      
-      await seedDatabase(userId); // test user
-      setDbReady(true); 
-      console.log("✅ DB ready");
-    } catch (err) {
-      console.log("❌ DB init error:", err);
-    }
-  };
-    initDB();
-  }, []);
+const Stack = createStackNavigator();
 
-  if (!dbReady) {
-    // Simple loading screen
+const AuthStack = () => (
+  <Stack.Navigator initialRouteName="Landing" screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Landing" component={Landing} />
+    <Stack.Screen name="Login" component={Login} />
+    <Stack.Screen name="SignUp" component={SignUp} />
+    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+  </Stack.Navigator>
+);
+
+const AppStack = () => (
+  <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Home" component={Home} options={{ animation: 'none' }} />
+    <Stack.Screen name="RecipeCard" component={RecipeCard} />
+    <Stack.Screen name="EditRecipe" component={EditRecipe} />
+    <Stack.Screen name="InputSelector" component={InputSelector} />
+    <Stack.Screen name="Folders" component={Folders} options={{ animation: 'none' }} />
+    <Stack.Screen name="FolderDetail" component={FolderDetail} />
+    <Stack.Screen name="Friends" component={Friends} options={{ animation: 'none' }} />
+    <Stack.Screen name="FriendProfile" component={FriendProfile} />
+    <Stack.Screen name="Settings" component={Settings} options={{ animation: 'none' }} />
+    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+  </Stack.Navigator>
+);
+
+const RootNavigator = () => {
+  const { session, loading } = useAuth();
+
+  if (loading) {
     return (
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen
-            name="Loading"
-            component={() => <></>}
-            options={{ headerShown: false }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator />
+      </View>
     );
   }
 
-
-
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen name="Home" component={HomeScreen} initialParams={{ userId }} options={{ headerShown: false, animation: 'none'  }} />
-        <Stack.Screen name="RecipeCard" component={RecipeCard} initialParams={{ userId }} options={{ headerShown: false }}/>
-        <Stack.Screen name="EditRecipe" component={EditRecipe} initialParams={{ userId }} options={{ headerShown: false }}/>
-        <Stack.Screen name="InputSelector" component={InputSelector} initialParams={{ userId }} options={{ headerShown: false }}/>
-        <Stack.Screen name="Settings" component={Settings} initialParams={{ userId }} options={{ headerShown: false, animation: 'none' }}/>
-      </Stack.Navigator>
+      {session ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
+  );
+};
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
   );
 }

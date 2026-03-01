@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useFocusEffect } from '@react-navigation/native';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
 import { getFolders, createFolder } from '../lib/api/folders';
 import { addRecipeAndNavigate } from '../components/utils/addRecipe';

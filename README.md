@@ -18,3 +18,7 @@ Highlight bottom bar based on where you are?
 
 
  WARN  Looks like you're passing an inline function for 'component' prop for the screen 'Loading' (e.g. component={() => <SomeComponent />}). Passing an inline function will cause the component state to be lost on re-render and cause perf issues since it's re-created every render. You can pass the function as children to 'Screen' instead to achieve the desired behaviour.
+
+
+ ## Supabase
+ - Email confirmation is currently disabled:  Auth → Providers → Email → "Confirm email" → Off

@@ -1,25 +1,12 @@
-import { getRecipes, saveRecipe } from '../../database/db';
+import { createRecipe, getRecipes } from '../../lib/api/recipes';
 
-const createEmptyRecipe = () => ({
-  name: '',
-  id: `temp-${Date.now()}`,
-  ingredients: [],
-  steps: [],
-  authorNotes: [],
-  userNotes: [],
-});
-
-const addRecipeAndNavigate = async ({ userId, navigation, onRecipesUpdated }) => {
-  const newItem = createEmptyRecipe();
-
-  await saveRecipe(userId, newItem);
+export const addRecipeAndNavigate = async ({ navigation, onRecipesUpdated }) => {
+  const created = await createRecipe({ name: '' });
 
   if (onRecipesUpdated) {
-    const updatedRecipes = await getRecipes(userId);
-    onRecipesUpdated(updatedRecipes);
+    const updated = await getRecipes();
+    onRecipesUpdated(updated);
   }
 
-  navigation.navigate('InputSelector', { newItem, userId });
+  navigation.navigate('InputSelector', { recipeId: created.id });
 };
-
-export { addRecipeAndNavigate };

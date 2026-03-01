@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 import { getFolder, getRecipesInFolder, deleteFolder } from '../lib/api/folders';
 
 const FolderDetail = ({ route, navigation }) => {

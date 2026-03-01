@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
 import { useAuth } from '../lib/auth-context';
 import { signOut, deleteAccount } from '../lib/api/auth';

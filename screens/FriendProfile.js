@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 import { getFriend, updateFriend, deleteFriend } from '../lib/api/friends';
 import { getFriendAllergies, addAllergy, deleteAllergy } from '../lib/api/allergies';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 
 const Landing = ({ navigation }) => (
   <View style={styles.landing_container}>

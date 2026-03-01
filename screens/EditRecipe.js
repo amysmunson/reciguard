@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import styles from '../components/styles/main_style';
+import styles from '../styles/main_style';
 import { getRecipe, updateRecipe, deleteRecipe } from '../lib/api/recipes';
 
 const EditRecipe = ({ route, navigation }) => {
