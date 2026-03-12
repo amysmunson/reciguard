@@ -1,4 +1,5 @@
 import { StyleSheet, Dimensions } from 'react-native';
+import { colors } from './theme';
 
 // This will need to change if you want the number of columns to be dependent on screen size
 const screenWidth = Dimensions.get('window').width;
@@ -14,7 +15,7 @@ const styles = StyleSheet.create({
       padding: itemMargin / 2,
       paddingTop: 70,
       paddingBottom: 20,
-      backgroundColor: '#fff',
+      backgroundColor: colors.background,
     },
     header: {
       fontSize: 24,
@@ -23,15 +24,130 @@ const styles = StyleSheet.create({
       marginBottom: 20,
       marginTop: 20,
     },
+
+
+    // === Buttons =========================================================
+    // Compose on the TouchableOpacity:
+    //   [button_base, button_fullWidth?, button_<variant>]
+    // and on the Text inside:
+    //   [buttonText_base, buttonText_<variant>]
+    // For one-off tweaks (extra margin, smaller padding, custom color) pass
+    // an inline style object as the last array element on either side.
+
+    // Shared button shape — padding, radius, alignment.
+    button_base: {
+      paddingVertical: 16,
+      borderRadius: 10,
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    // Opt-in full-width modifier. Apply when the button should stretch to
+    // its container; omit for inline/auto-width buttons.
+    button_fullWidth: {
+      width: '100%',
+    },
+    // Background variants — pick ONE per button.
+    button_primary: {
+      backgroundColor: colors.primary,
+    },
+    button_secondary: {
+      backgroundColor: colors.tertiary,
+    },
+    // Auth-screen primary — darker brand blue with extra bottom margin to
+    // separate from the "switch to Sign in/up" link beneath it.
+    button_authPrimary: {
+      backgroundColor: colors.primary,
+      marginTop: 10,
+      marginBottom: 20,
+    },
+
+    // Shared button label shape — font size + weight.
+    buttonText_base: {
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    // Label color variants — match to the background variant above.
+    buttonText_onPrimary: {
+      color: colors.textOnPrimary,
+    },
+    buttonText_onSecondary: {
+      color: colors.primary,
+    },
+    buttonText_onAuthPrimary: {
+      color: colors.textOnPrimary,
+    },
+
+    // --- Link-style buttons (text-only, no fill) -------------------------
+    // Compose: [button_link] + [buttonText_link] (or buttonText_authLink).
+    button_link: {
+      padding: 8,
+      alignSelf: 'center',
+    },
+    // Default link label — small, underlined, link color.
+    buttonText_link: {
+      color: colors.link,
+      fontSize: 14,
+      textDecorationLine: 'underline',
+    },
+    // Auth "Already have an account? / Don't have one?" link — centered,
+    // no underline, body-sized so it doesn't look like a footnote.
+    buttonText_authLink: {
+      color: colors.link,
+      textAlign: 'center',
+    },
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     listItem: {
       width: itemSize,
       height: itemSize,    // force square shape
       margin: itemMargin / 2,
-      backgroundColor: '#f4f4f4',
+      backgroundColor: colors.surface,
       borderRadius: 5,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#000',
+      shadowColor: colors.shadowColor,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 3,
@@ -44,13 +160,13 @@ const styles = StyleSheet.create({
       position: 'absolute',
       top: 45, // leave space for status bar
       right: 10,
-      backgroundColor: '#ffffffff',
+      backgroundColor: colors.background,
       paddingVertical: 20,
       paddingHorizontal: 20,
       borderRadius: 5,
     },
     home_searchIcon: {
-      color: '#333',
+      color: colors.textSecondary,
       fontSize: 20,
       fontWeight: 'bold',
     },
@@ -58,10 +174,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: '#ccc',
+    borderTopColor: colors.borderInput,
     },
     navButton: {
         justifyContent: 'center',
@@ -70,23 +186,26 @@ const styles = StyleSheet.create({
     },
     navButtonText: {
         fontSize: 10,
-        color: '#333',
+        color: colors.textSecondary,
         textAlign: 'center',
     },
     navButtonIcon: {
         fontSize: 24,
-        color: '#333',
+        color: colors.textSecondary,
+        fontWeight: 'bold',
     },
     navButtonIconActive: {
-        color: '#0066cc',
+        color: colors.primary,
     },
+    // Active tab — only color changes. Don't add fontWeight/size here:
+    // bolding shifts label widths and space-around redistributes the row,
+    // causing every other icon to nudge sideways on press.
     navButtonTextActive: {
-        color: '#0066cc',
-        fontWeight: 'bold',
+        color: colors.primary,
     },
     emptyText: {
         textAlign: 'center',
-        color: '#888',
+        color: colors.textMuted,
         marginTop: 20,
         fontStyle: 'italic',
     },
@@ -99,7 +218,7 @@ const styles = StyleSheet.create({
       paddingRight: 20,
       paddingTop: 40,
       paddingBottom: 100,
-      backgroundColor: '#fff',
+      backgroundColor: colors.background,
     },
     card_header: {
       fontSize: 24,
@@ -107,6 +226,17 @@ const styles = StyleSheet.create({
       textAlign: 'center',
       marginBottom: 20,
       paddingTop: 60,
+    },
+    // Centered title row; link icon (if present) sits to the right of the title.
+    card_headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'flex-end',
+    },
+    card_sourceLink: {
+      paddingHorizontal: 8,
+      paddingBottom: 22,
+      marginLeft: 4,
     },
     card_backButton: {
       zIndex: 10,
@@ -117,7 +247,7 @@ const styles = StyleSheet.create({
     },
     card_backIcon: {
       fontSize: 18,
-      color: '#333',
+      color: colors.textSecondary,
     },
     card_edit: {
       zIndex: 10,
@@ -128,13 +258,13 @@ const styles = StyleSheet.create({
     },
     card_editText: {
       fontSize: 16,
-      color: '#333',
+      color: colors.textSecondary,
     },
     // Placeholders
     ingredientItems: {
       fontSize: 16,
       marginVertical: 5,
-      color: '#333',
+      color: colors.textSecondary,
     },
     subheading: {
       fontSize: 20,
@@ -153,7 +283,7 @@ const styles = StyleSheet.create({
       paddingRight: 20,
       paddingTop: 40,
       paddingBottom: 50,
-      backgroundColor: '#fff',
+      backgroundColor: colors.background,
     },
     edit_header: {
       fontSize: 24,
@@ -164,7 +294,7 @@ const styles = StyleSheet.create({
     },
     edit_nameInput: {
       borderBottomWidth: 1,
-      borderBottomColor: '#eee',
+      borderBottomColor: colors.border,
       paddingBottom: 6,
     },
     edit_backButton: {
@@ -176,7 +306,7 @@ const styles = StyleSheet.create({
     },
     edit_backButtonIcon: {
       fontSize: 18,
-      color: '#333',
+      color: colors.textSecondary,
     },
     ingredients: {
       fontSize: 20,
@@ -191,7 +321,7 @@ const styles = StyleSheet.create({
     input: {
       flex: 1,
       borderWidth: 1,
-      borderColor: '#ccc',
+      borderColor: colors.borderInput,
       paddingVertical: 10,
       paddingHorizontal: 15,
       borderRadius: 6,
@@ -215,11 +345,11 @@ const styles = StyleSheet.create({
     },
     deleteButtonText: {
        fontSize: 16,
-       color: '#900',
+       color: colors.danger,
     },
     noItemsText: {
       fontStyle: 'italic',
-      color: '#888',
+      color: colors.textMuted,
       marginBottom: 12,
     },
     addButton: {
@@ -231,7 +361,7 @@ const styles = StyleSheet.create({
       borderRadius: 20,
     },
     addButtonText: {
-      color: '#0066cc',
+      color: colors.link,
       fontSize: 18,
       marginLeft: 6,
     },
@@ -246,11 +376,11 @@ const styles = StyleSheet.create({
     inputContainer: {
       flex: 1,
       padding: itemMargin / 2,
-      backgroundColor: '#fff',
+      backgroundColor: colors.background,
       justifyContent: 'center',
     },
     inputButton: {
-        backgroundColor: '#aecbe7ff',
+        backgroundColor: colors.primarySoft,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -260,7 +390,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     inputButtonText: {
-        color: '#000000ff',
+        color: colors.text,
       fontSize: 24,
       textAlign: 'center',
     },
@@ -272,72 +402,110 @@ const styles = StyleSheet.create({
         height: 75,
         alignSelf: 'center',
         justifyContent: 'center',
-        backgroundColor: '#0e264dff',
+        backgroundColor: colors.primary,
     },
     cancelButtonText: {
-        color: '#ffffffff',
+        color: colors.textOnPrimary,
         fontSize: 24,
         textAlign: 'center',
+    },
+
+//   Link Entry (InputSelector "From link" mode)
+    linkEntry_container: {
+      flex: 1,
+      paddingHorizontal: 24,
+      paddingTop: 80,
+      backgroundColor: colors.background,
+    },
+    linkEntry_title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    linkEntry_hint: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginBottom: 24,
+      lineHeight: 20,
+    },
+    linkEntry_input: {
+      borderWidth: 1,
+      borderColor: colors.borderInput,
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: colors.text,
+      marginBottom: 8,
+    },
+    linkEntry_error: {
+      color: colors.danger,
+      fontSize: 14,
+      marginBottom: 12,
+    },
+    linkEntry_fetchButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 12,
+    },
+    linkEntry_fetchButtonText: {
+      color: colors.textOnPrimary,
+      fontSize: 17,
+      fontWeight: 'bold',
+    },
+    linkEntry_backButton: {
+      paddingVertical: 12,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    linkEntry_backText: {
+      color: colors.link,
+      fontSize: 15,
     },
 
 //   Landing Styles
     landing_container: {
       flex: 1,
-      backgroundColor: '#fff',
+      backgroundColor: colors.background,
       paddingHorizontal: 30,
+    },
+    landing_overlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.overlayLight,
+    },
+    landing_titleArea: {
+      flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    landing_actions: {
+      paddingBottom: 40,
+      width: '100%',
     },
     landing_title: {
       fontSize: 48,
       fontWeight: 'bold',
       marginBottom: 8,
-      color: '#0e264dff',
+      color: colors.text,
+      textAlign: 'center',
     },
     landing_subtitle: {
       fontSize: 16,
-      color: '#666',
-      marginBottom: 60,
-    },
-    landing_primaryButton: {
-      width: '100%',
-      backgroundColor: '#0e264dff',
-      paddingVertical: 16,
-      borderRadius: 10,
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    landing_primaryButtonText: {
-      color: '#fff',
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-    landing_secondaryButton: {
-      width: '100%',
-      backgroundColor: '#f4f4f4',
-      paddingVertical: 16,
-      borderRadius: 10,
-      alignItems: 'center',
-      marginBottom: 24,
-    },
-    landing_secondaryButtonText: {
-      color: '#0e264dff',
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-    landing_link: {
-      padding: 8,
-    },
-    landing_linkText: {
-      color: '#666',
-      fontSize: 14,
-      textDecorationLine: 'underline',
+      color: colors.text,
+      textAlign: 'center',
     },
 
 //   Auth (Login / SignUp) Styles
     auth_container: {
       flex: 1,
-      backgroundColor: '#fff',
+      backgroundColor: colors.background,
       paddingHorizontal: 30,
       paddingTop: 100,
     },
@@ -350,7 +518,7 @@ const styles = StyleSheet.create({
     },
     auth_backIcon: {
       fontSize: 24,
-      color: '#333',
+      color: colors.textSecondary,
     },
     auth_title: {
       fontSize: 32,
@@ -360,31 +528,17 @@ const styles = StyleSheet.create({
     },
     auth_input: {
       borderWidth: 1,
-      borderColor: '#ccc',
+      borderColor: colors.borderInput,
       borderRadius: 8,
       paddingVertical: 12,
       paddingHorizontal: 14,
       fontSize: 16,
       marginBottom: 12,
     },
-    auth_primaryButton: {
-      backgroundColor: '#0e264dff',
-      paddingVertical: 16,
-      borderRadius: 10,
-      alignItems: 'center',
-      marginTop: 10,
-      marginBottom: 20,
-    },
-    auth_primaryButtonText: {
-      color: '#fff',
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-    auth_link: {
-      color: '#0066cc',
-      textAlign: 'center',
-      paddingVertical: 8,
-    },
+    // Auth-specific button/link styles live in the Buttons block above:
+    //   primary CTA  → [button_base, button_fullWidth, button_authPrimary]
+    //                  + [buttonText_base, buttonText_onAuthPrimary]
+    //   switch link  → [button_link] + [buttonText_authLink]
 
 //   Privacy Policy Styles
     policy_container: {
@@ -397,7 +551,7 @@ const styles = StyleSheet.create({
       marginBottom: 4,
     },
     policy_updated: {
-      color: '#888',
+      color: colors.textMuted,
       marginBottom: 20,
     },
     policy_heading: {
@@ -409,14 +563,14 @@ const styles = StyleSheet.create({
     policy_body: {
       fontSize: 15,
       lineHeight: 22,
-      color: '#333',
+      color: colors.textSecondary,
     },
 
 //   Settings Row Styles
     settings_email: {
       paddingHorizontal: 20,
       paddingVertical: 10,
-      color: '#666',
+      color: colors.textTertiary,
     },
     settings_row: {
       flexDirection: 'row',
@@ -425,24 +579,24 @@ const styles = StyleSheet.create({
       paddingHorizontal: 20,
       paddingVertical: 16,
       borderBottomWidth: 1,
-      borderBottomColor: '#eee',
+      borderBottomColor: colors.border,
     },
     settings_rowText: {
       fontSize: 16,
-      color: '#333',
+      color: colors.textSecondary,
     },
 
 //   Modal Styles
     modal_backdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.4)',
+      backgroundColor: colors.scrim,
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: 30,
     },
     modal_card: {
       width: '100%',
-      backgroundColor: '#fff',
+      backgroundColor: colors.background,
       borderRadius: 12,
       padding: 20,
     },
