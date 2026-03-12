@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
+import { colors } from '../styles/theme';
 import { signIn } from '../lib/api/auth';
 
 const Login = ({ navigation }) => {
@@ -32,36 +33,38 @@ const Login = ({ navigation }) => {
 
       <Text style={styles.auth_title}>Sign In</Text>
 
-      <TextInput
-        style={styles.auth_input}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.auth_input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <View style={{ width: '100%', paddingBottom: 16 }}>
+        <TextInput
+          style={styles.auth_input}
+          placeholder="Email"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={styles.auth_input}
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+      </View>
 
       <TouchableOpacity
-        style={styles.auth_primaryButton}
+        style={[styles.button_base, styles.button_fullWidth, styles.button_authPrimary]}
         onPress={handleSignIn}
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.textOnPrimary} />
         ) : (
-          <Text style={styles.auth_primaryButtonText}>Sign In</Text>
+          <Text style={[styles.buttonText_base, styles.buttonText_onAuthPrimary]}>Sign In</Text>
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-        <Text style={styles.auth_link}>Don&apos;t have an account? Sign up</Text>
+      <TouchableOpacity style={styles.button_link} onPress={() => navigation.replace('SignUp')}>
+        <Text style={styles.buttonText_authLink}>Don&apos;t have an account? Sign up</Text>
       </TouchableOpacity>
     </View>
   );
