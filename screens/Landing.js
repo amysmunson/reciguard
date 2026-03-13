@@ -1,33 +1,43 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground } from 'react-native';
 import styles from '../styles/main_style';
+import LandingCard from '../components/LandingCard';
+import colors from '../styles/theme';
+
 
 const Landing = ({ navigation }) => (
-  <View style={styles.landing_container}>
-    <Text style={styles.landing_title}>Recipes</Text>
-    <Text style={styles.landing_subtitle}>Your shared recipe book.</Text>
+  <ImageBackground
+    source={require('../assets/images/watermelon.webp')}
+    style={styles.landing_container}
+    resizeMode="cover"
+  >
+    <View style={styles.landing_overlay} />
 
-    <TouchableOpacity
-      style={styles.landing_primaryButton}
-      onPress={() => navigation.navigate('Login')}
-    >
-      <Text style={styles.landing_primaryButtonText}>Sign In</Text>
-    </TouchableOpacity>
+    {/* Title block — vertically centered in the upper area */}
+    <View style={styles.landing_titleArea}>
+      <LandingCard width={300}>
+        <Text style={styles.landing_title}>RecipeGuard</Text>
+        <Text style={styles.landing_subtitle}>Your shared recipe book.</Text>
+      </LandingCard>
+    </View>
 
-    <TouchableOpacity
-      style={styles.landing_secondaryButton}
-      onPress={() => navigation.navigate('SignUp')}
-    >
-      <Text style={styles.landing_secondaryButtonText}>Create Account</Text>
-    </TouchableOpacity>
+    {/* Action stack — pinned to the bottom */}
+    <View style={styles.landing_actions}>
+      <TouchableOpacity
+        style={[styles.button_base, styles.button_fullWidth, styles.button_primary]}
+        onPress={() => navigation.navigate('Login')}
+      >
+        <Text style={[styles.buttonText_base, styles.buttonText_onPrimary]}>Sign In</Text>
+      </TouchableOpacity>
 
-    <TouchableOpacity
-      style={styles.landing_link}
-      onPress={() => navigation.navigate('PrivacyPolicy')}
-    >
-      <Text style={styles.landing_linkText}>Privacy Policy</Text>
-    </TouchableOpacity>
-  </View>
+      <TouchableOpacity
+        style={[styles.button_base, styles.button_fullWidth, styles.button_secondary]}
+        onPress={() => navigation.navigate('SignUp')}
+      >
+        <Text style={[styles.buttonText_base, styles.buttonText_onSecondary]}>Create Account</Text>
+      </TouchableOpacity>
+    </View>
+  </ImageBackground>
 );
 
 export default Landing;
