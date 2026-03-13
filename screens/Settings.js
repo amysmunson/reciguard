@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
+import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
 import { useAuth } from '../lib/auth-context';
 import { signOut, deleteAccount } from '../lib/api/auth';
@@ -62,8 +63,7 @@ const Settings = ({ navigation }) => {
 
   const Row = ({ label, onPress, danger }) => (
     <TouchableOpacity style={styles.settings_row} onPress={onPress}>
-      <Text style={[styles.settings_rowText, danger && { color: '#c00' }]}>{label}</Text>
-      <Icon name="chevron-forward" size={20} color={danger ? '#c00' : '#888'} />
+      <Text style={[styles.settings_rowText, danger && { color: colors.danger }]}>{label}</Text>
     </TouchableOpacity>
   );
 
@@ -71,11 +71,14 @@ const Settings = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.header}>Settings</Text>
 
-      <ScrollView style={{ flex: 1 }}>
-        {user?.email && (
-          <Text style={styles.settings_email}>Signed in as {user.email}</Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
+        {user?.user_metadata?.name ? (
+          <Text style={styles.settings_email}>Signed in as {user.user_metadata.name}</Text>
+        ) : (
+          <Text style={styles.settings_email}>Signed in as {user?.email}</Text>
         )}
 
+        <Row label="Your Profile" onPress={() => navigation.navigate('Profile')} />
         <Row label="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
         <Row label="Sign Out" onPress={handleSignOut} />
         <Row label="Delete Account" onPress={handleDeleteAccount} danger />
