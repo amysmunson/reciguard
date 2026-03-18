@@ -19,6 +19,7 @@ import Folders from './screens/Folders';
 import FolderDetail from './screens/FolderDetail';
 import Friends from './screens/Friends';
 import FriendProfile from './screens/FriendProfile';
+import Profile from './screens/Profile';
 
 const Stack = createStackNavigator();
 
@@ -41,6 +42,7 @@ const AppStack = () => (
     <Stack.Screen name="FolderDetail" component={FolderDetail} />
     <Stack.Screen name="Friends" component={Friends} options={{ animation: 'none' }} />
     <Stack.Screen name="FriendProfile" component={FriendProfile} />
+    <Stack.Screen name="Profile" component={Profile} />
     <Stack.Screen name="Settings" component={Settings} options={{ animation: 'none' }} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
   </Stack.Navigator>
