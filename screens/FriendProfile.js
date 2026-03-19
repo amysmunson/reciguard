@@ -28,10 +28,10 @@ const FriendProfile = ({ route, navigation }) => {
     load();
   }, [load]);
 
-  const handleSaveNotes = async () => {
+  const handleSave = async () => {
     try {
-      await updateFriend(friendshipId, {
-        friendName: friend.friendName,
+      const updated = await updateFriend(friendshipId, {
+        friendName: name,
         friendNotes: notes,
       });
       Alert.alert('Saved');
