@@ -7,27 +7,43 @@ import {
   Alert,
   Modal,
   TextInput,
+  Pressable,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import FAIcon from 'react-native-vector-icons/FontAwesome';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
+import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import { getFriends, addFriend } from '../lib/api/friends';
-import { addRecipeAndNavigate } from '../components/utils/addRecipe';
+import PlusIcon from '../components/icons/PlusIcon';
+import { useAuth } from '../lib/auth-context';
+import {
+  getFriends,
+  addFriend,
+  addFriendByCode,
+  friendDisplayName,
+} from '../lib/api/friends';
+import { getMyProfile } from '../lib/api/profile';
+import { startNewRecipe } from '../components/utils/addRecipe';
+
+// Strip non-alphanumeric, uppercase, max 8 chars.
+const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 
 const Friends = ({ navigation }) => {
+  const { user } = useAuth();
   const [friends, setFriends] = useState([]);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
 
   const load = useCallback(async () => {
     try {
-      const list = await getFriends();
+      const [list, profile] = await Promise.all([getFriends(), getMyProfile()]);
       setFriends(list);
+      setMyName(profile?.name?.trim() || user?.email || 'Me');
     } catch (err) {
       Alert.alert('Could not load friends', err.message ?? 'Unknown error');
     }
-  }, []);
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
