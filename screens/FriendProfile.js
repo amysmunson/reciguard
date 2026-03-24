@@ -34,25 +34,95 @@ const FriendProfile = ({ route, navigation }) => {
         friendName: name,
         friendNotes: notes,
       });
+      setFriend(updated);
+      setIsEditing(false);
       Alert.alert('Saved');
     } catch (err) {
       Alert.alert('Could not save', err.message ?? 'Unknown error');
     }
   };
 
-  const handleAddAllergy = async () => {
-    if (!newAllergy.trim()) return;
+  const handleCancel = () => {
+    setIsEditing(false);
+    load(); // revert any in-flight edits
+  };
+
+  const handleLink = async () => {
+    const code = normalizeCode(codeInput);
+    if (code.length !== 8) {
+      Alert.alert('Bad code', 'A friend code is 8 characters.');
+      return;
+    }
     try {
-      await addAllergy({
-        name: newAllergy.trim(),
-        friendId: friendshipId,
-        userCustom: true,
-      });
-      setNewAllergy('');
-      const a = await getFriendAllergies(friendshipId);
-      setAllergies(a);
+      setBusy(true);
+      const updated = await linkFriendByCode({ friendshipId, code });
+      setFriend(updated);
+      setName(updated.friendName ?? '');
+      setLinkModalOpen(false);
+      setCodeInput('');
+      load();
     } catch (err) {
-      Alert.alert('Could not add allergy', err.message ?? 'Unknown error');
+      Alert.alert('Could not link', err.message ?? 'Unknown error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleUnlink = () => {
+    Alert.alert(
+      'Unlink this friend?',
+      "Their profile data won't update for you anymore, but your notes and allergies stay.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unlink',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const updated = await unlinkFriend(friendshipId);
+              setFriend(updated);
+              setTheirAllergies([]);
+            } catch (err) {
+              Alert.alert('Could not unlink', err.message ?? 'Unknown error');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleAddBatch = async ({ items, severity }) => {
+    if (!items?.length) return;
+    try {
+      await Promise.all(
+        items.map(({ name, userCustom }) =>
+          addAllergy({
+            name,
+            severity,
+            friendId: friendshipId,
+            userCustom,
+          })
+        )
+      );
+      const updated = await getFriendAllergies(friendshipId);
+      setAllergies(updated);
+    } catch (err) {
+      Alert.alert('Could not add allergies', err.message ?? 'Unknown error');
+    }
+  };
+
+  const handleCycleSeverity = async (allergy) => {
+    const order = ['unknown', 'mild', 'moderate', 'severe'];
+    const current = normalizeSeverity(allergy.severity);
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    const dbValue = next === 'unknown' ? null : next;
+    try {
+      await updateAllergySeverity(allergy.id, dbValue);
+      setAllergies((prev) =>
+        prev.map((a) => (a.id === allergy.id ? { ...a, severity: dbValue } : a))
+      );
+    } catch (err) {
+      Alert.alert('Could not update severity', err.message ?? 'Unknown error');
     }
   };
 
