@@ -17,8 +17,14 @@ import { addRecipeAndNavigate } from '../components/utils/addRecipe';
 
 const Friends = ({ navigation }) => {
   const [friends, setFriends] = useState([]);
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState('');
+  const [myName, setMyName] = useState('');
+
+  // Modal state. Step "choose" picks path; "code" enters friend code;
+  // "manual" enters a name for an off-platform friend.
+  const [modalStep, setModalStep] = useState(null); // null | 'choose' | 'code' | 'manual'
+  const [codeInput, setCodeInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -35,82 +41,200 @@ const Friends = ({ navigation }) => {
     }, [load])
   );
 
-  const handleAdd = async () => {
-    if (!newName.trim()) return;
+  const closeModal = () => {
+    setModalStep(null);
+    setCodeInput('');
+    setNameInput('');
+    setBusy(false);
+  };
+
+  const handleAddByCode = async () => {
+    const code = normalizeCode(codeInput);
+    if (code.length !== 8) {
+      Alert.alert('Bad code', 'A friend code is 8 characters.');
+      return;
+    }
     try {
-      await addFriend({ friendName: newName.trim() });
-      setNewName('');
-      setAdding(false);
+      setBusy(true);
+      const friend = await addFriendByCode(code);
+      closeModal();
+      load();
+      Alert.alert('Added', `Linked to ${friendDisplayName(friend)}.`);
+    } catch (err) {
+      Alert.alert('Could not add by code', err.message ?? 'Unknown error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAddManual = async () => {
+    if (!nameInput.trim()) return;
+    try {
+      setBusy(true);
+      await addFriend({ friendName: nameInput.trim() });
+      closeModal();
       load();
     } catch (err) {
       Alert.alert('Could not add friend', err.message ?? 'Unknown error');
+    } finally {
+      setBusy(false);
     }
   };
 
-  const handleAddRecipe = async () => {
-    try {
-      await addRecipeAndNavigate({ navigation });
-    } catch (err) {
-      Alert.alert('Could not create recipe', err.message ?? 'Unknown error');
-    }
+  const handleAddRecipe = () => {
+    startNewRecipe({ navigation });
   };
-
-  const displayName = (f) => f.linkedProfile?.name || f.friendName || 'Unnamed';
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.home_search} onPress={() => setAdding(true)}>
-        <Icon name="plus" style={styles.home_searchIcon} />
+      <TouchableOpacity style={styles.home_search} onPress={() => setModalStep('choose')}>
+        <PlusIcon size={22} color={colors.textSecondary} />
       </TouchableOpacity>
 
       <Text style={styles.header}>Friends</Text>
 
       <FlatList
+        style={styles.friends_list}
         data={friends}
-        renderItem={({ item }) => (
+        ListHeaderComponent={
           <TouchableOpacity
-            style={styles.settings_row}
-            onPress={() => navigation.navigate('FriendProfile', { friendshipId: item.id })}
+            style={[styles.settings_row, styles.friends_meRow]}
+            onPress={() => navigation.navigate('Profile')}
           >
-            <Text style={styles.settings_rowText}>{displayName(item)}</Text>
-            <Icon name="chevron-right" size={14} color="#888" />
+            <Text style={[styles.settings_rowText, { fontWeight: 'bold' }]}>
+              {myName} (you)
+            </Text>
           </TouchableOpacity>
-        )}
+        }
+        renderItem={({ item }) => {
+          const linked = !!item.existingFriendId;
+          return (
+            <TouchableOpacity
+              style={styles.settings_row}
+              onPress={() => navigation.navigate('FriendProfile', { friendshipId: item.id })}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Text style={styles.settings_rowText}>{friendDisplayName(item)}</Text>
+                {linked && (
+                  <View style={styles.linkBadge}>
+                    <Ionicons name="link" size={12} color={colors.textOnPrimary} />
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No friends yet. Tap + to add one.</Text>
         }
       />
 
-      <Modal visible={adding} transparent animationType="fade">
-        <View style={styles.modal_backdrop}>
-          <View style={styles.modal_card}>
-            <Text style={styles.modal_title}>Add Friend</Text>
-            <TextInput
-              style={styles.auth_input}
-              placeholder="Friend's name"
-              value={newName}
-              onChangeText={setNewName}
-              autoFocus
-            />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-              <TouchableOpacity
-                style={styles.modal_button}
-                onPress={() => {
-                  setAdding(false);
-                  setNewName('');
-                }}
-              >
-                <Text style={styles.modal_buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modal_button} onPress={handleAdd}>
-                <Text style={[styles.modal_buttonText, { color: '#0066cc', fontWeight: 'bold' }]}>
-                  Add
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+      <Modal
+        visible={!!modalStep}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
+        <Pressable style={styles.modal_backdrop} onPress={closeModal}>
+          <Pressable style={styles.modal_card} onPress={() => {}}>
+            {modalStep === 'choose' && (
+              <>
+                <Text style={styles.modal_title}>Add Friend</Text>
+                <TouchableOpacity
+                  style={styles.addChoice_button}
+                  onPress={() => setModalStep('code')}
+                >
+                  <Ionicons name="key-outline" size={22} color={colors.link} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.addChoice_title}>By friend code</Text>
+                    <Text style={styles.addChoice_subtitle}>
+                      Link an existing user with the code they shared.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.addChoice_button}
+                  onPress={() => setModalStep('manual')}
+                >
+                  <Ionicons name="person-add-outline" size={22} color={colors.link} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.addChoice_title}>Manually</Text>
+                    <Text style={styles.addChoice_subtitle}>
+                      Add an off-platform contact with a name only.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modal_button} onPress={closeModal}>
+                  <Text style={styles.modal_buttonText}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {modalStep === 'code' && (
+              <>
+                <Text style={styles.modal_title}>Enter Friend Code</Text>
+                <TextInput
+                  style={[styles.auth_input, styles.codeInput]}
+                  placeholder="ABCD-EFGH"
+                  value={codeInput}
+                  onChangeText={(t) => setCodeInput(normalizeCode(t))}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  autoFocus
+                  maxLength={8}
+                />
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                  <TouchableOpacity
+                    style={styles.modal_button}
+                    onPress={() => setModalStep('choose')}
+                  >
+                    <Text style={styles.modal_buttonText}>Back</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.modal_button}
+                    onPress={handleAddByCode}
+                    disabled={busy}
+                  >
+                    <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                      {busy ? 'Adding…' : 'Link'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {modalStep === 'manual' && (
+              <>
+                <Text style={styles.modal_title}>Add Manually</Text>
+                <TextInput
+                  style={styles.auth_input}
+                  placeholder="Friend's name"
+                  value={nameInput}
+                  onChangeText={setNameInput}
+                  autoFocus
+                />
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                  <TouchableOpacity
+                    style={styles.modal_button}
+                    onPress={() => setModalStep('choose')}
+                  >
+                    <Text style={styles.modal_buttonText}>Back</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.modal_button}
+                    onPress={handleAddManual}
+                    disabled={busy}
+                  >
+                    <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                      {busy ? 'Adding…' : 'Add'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
