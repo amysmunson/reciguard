@@ -1,66 +1,524 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  ScrollView,
+  TextInput,
+  Pressable,
+} from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import FAIcon from 'react-native-vector-icons/FontAwesome';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
-import { addRecipeAndNavigate } from '../components/utils/addRecipe';
-import { getRecipes } from '../lib/api/recipes';
+import { startNewRecipe } from '../components/utils/addRecipe';
+import { getRecipes, deleteRecipes } from '../lib/api/recipes';
+import { getFolders, addRecipesToFolder } from '../lib/api/folders';
+import { getFriends } from '../lib/api/friends';
+import { getMyProfile } from '../lib/api/profile';
+import {
+  getActiveAllergyDetails,
+  dotsForRecipe,
+  severityColor,
+} from '../lib/api/allergies';
+import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
+import { useAuth } from '../lib/auth-context';
+import { colors } from '../styles/theme';
+import SearchIcon from '../components/icons/SearchIcon';
+import SortIcon from '../components/icons/SortIcon';
+import FilterIcon from '../components/icons/FilterIcon';
 
 const Home = ({ navigation }) => {
+  const { user } = useAuth();
   const [recipes, setRecipes] = useState([]);
+
+  // Selection state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Allergy filter state
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [myName, setMyName] = useState('Me');
+  const [includeSelf, setIncludeSelf] = useState(false);
+  const [selectedFriendIds, setSelectedFriendIds] = useState(new Set());
+  const [activeAllergies, setActiveAllergies] = useState([]);
+  const [filterHydrated, setFilterHydrated] = useState(false);
+  // Snapshot of filter state when the modal opens, so backdrop-tap reverts.
+  const [filterSnapshot, setFilterSnapshot] = useState(null);
+
+  // Add-to-folder picker
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [folders, setFolders] = useState([]);
+
+  // Search state — query string only; the input is always visible in the action bar
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Sort state
+  const [sortOpen, setSortOpen] = useState(false);
+  const [sortBy, setSortBy] = useState('created_at'); // 'created_at' | 'updated_at' | 'opened_at'
+  const [openedMap, setOpenedMap] = useState({});
+
+  const loadRecipes = useCallback(async () => {
+    try {
+      const list = await getRecipes();
+      setRecipes(list);
+    } catch (err) {
+      Alert.alert('Could not load recipes', err.message ?? 'Unknown error');
+    }
+  }, []);
+
+  const refreshActiveAllergies = useCallback(async (self, friendIds) => {
+    try {
+      const details = await getActiveAllergyDetails({
+        includeSelf: self,
+        friendshipIds: Array.from(friendIds),
+        myName: myName || 'Me',
+      });
+      setActiveAllergies(details);
+    } catch (err) {
+      Alert.alert('Could not load allergies', err.message ?? 'Unknown error');
+    }
+  }, [myName]);
+
+  // Hydrate persisted filter + sort selection on mount (per-user).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const saved = await loadJson(KEYS.homeAllergyFilter(user.id), {
+        includeSelf: false,
+        friendIds: [],
+      });
+      const savedSort = await loadJson(KEYS.homeSort(user.id), 'created_at');
+      if (cancelled) return;
+      setIncludeSelf(!!saved.includeSelf);
+      setSelectedFriendIds(new Set(saved.friendIds ?? []));
+      if (typeof savedSort === 'string') setSortBy(savedSort);
+      setFilterHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  // Refresh opened-at map on focus so sort-by-opened reflects recent views.
+  const refreshOpenedMap = useCallback(async () => {
+    if (!user?.id) return;
+    const map = await getRecipeOpenedMap(user.id);
+    setOpenedMap(map);
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-      const load = async () => {
-        try {
-          const list = await getRecipes();
-          if (!cancelled) setRecipes(list);
-        } catch (err) {
-          if (!cancelled) Alert.alert('Could not load recipes', err.message ?? 'Unknown error');
-        }
-      };
-      load();
-      return () => {
-        cancelled = true;
-      };
-    }, [])
+      loadRecipes();
+      refreshOpenedMap();
+      if (filterHydrated) refreshActiveAllergies(includeSelf, selectedFriendIds);
+    }, [
+      loadRecipes,
+      refreshOpenedMap,
+      refreshActiveAllergies,
+      includeSelf,
+      selectedFriendIds,
+      filterHydrated,
+    ])
   );
 
-  const handleAddRecipe = async () => {
+  // --- Selection helpers --------------------------------------------------
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const enterSelect = (id) => {
+    setSelectMode(true);
+    setSelectedIds(new Set([id]));
+  };
+
+  const exitSelect = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleTilePress = (item) => {
+    if (selectMode) toggleSelect(item.id);
+    else navigation.navigate('RecipeCard', { recipeId: item.id });
+  };
+
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    Alert.alert('Delete recipes?', `${ids.length} will be permanently deleted.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteRecipes(ids);
+            exitSelect();
+            loadRecipes();
+          } catch (err) {
+            Alert.alert('Could not delete', err.message ?? 'Unknown error');
+          }
+        },
+      },
+    ]);
+  };
+
+  const openFolderPicker = async () => {
     try {
-      await addRecipeAndNavigate({ navigation, onRecipesUpdated: setRecipes });
+      const list = await getFolders();
+      setFolders(list);
+      setFolderPickerOpen(true);
     } catch (err) {
-      Alert.alert('Could not create recipe', err.message ?? 'Unknown error');
+      Alert.alert('Could not load folders', err.message ?? 'Unknown error');
     }
+  };
+
+  const handleAddToFolder = async (folderId) => {
+    const ids = Array.from(selectedIds);
+    try {
+      await addRecipesToFolder({ recipeIds: ids, folderId });
+      setFolderPickerOpen(false);
+      exitSelect();
+      Alert.alert('Added', `${ids.length} recipe(s) added to folder.`);
+    } catch (err) {
+      Alert.alert('Could not add to folder', err.message ?? 'Unknown error');
+    }
+  };
+
+  // --- Filter helpers -----------------------------------------------------
+  const openFilter = async () => {
+    try {
+      const [friendList, profile] = await Promise.all([getFriends(), getMyProfile()]);
+      setFriends(friendList);
+      setMyName(profile?.name?.trim() || 'Me');
+      // Snapshot so a backdrop tap reverts in-flight toggles
+      setFilterSnapshot({
+        includeSelf,
+        selectedFriendIds: new Set(selectedFriendIds),
+      });
+      setFilterOpen(true);
+    } catch (err) {
+      Alert.alert('Could not load profiles', err.message ?? 'Unknown error');
+    }
+  };
+
+  const toggleFriend = (id) => {
+    setSelectedFriendIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Done button — commit pending toggles to storage + refresh active allergies.
+  const closeFilter = () => {
+    setFilterOpen(false);
+    setFilterSnapshot(null);
+    if (user?.id) {
+      saveJson(KEYS.homeAllergyFilter(user.id), {
+        includeSelf,
+        friendIds: Array.from(selectedFriendIds),
+      });
+    }
+    refreshActiveAllergies(includeSelf, selectedFriendIds);
+  };
+
+  // Backdrop tap — revert any in-flight toggles, close without saving.
+  const dismissFilter = () => {
+    if (filterSnapshot) {
+      setIncludeSelf(filterSnapshot.includeSelf);
+      setSelectedFriendIds(filterSnapshot.selectedFriendIds);
+    }
+    setFilterSnapshot(null);
+    setFilterOpen(false);
+  };
+
+  // --- Misc ---------------------------------------------------------------
+  const handleAddRecipe = () => {
+    startNewRecipe({ navigation });
+  };
+
+  const filterActive = includeSelf || selectedFriendIds.size > 0;
+
+  // Sort recipes by the selected field, then apply the search filter.
+  // Sort direction: most recent first. Missing values sort to the bottom.
+  const sortedRecipes = (() => {
+    const getKey = (r) => {
+      if (sortBy === 'opened_at') return openedMap[r.id] ?? null;
+      if (sortBy === 'updated_at') return r.updatedAt ?? r.createdAt ?? null;
+      return r.createdAt ?? null;
+    };
+    return [...recipes].sort((a, b) => {
+      const av = getKey(a);
+      const bv = getKey(b);
+      if (av && bv) return bv.localeCompare(av); // ISO strings sort lexicographically
+      if (av) return -1;
+      if (bv) return 1;
+      return 0;
+    });
+  })();
+
+  const displayedRecipes = searchQuery.trim()
+    ? sortedRecipes.filter((r) =>
+        (r.name ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : sortedRecipes;
+
+  const applySort = (next) => {
+    setSortBy(next);
+    setSortOpen(false);
+    if (user?.id) saveJson(KEYS.homeSort(user.id), next);
+  };
+
+  const renderTile = ({ item }) => {
+    const isSelected = selectedIds.has(item.id);
+    const dots = filterActive ? dotsForRecipe(item, activeAllergies) : [];
+
+    return (
+      <TouchableOpacity
+        onPress={() => handleTilePress(item)}
+        onLongPress={() => enterSelect(item.id)}
+        delayLongPress={300}
+      >
+        <View style={[styles.listItem, isSelected && styles.listItem_selected]}>
+          <Text style={styles.listItemText}>{item.name || 'Untitled'}</Text>
+
+          {dots.length > 0 && (
+            <View style={styles.allergyDotRow}>
+              {dots.map((d) => (
+                <View
+                  key={d.profileId}
+                  style={[styles.allergyDot, { backgroundColor: severityColor(d.severity) }]}
+                />
+              ))}
+            </View>
+          )}
+
+          {selectMode && (
+            <View style={styles.selectCheck}>
+              <Ionicons
+                name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+                size={24}
+                color={isSelected ? colors.link : colors.iconInactive}
+              />
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.home_search} onPress={() => {}}>
-        <Icon name="search" style={styles.home_searchIcon} />
-      </TouchableOpacity>
-
       <Text style={styles.header}>Your Recipes</Text>
 
-      <FlatList
-        data={recipes}
-        numColumns={2}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('RecipeCard', { recipeId: item.id })}
-          >
-            <View style={styles.listItem}>
-              <Text style={styles.listItemText}>{item.name || 'Untitled'}</Text>
-            </View>
+      {selectMode ? (
+        <View style={styles.selectBar}>
+          <TouchableOpacity onPress={exitSelect}>
+            <Text style={styles.selectBar_cancel}>Cancel</Text>
           </TouchableOpacity>
-        )}
+          <Text style={styles.selectBar_count}>{selectedIds.size} selected</Text>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity
+              onPress={openFolderPicker}
+              disabled={!selectedIds.size}
+              style={{ marginRight: 16 }}
+            >
+              <FAIcon name="folder" size={22} color={selectedIds.size ? colors.link : colors.iconDisabled} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleBulkDelete} disabled={!selectedIds.size}>
+              <Ionicons
+                name="trash-outline"
+                size={22}
+                color={selectedIds.size ? colors.danger : colors.iconDisabled}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.home_actionBar}>
+          <View style={styles.home_actionBar_searchBox}>
+            <SearchIcon size={18} color={colors.textMuted} />
+            <TextInput
+              style={styles.home_actionBar_searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search"
+              placeholderTextColor={colors.iconInactive}
+              autoCorrect={false}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+          </View>
+          <TouchableOpacity
+            style={styles.home_actionBar_iconButton}
+            onPress={() => setSortOpen(true)}
+          >
+            <SortIcon size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.home_actionBar_iconButton}
+            onPress={openFilter}
+          >
+            <FilterIcon
+              size={22}
+              color={filterActive ? colors.primary : colors.textSecondary}
+            />
+            {filterActive && <View style={styles.home_actionBar_iconDot} />}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <FlatList
+        data={displayedRecipes}
+        numColumns={2}
+        renderItem={renderTile}
         keyExtractor={(item) => item.id}
+        extraData={{ selectedIds, selectMode, activeAllergies, searchQuery, sortBy, openedMap }}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No recipes yet. Tap + to add one.</Text>
+          <Text style={styles.emptyText}>
+            {searchQuery.trim()
+              ? `No recipes match "${searchQuery}".`
+              : 'No recipes yet. Tap + to add one.'}
+          </Text>
         }
       />
+
+      {/* Sort modal */}
+      <Modal
+        visible={sortOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSortOpen(false)}
+      >
+        <Pressable
+          style={styles.sort_popdown_backdrop}
+          onPress={() => setSortOpen(false)}
+        >
+          <Pressable style={styles.sort_popdown} onPress={() => {}}>
+            {[
+              { id: 'created_at', label: 'Date added' },
+              { id: 'updated_at', label: 'Last edited' },
+              { id: 'opened_at', label: 'Recently opened' },
+            ].map((opt) => {
+              const selected = sortBy === opt.id;
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={styles.sort_popdown_row}
+                  onPress={() => applySort(opt.id)}
+                >
+                  <Ionicons
+                    name={selected ? 'radio-button-on' : 'radio-button-off'}
+                    size={20}
+                    color={selected ? colors.primary : colors.textMuted}
+                  />
+                  <Text style={styles.sort_popdown_rowText}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Filter modal */}
+      <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
+        <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
+          <Pressable style={styles.modal_card} onPress={() => {}}>
+            <Text style={styles.modal_title}>Allergy warnings for</Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              <TouchableOpacity
+                style={styles.filter_row}
+                onPress={() => setIncludeSelf((v) => !v)}
+              >
+                <Ionicons
+                  name={includeSelf ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={includeSelf ? colors.link : colors.textMuted}
+                />
+                <Text style={styles.filter_rowText}>{myName} (you)</Text>
+              </TouchableOpacity>
+
+              {friends.map((f) => {
+                const checked = selectedFriendIds.has(f.id);
+                const label = f.linkedProfile?.name || f.friendName || 'Unnamed';
+                return (
+                  <TouchableOpacity
+                    key={f.id}
+                    style={styles.filter_row}
+                    onPress={() => toggleFriend(f.id)}
+                  >
+                    <Ionicons
+                      name={checked ? 'checkbox' : 'square-outline'}
+                      size={22}
+                      color={checked ? colors.link : colors.textMuted}
+                    />
+                    <Text style={styles.filter_rowText}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              {friends.length === 0 && (
+                <Text style={styles.emptyText}>No friends added yet.</Text>
+              )}
+            </ScrollView>
+            <TouchableOpacity style={styles.modal_button} onPress={closeFilter}>
+              <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                Done
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Folder picker modal */}
+      <Modal
+        visible={folderPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFolderPickerOpen(false)}
+      >
+        <Pressable
+          style={styles.modal_backdrop}
+          onPress={() => setFolderPickerOpen(false)}
+        >
+          <Pressable style={styles.modal_card} onPress={() => {}}>
+            <Text style={styles.modal_title}>Add to folder</Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              {folders.length === 0 && (
+                <Text style={styles.emptyText}>No folders yet. Create one first.</Text>
+              )}
+              {folders.map((f) => (
+                <TouchableOpacity
+                  key={f.id}
+                  style={styles.filter_row}
+                  onPress={() => handleAddToFolder(f.id)}
+                >
+                  <FAIcon name="folder" size={20} color={colors.link} />
+                  <Text style={styles.filter_rowText}>{f.name || 'Untitled'}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modal_button}
+              onPress={() => setFolderPickerOpen(false)}
+            >
+              <Text style={styles.modal_buttonText}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
     </View>
