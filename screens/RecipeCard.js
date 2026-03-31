@@ -1,11 +1,22 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { colors } from '../styles/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
+import { useAuth } from '../lib/auth-context';
 import { getRecipe } from '../lib/api/recipes';
+import {
+  getActiveAllergyDetails,
+  ingredientAllergyInfo,
+  severityColor,
+  severityLabel,
+} from '../lib/api/allergies';
+import { getMyProfile } from '../lib/api/profile';
+import { loadJson, KEYS, recordRecipeOpened } from '../lib/storage';
 
 const RecipeCard = ({ route, navigation }) => {
+  const { user } = useAuth();
   const { recipeId } = route.params;
   const [recipe, setRecipe] = useState(null);
 
@@ -20,11 +31,32 @@ const RecipeCard = ({ route, navigation }) => {
           if (!cancelled) Alert.alert('Could not load recipe', err.message ?? 'Unknown error');
         }
       };
-      load();
+
+      const loadFilter = async () => {
+        if (!user?.id) return;
+        try {
+          const saved = await loadJson(KEYS.homeAllergyFilter(user.id), {
+            includeSelf: false,
+            friendIds: [],
+          });
+          const profile = await getMyProfile();
+          const details = await getActiveAllergyDetails({
+            includeSelf: !!saved.includeSelf,
+            friendshipIds: saved.friendIds ?? [],
+            myName: profile?.name?.trim() || 'Me',
+          });
+          if (!cancelled) setActiveAllergies(details);
+        } catch {
+          // non-fatal — recipe still renders without allergy info
+        }
+      };
+
+      loadRecipe();
+      loadFilter();
       return () => {
         cancelled = true;
       };
-    }, [recipeId])
+    }, [recipeId, user?.id])
   );
 
   if (!recipe) {
@@ -35,7 +67,68 @@ const RecipeCard = ({ route, navigation }) => {
     );
   }
 
-  const { name, ingredients, steps, authorNotes, userNotes } = recipe;
+  const { name, ingredients, steps, authorNotes, userNotes, extLink, source } = recipe;
+
+  const openSource = async () => {
+    if (!extLink) return;
+    try {
+      const supported = await Linking.canOpenURL(extLink);
+      if (supported) await Linking.openURL(extLink);
+      else Alert.alert('Cannot open link', extLink);
+    } catch (err) {
+      Alert.alert('Could not open link', err.message ?? 'Unknown error');
+    }
+  };
+
+  const renderIngredient = (item, i) => {
+    const info = ingredientAllergyInfo(item, activeAllergies);
+    const isExpanded = expandedIngredient === item;
+
+    if (!info) {
+      return (
+        <Text key={i} style={styles.ingredientItems}>
+          • {item}
+        </Text>
+      );
+    }
+
+    return (
+      <View key={i}>
+        <TouchableOpacity
+          onPress={() => setExpandedIngredient(isExpanded ? null : item)}
+          style={[
+            styles.ingredientHighlight,
+            { backgroundColor: info.background, borderColor: info.color },
+          ]}
+        >
+          <Text style={[styles.ingredientItems, { flex: 1, marginVertical: 0 }]}>
+            • {item}
+          </Text>
+          <View style={[styles.allergyDot, { backgroundColor: info.color, marginLeft: 8 }]} />
+        </TouchableOpacity>
+
+        {isExpanded && (
+          <View style={[styles.allergyPopup, { borderLeftColor: info.color }]}>
+            <Text style={styles.allergyPopup_severity}>
+              Worst: {severityLabel(info.severity)}
+            </Text>
+            <Text style={styles.allergyPopup_names}>
+              {info.people.map((p, idx) => (
+                <Text
+                  key={p.name + idx}
+                  style={{ color: severityColor(p.severity), fontWeight: 'bold' }}
+                >
+                  {p.name}
+                  {idx < info.people.length - 1 ? ', ' : ''}
+                </Text>
+              ))}
+              {info.people.length === 1 ? ' is allergic.' : ' are allergic.'}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <ScrollView style={styles.card_container}>
