@@ -19,14 +19,19 @@ const RecipeCard = ({ route, navigation }) => {
   const { user } = useAuth();
   const { recipeId } = route.params;
   const [recipe, setRecipe] = useState(null);
+  const [activeAllergies, setActiveAllergies] = useState([]);
+  const [expandedIngredient, setExpandedIngredient] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      const load = async () => {
+
+      const loadRecipe = async () => {
         try {
           const r = await getRecipe(recipeId);
           if (!cancelled) setRecipe(r);
+          // Record this open so Home's "Recently opened" sort can use it.
+          if (user?.id) recordRecipeOpened(user.id, recipeId);
         } catch (err) {
           if (!cancelled) Alert.alert('Could not load recipe', err.message ?? 'Unknown error');
         }
@@ -143,15 +148,22 @@ const RecipeCard = ({ route, navigation }) => {
         <Text style={styles.card_editText}>Edit</Text>
       </TouchableOpacity>
 
-      <Text style={styles.card_header}>{name || 'Untitled'}</Text>
+      <View style={styles.card_headerRow}>
+        <Text style={styles.card_header}>{name || 'Untitled'}</Text>
+        {!!extLink && (
+          <TouchableOpacity
+            onPress={openSource}
+            style={styles.card_sourceLink}
+            accessibilityLabel={source ? `Open original on ${source}` : 'Open original recipe'}
+          >
+            <Icon name="open-outline" size={20} color={colors.link} />
+          </TouchableOpacity>
+        )}
+      </View>
 
       <Text style={styles.subheading}>Ingredients</Text>
       {ingredients.length > 0 ? (
-        ingredients.map((item, i) => (
-          <Text key={i} style={styles.ingredientItems}>
-            • {item}
-          </Text>
-        ))
+        ingredients.map(renderIngredient)
       ) : (
         <Text style={styles.emptyText}>No items</Text>
       )}
