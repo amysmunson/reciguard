@@ -5,7 +5,7 @@ import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
 import { useAuth } from '../lib/auth-context';
 import { signOut, deleteAccount } from '../lib/api/auth';
-import { addRecipeAndNavigate } from '../components/utils/addRecipe';
+import { startNewRecipe } from '../components/utils/addRecipe';
 
 const Settings = ({ navigation }) => {
   const { user } = useAuth();
@@ -52,12 +52,8 @@ const Settings = ({ navigation }) => {
     );
   };
 
-  const handleAddRecipe = async () => {
-    try {
-      await addRecipeAndNavigate({ navigation });
-    } catch (err) {
-      Alert.alert('Could not create recipe', err.message ?? 'Unknown error');
-    }
+  const handleAddRecipe = () => {
+    startNewRecipe({ navigation });
   };
 
   const Row = ({ label, onPress, danger }) => (

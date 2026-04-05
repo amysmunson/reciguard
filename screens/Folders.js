@@ -7,13 +7,16 @@ import {
   Alert,
   Modal,
   TextInput,
+  Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
+import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
 import { getFolders, createFolder } from '../lib/api/folders';
-import { addRecipeAndNavigate } from '../components/utils/addRecipe';
+import { startNewRecipe } from '../components/utils/addRecipe';
+import PlusIcon from '../components/icons/PlusIcon';
 
 const Folders = ({ navigation }) => {
   const [folders, setFolders] = useState([]);
@@ -47,18 +50,14 @@ const Folders = ({ navigation }) => {
     }
   };
 
-  const handleAddRecipe = async () => {
-    try {
-      await addRecipeAndNavigate({ navigation });
-    } catch (err) {
-      Alert.alert('Could not create recipe', err.message ?? 'Unknown error');
-    }
+  const handleAddRecipe = () => {
+    startNewRecipe({ navigation });
   };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.home_search} onPress={() => setCreating(true)}>
-        <Icon name="plus" style={styles.home_searchIcon} />
+        <PlusIcon size={22} color={colors.textSecondary} />
       </TouchableOpacity>
 
       <Text style={styles.header}>Folders</Text>
@@ -83,9 +82,23 @@ const Folders = ({ navigation }) => {
         }
       />
 
-      <Modal visible={creating} transparent animationType="fade">
-        <View style={styles.modal_backdrop}>
-          <View style={styles.modal_card}>
+      <Modal
+        visible={creating}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setCreating(false);
+          setNewName('');
+        }}
+      >
+        <Pressable
+          style={styles.modal_backdrop}
+          onPress={() => {
+            setCreating(false);
+            setNewName('');
+          }}
+        >
+          <Pressable style={styles.modal_card} onPress={() => {}}>
             <Text style={styles.modal_title}>New Folder</Text>
             <TextInput
               style={styles.auth_input}
@@ -105,13 +118,13 @@ const Folders = ({ navigation }) => {
                 <Text style={styles.modal_buttonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modal_button} onPress={handleCreate}>
-                <Text style={[styles.modal_buttonText, { color: '#0066cc', fontWeight: 'bold' }]}>
+                <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
                   Create
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
