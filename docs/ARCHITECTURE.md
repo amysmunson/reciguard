@@ -36,6 +36,7 @@ recipes/
 ├── lib/                            # Data layer — the ONLY place Supabase is used
 │   ├── supabase.js                 # Single createClient() instance (AsyncStorage + URL polyfill)
 │   ├── auth-context.js             # AuthProvider + useAuth() hook (session, user, loading)
+│   ├── storage.js                  # AsyncStorage helpers (loadJson, saveJson) + KEYS registry
 │   └── api/                        # Per-domain functions screens import
 │       ├── auth.js                 # signUp, signIn, signOut, deleteAccount
 │       ├── recipes.js              # getRecipes, getRecipe, create/update/deleteRecipe
@@ -58,23 +59,33 @@ recipes/
 │   ├── EditRecipe.js               # Recipe editor (name, ingredients, steps, notes)
 │   ├── InputSelector.js            # "How do you want to add this recipe?" picker
 │   ├── Folders.js                  # Grid of folders + create-folder modal
-│   ├── FolderDetail.js             # Recipes inside a single folder
-│   ├── Friends.js                  # List of friends + add-friend modal
-│   ├── FriendProfile.js            # Friend notes + per-friend allergies
+│   ├── FolderDetail.js             # Recipes inside a folder; long-press to bulk-remove
+│   ├── Friends.js                  # Friends list with "Me" row at top
+│   ├── FriendProfile.js            # Friend name + notes + per-friend allergies (editable)
+│   ├── Profile.js                  # Edit your own profile + manage your allergies
 │   └── Settings.js                 # Sign out + delete account + privacy policy link
 │
 ├── components/                     # Shared UI + utilities (NOT screens)
 │   ├── NavigationBar.js            # Bottom tab bar with active-tab highlight
+│   ├── AllergyChecklist.js         # Inline picker: custom row + groups + individuals + severity + add
+│   ├── LandingCard.js              # Decorative oval-with-cusps SVG shape behind the Landing title
+│   ├── LandingCard2.js             # Alternate shape: smooth oval with 4 small outward points
+│   ├── icons/                      # SVG icon components (Heroicons-style)
+│   │   ├── PlusIcon.js
+│   │   ├── SearchIcon.js
+│   │   ├── SortIcon.js
+│   │   └── FilterIcon.js
 │   ├── utils/
 │   │   └── addRecipe.js            # createRecipe() + navigate to InputSelector
 │   └── samples/
 │       └── sample_recipes.js       # Reference sample data (preserved by request)
 │
 ├── styles/
+│   ├── theme.js                    # Color palette + semantic tokens + useColors() hook
 │   └── main_style.js               # Single shared StyleSheet for the whole app
 │
 ├── constants/
-│   └── theme.ts                    # Reserved for future theming
+│   └── allergens.js                # Static catalog: ALLERGEN_PRESETS + ALLERGEN_GROUPS
 │
 ├── assets/                         # Icons, splash, images
 │   └── images/
@@ -85,6 +96,75 @@ recipes/
 └── docs/
     └── ARCHITECTURE.md             # This file
 ```
+
+---
+
+## Dependencies
+
+Everything in `package.json`, grouped by purpose, with what it's used for
+and whether it's actually used by application code today. "Template
+leftover" means the package was added by `npx create-expo-app` and could
+be safely removed if/when you confirm nothing pulls it in.
+
+### Runtime — directly imported
+
+| Package | Why we use it |
+|---|---|
+| `expo` | Bootstraps the app (`registerRootComponent` in [index.js](index.js)) and provides the SDK. |
+| `react` | UI library. |
+| `react-native` | Native primitives (View, Text, ScrollView, etc.). |
+| `@react-navigation/native` | Navigator root + hooks (`useFocusEffect`, etc.) in [App.js](App.js) and screens. |
+| `@react-navigation/stack` | Auth stack and app stack in [App.js](App.js). |
+| `@supabase/supabase-js` | The Postgres + Auth client — initialized once in [lib/supabase.js](lib/supabase.js). |
+| `@react-native-async-storage/async-storage` | Storage adapter for Supabase auth session and the per-user filter persistence in [lib/storage.js](lib/storage.js). |
+| `react-native-url-polyfill` | Side-effect import in [lib/supabase.js](lib/supabase.js) — Supabase needs URL globals that RN doesn't ship. |
+| `react-native-svg` | Used by `components/LandingCard*.js` for the decorative title shapes and by `components/icons/*.js` for the custom Heroicons-style glyphs (Plus / Search / Sort). |
+| `@expo/vector-icons` | Provides the `react-native-vector-icons/Ionicons` and `/FontAwesome` font sets used throughout (badges, dots, modals, etc.). |
+
+### Runtime — peer / framework requirements (not directly imported)
+
+| Package | Why it's installed |
+|---|---|
+| `react-native-gesture-handler` | Required by React Navigation animations. |
+| `react-native-reanimated` | Required by React Navigation transitions. |
+| `react-native-safe-area-context` | Required by React Navigation for safe-area inset handling. |
+| `react-native-screens` | Required by React Navigation to use native screen primitives. |
+| `react-native-worklets` | Peer of `react-native-reanimated` v4. |
+| `react-dom` / `react-native-web` | Needed for the web build (`npx expo start --web`). Not used on mobile. |
+| `expo-status-bar` | Provided by SDK template. Lightweight, kept for the default status-bar wrapper. |
+| `expo-splash-screen`, `expo-system-ui`, `expo-constants`, `expo-font` | Managed by Expo internally; the SDK pulls bits of these in for startup/runtime. Safe to leave installed. |
+
+### Runtime — template leftovers (currently UNUSED by app code)
+
+These were added by `npx create-expo-app` and our code never imports them.
+Removing them would slim the install slightly; verify nothing imports each
+one (grep) before deleting.
+
+| Package | Replaced by / status |
+|---|---|
+| `expo-router` | We use `@react-navigation/stack` directly. Unused. |
+| `expo-sqlite` | Legacy from the local-SQLite version of the app before Supabase. Unused now. |
+| `expo-image` | We use `ImageBackground` from `react-native`. Unused. |
+| `expo-haptics` | No haptic feedback wired up. Unused. |
+| `expo-linking` | No deep links yet. Unused. |
+| `expo-symbols` | No SF Symbols use. Unused. |
+| `expo-web-browser` | No in-app browser use. Unused. |
+| `@react-navigation/bottom-tabs` | We use a custom `NavigationBar` component. Unused. |
+| `@react-navigation/elements` | Pulled in transitively by `@react-navigation/native`. May be removable but low priority. |
+
+### Dev tooling
+
+| Package | Why we use it |
+|---|---|
+| `@expo/ngrok` | Required for `npx expo start --tunnel` (used during sharing dev builds). |
+| `eslint` + `eslint-config-expo` | Linting. Run via `npm run lint`. |
+| `typescript` + `@types/react` | Required by the lone `constants/theme.ts` file and `tsconfig.json` — the rest of the codebase is JS. |
+
+### Upgrade discipline
+
+- Always install or update packages via `npx expo install <pkg>` — never `npm install <pkg>` for anything Expo-aware. Expo picks the SDK-54-compatible version, which avoids subtle runtime issues from version drift.
+- `npx expo install --check` periodically; `npx expo install --fix` to bring everything to expected versions when the SDK gets a patch bump.
+- Never bundle the Supabase **service-role key**. Only `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the anon key) go in the client. The service-role key in `.env.local` is for tooling/scripts only, never imported into app code.
 
 ---
 
@@ -152,6 +232,48 @@ The single helper for "create a blank recipe and start the add flow." Used by
 Home, Folders, Friends, and Settings so the `+` button works consistently
 everywhere.
 
+### `components/icons/*`
+
+Small reusable SVG icon components (Heroicons-style outline). `PlusIcon`,
+`SearchIcon`, `SortIcon`, and `FilterIcon` each accept `size`, `color`,
+and `strokeWidth` props and render via `react-native-svg`. Used in place
+of icon-font glyphs where we want consistent stroke weight and full color
+control. The `@expo/vector-icons` packs still cover all the *other* icons
+(chevrons, checkboxes, trash, folder, radio dots, etc.); the custom SVG
+set is just for the four glyphs that appear prominently in the Home
+action bar and the per-screen add buttons.
+
+### `components/LandingCard.js` and `LandingCard2.js`
+
+Decorative SVG shape backings for the Landing-screen title. Both auto-size
+to their text children, render the shape via `react-native-svg`, and
+accept `width`/`height`/`fill`/`stroke` props. `LandingCard` is the ogee
+variant (dramatic concave dips approaching the top/bottom peaks).
+`LandingCard2` is the smoother alternative (oval with four small outward
+points and convex curves throughout). Swap one for the other by changing a
+single import in [screens/Landing.js](screens/Landing.js).
+
+### `lib/storage.js`
+
+AsyncStorage helpers. `loadJson`, `saveJson`, `removeKey` are generic
+wrappers. `KEYS` is the registry of per-user storage keys — all currently
+namespaced by `userId` so users sharing a device don't see each other's
+state:
+
+- `KEYS.homeAllergyFilter(userId)` — selected profiles for Home's allergy
+  filter modal.
+- `KEYS.homeSort(userId)` — last-chosen Home sort option
+  (`created_at` / `updated_at` / `opened_at`).
+- `KEYS.recipeOpenedAt(userId)` — map of `{ recipeId: ISO timestamp }`
+  for the "Recently opened" sort.
+
+Plus two domain helpers built on the generic ones:
+
+- `recordRecipeOpened(userId, recipeId)` — write the current timestamp
+  into the recipe-opens map. Called from RecipeCard on focus.
+- `getRecipeOpenedMap(userId)` — read the full map. Called from Home on
+  focus.
+
 ---
 
 ## Navigation flow
@@ -196,7 +318,7 @@ Sign-out / delete-account works the same way in reverse.
 auth.users (managed by Supabase Auth)
    │ 1:1
    ▼
-profiles (id FK → auth.users, name, email, notes, phone)
+profiles (id FK → auth.users, name, email, notes, phone, friend_code unique)
    │ 1:N
    ├──▶ recipes (id, user_id, name, photo, source, ext_link,
    │     │              author_notes text[], user_notes text[], is_public)
@@ -232,6 +354,210 @@ Key relationships:
 
 Row Level Security is enabled on every table and scopes each row to the
 owning user via `auth.uid()`.
+
+---
+
+## Feature notes
+
+### Home action bar (search, sort, filter)
+
+Home's top region is a single inline action bar sitting **below** the
+"Your Recipes" header and **above** the recipe grid:
+
+```
+            Your Recipes
+[🔍 Search           ] sort filter
+[ recipe grid ]
+```
+
+- **Search** is always-visible. The TextInput in the action bar live-filters
+  `displayedRecipes` by case-insensitive substring on recipe name. No
+  modal, no toggle — just type. `clearButtonMode="while-editing"` shows
+  the native iOS × inside the input for one-tap clear.
+- **Sort** opens a small **popdown menu** (not a centered modal) anchored
+  below the sort button. Three options: *Date added* (`created_at`),
+  *Last edited* (`updated_at`), *Recently opened* (`opened_at`). Choice
+  persists per-user via `KEYS.homeSort(userId)` and re-applies on the
+  next launch. A small primary-colored dot appears on the sort icon when
+  the selection is non-default. Tap the backdrop to dismiss without
+  changing.
+- **Filter** opens the existing allergy-profile modal (see "Allergy filter
+  + severity-aware warnings" below).
+
+**Sort logic.** Three keys are read off each recipe at render time:
+`createdAt`/`updatedAt` come straight off the Supabase row;
+`opened_at` is looked up from the in-memory copy of
+`KEYS.recipeOpenedAt(userId)` (the recipe-opens map). Sort direction is
+most-recent-first using lexicographic comparison on ISO timestamps.
+Recipes with no value for the active key sort to the bottom — so an
+unopened recipe under the "Recently opened" sort just falls off the top.
+
+**Opened-at tracking.** [RecipeCard.js](screens/RecipeCard.js) calls
+`recordRecipeOpened(userId, recipeId)` inside its load effect; every time
+the user views a recipe, the map updates with a fresh ISO timestamp.
+Home re-reads the map on focus so when you return from a recipe view,
+the "Recently opened" sort reflects that view immediately. The map lives
+in AsyncStorage (per-device); cross-device sync would require moving it
+into Supabase.
+
+**Selection mode** replaces the action bar inline (same vertical slot)
+with a `selectBar` showing Cancel / count / bulk-action buttons.
+
+### Selection mode (Home, FolderDetail)
+
+Long-press any recipe tile to enter **selection mode**. While in selection
+mode:
+
+- The action bar is replaced by a `selectBar` with Cancel / count /
+  bulk-action buttons.
+- Tapping a tile toggles its selection instead of opening the recipe.
+- On **Home**: the bulk actions are "Add to folder" (opens a folder picker
+  modal — picks one folder and adds all selected recipes via
+  `addRecipesToFolder`) and "Delete" (bulk `deleteRecipes`).
+- On **FolderDetail**: the bulk action is "Remove from folder" via
+  `removeRecipesFromFolder` — recipes themselves are not deleted.
+
+The selection state is local to each screen; backing out exits the mode.
+
+### Allergy filter + severity-aware warnings
+
+**The filter** (Home → top-right funnel icon) selects which profiles
+contribute allergies to the warning system: "Me" + any combination of
+friends. Selections persist per-user in AsyncStorage
+(`KEYS.homeAllergyFilter(userId)`) so users who share a device don't see
+each other's selections.
+
+**Severity model.** Each `allergies` row has a `severity` column accepting
+`severe | moderate | mild | null`. The Profile and FriendProfile screens
+expose a chip picker when adding a new allergy, and a tappable chip on
+existing allergies that cycles `unknown → mild → moderate → severe → unknown`.
+Severity rank is `severe > moderate > mild > unknown`, and colors are red
+/ orange / yellow / gray respectively (see `severityColor()` in
+[lib/api/allergies.js](apps/recipes/lib/api/allergies.js)).
+
+**Data flow.** `getActiveAllergyDetails({ includeSelf, friendshipIds, myName })`
+returns one row per `(profile, allergy)`:
+
+```
+[{ profileId, profileName, name (lowercased), severity }, ...]
+```
+
+- `profileId` is `'self'` for the current user, otherwise a friendship id.
+- For linked friends, the linked user's personal allergies and the user's
+  local notes about that friendship are both included under the same
+  friendship id, so they collapse to one "person".
+
+**Recipe tiles (Home + FolderDetail)** call `dotsForRecipe(recipe, active)`
+which returns one entry per matching profile, each with that profile's
+max severity for this recipe. The tile then renders a row of small colored
+dots in the upper-right — one per person, colored by their personal worst
+match in this recipe.
+
+**Ingredient highlights (RecipeCard)** call
+`ingredientAllergyInfo(ingredient, active)` per ingredient:
+
+- Returns `null` if no profile's allergy substrings into this ingredient.
+- Otherwise returns `{ severity, color, background, people }` where:
+  - `severity` is the **highest** severity across all matching profiles
+    for this ingredient.
+  - `color` / `background` come from that severity and drive the ingredient
+    highlight tint.
+  - `people` lists every matching profile with their individual severity,
+    sorted severe → mild. UI renders each name in the person's own
+    severity color so a mixed-severity ingredient shows a red name and a
+    yellow name in the same sentence.
+
+Matching ingredients render with a translucent severity-tinted background
+and a colored border; tapping toggles an inline popup below them with
+the "Worst: SEVERITY" label and the comma-separated, color-coded names.
+
+Both FolderDetail and RecipeCard read the filter from AsyncStorage on
+focus rather than holding their own filter UI — the source of truth is
+Home's filter modal, and the other screens follow.
+
+### Allergy checklist (Profile & FriendProfile, edit mode)
+
+There is no manual-entry text input for allergies on these screens
+anymore. In edit mode, both Profile and FriendProfile render
+`<AllergyChecklist>` inline below the existing-allergy list. It is the
+single way to add new allergies.
+
+The checklist has three logical sections, all sourced from
+`constants/allergens.js`:
+
+1. **"Enter your own"** — a single row at the top with a checkbox and a
+   text input. Typing auto-checks the box. The entered name is lowercased
+   on storage and saved with `user_custom = true`.
+2. **Groups** — composite entries (*Tree nuts*, *Dairy*, etc.). Tapping a
+   group toggles every member preset at once. Half-checked groups render
+   a half-circle icon. Groups whose members are all already added show
+   "All already added" and are disabled.
+3. **Common allergens** — flat list of individual presets. Already-added
+   presets show "Added" and are disabled.
+
+A live filter input at the very top narrows both sections. Group
+descriptions are searched too — typing "shrimp" surfaces the
+"Crustacean shellfish" group.
+
+A severity row (Mild / Moderate / Severe) and an "Add N" button live at
+the bottom. The selected severity applies to every item in the batch.
+Confirming calls the parent's `onConfirm({ items, severity })` with one
+`{ name, userCustom }` entry per pick (group picks expand into one entry
+per member); the parent calls `addAllergy()` for each, scoping with
+`friendId` as appropriate.
+
+**Display vs storage**: allergen names are stored lowercase (presets are
+already lowercase in `constants/allergens.js`; freeform entries are
+lowercased on save). UI renders them with a capitalized first letter via
+a small `cap()` helper in each screen.
+
+To add a new common allergen or group, edit `constants/allergens.js`
+only — no schema, RLS, or component changes are required.
+
+### Profile editing
+
+- **Own profile**: tap the "Me" row at the top of the Friends screen → opens
+  `Profile.js`. Editable: name, phone, notes, and personal allergies. Email
+  is shown read-only (it lives in `auth.users`, not `profiles`).
+- **Friend profile**: tap any friend → `FriendProfile.js`. For off-platform
+  friends, name is editable. For on-platform friends (`linkedProfile` set),
+  the linked user's name is displayed and the local name field is hidden.
+  Notes and per-friend allergies are always editable.
+
+### Friend codes & linking
+
+Each profile has a unique 8-character `friend_code` (auto-generated by a DB
+trigger, no `I/L/O/0/1` to avoid confusion). Users see and share their own
+code from the Profile screen. They link to others two ways:
+
+- **At creation** — Friends → "+" → "By friend code" enters the code,
+  resolves to a real profile, and creates a linked friendship.
+- **After the fact** — FriendProfile → "Link to Real Account" updates an
+  existing manually-added friendship with the code.
+
+Linking is implemented via a `SECURITY DEFINER` RPC,
+`lookup_friend_code(p_code)`, which returns only `(id, name)`. This is the
+only way a non-friend can read another profile — the SELECT policy on
+`profiles` otherwise restricts reads to self + linked friends.
+
+When a friendship is linked:
+
+- `friendships.existing_friend_id` points at the friend's profile.
+- `friendships.friend_name` keeps a *snapshot* of the friend's name at link
+  time so the row has a label even if the linked profile later disappears.
+- The display name resolves as: live `linkedProfile.name` →
+  snapshot `friend_name` → "Unnamed" (see `friendDisplayName()` in
+  `lib/api/friends.js`).
+- The friend's public `profile.notes` becomes readable to the user.
+- The friend's own personal allergies are unioned into the Home allergy
+  filter when that friend is selected.
+- `friendships.friend_notes` (the user's private notes about the friend)
+  remains private — RLS scopes it to `user_id = auth.uid()`.
+
+When the friend deletes their account, `existing_friend_id` is set to
+`NULL` (via `ON DELETE SET NULL`) but the friendship row survives. The UI
+falls back to the snapshotted name and hides the "About them" and "Their
+allergies" sections.
 
 ---
 
