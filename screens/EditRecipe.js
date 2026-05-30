@@ -11,12 +11,16 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
-import { getRecipe, updateRecipe, deleteRecipe } from '../lib/api/recipes';
+import { colors } from '../styles/theme';
+import { createRecipe, getRecipe, updateRecipe, deleteRecipe } from '../lib/api/recipes';
+import PlusIcon from '../components/icons/PlusIcon';
 
 const EditRecipe = ({ route, navigation }) => {
-  const { recipeId } = route.params;
+  const recipeId = route.params?.recipeId ?? null;
+  const isNew = !recipeId;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isNew);
+  const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [ingredients, setIngredients] = useState([]);
   const [steps, setSteps] = useState([]);
@@ -24,6 +28,7 @@ const EditRecipe = ({ route, navigation }) => {
   const [userNotes, setUserNotes] = useState([]);
 
   useEffect(() => {
+    if (isNew) return;
     const load = async () => {
       try {
         const r = await getRecipe(recipeId);
@@ -39,7 +44,7 @@ const EditRecipe = ({ route, navigation }) => {
       }
     };
     load();
-  }, [recipeId]);
+  }, [recipeId, isNew]);
 
   const addItem = (setter, list) => setter([...list, '']);
   const updateItem = (setter, list, index, text) => {
@@ -52,17 +57,33 @@ const EditRecipe = ({ route, navigation }) => {
   };
 
   const handleSave = async () => {
+    if (saving) return;
+    const payload = {
+      name,
+      ingredients: ingredients.filter((s) => s.trim().length > 0),
+      steps: steps.filter((s) => s.trim().length > 0),
+      authorNotes: authorNotes.filter((s) => s.trim().length > 0),
+      userNotes: userNotes.filter((s) => s.trim().length > 0),
+    };
+
+    if (isNew && !payload.name && !payload.ingredients.length && !payload.steps.length) {
+      Alert.alert('Nothing to save', 'Add at least a name, an ingredient, or a step.');
+      return;
+    }
+
     try {
-      await updateRecipe(recipeId, {
-        name,
-        ingredients: ingredients.filter((s) => s.trim().length > 0),
-        steps: steps.filter((s) => s.trim().length > 0),
-        authorNotes: authorNotes.filter((s) => s.trim().length > 0),
-        userNotes: userNotes.filter((s) => s.trim().length > 0),
-      });
-      navigation.goBack();
+      setSaving(true);
+      if (isNew) {
+        await createRecipe(payload);
+        navigation.popToTop();
+      } else {
+        await updateRecipe(recipeId, payload);
+        navigation.goBack();
+      }
     } catch (err) {
       Alert.alert('Could not save', err.message ?? 'Unknown error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -109,12 +130,12 @@ const EditRecipe = ({ route, navigation }) => {
             onPress={() => removeItem(setter, list, index)}
             style={styles.deleteButton}
           >
-            <Icon name="trash-outline" size={24} color="#900" />
+            <Icon name="trash-outline" size={24} color={colors.danger} />
           </TouchableOpacity>
         </View>
       ))}
       <TouchableOpacity style={styles.addButton} onPress={() => addItem(setter, list)}>
-        <Icon name="add-circle-outline" size={32} color="#0066cc" />
+        <PlusIcon size={28} color={colors.link} strokeWidth={1.75} />
         <Text style={styles.addButtonText}>Add {placeholder}</Text>
       </TouchableOpacity>
     </>
@@ -122,7 +143,7 @@ const EditRecipe = ({ route, navigation }) => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#fff' }}
+      style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
@@ -133,15 +154,17 @@ const EditRecipe = ({ route, navigation }) => {
           <Icon name="chevron-back" style={styles.edit_backButtonIcon} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteRecipeButton} onPress={handleDelete}>
-          <Text style={styles.deleteButtonText}>Delete</Text>
-        </TouchableOpacity>
+        {!isNew && (
+          <TouchableOpacity style={styles.deleteRecipeButton} onPress={handleDelete}>
+            <Text style={styles.deleteButtonText}>Delete</Text>
+          </TouchableOpacity>
+        )}
 
         <TextInput
           style={[styles.edit_header, styles.edit_nameInput]}
           value={name}
           onChangeText={setName}
-          placeholder="Recipe name"
+          placeholder={isNew ? 'New recipe name' : 'Recipe name'}
         />
 
         {renderList('Ingredients', ingredients, setIngredients, 'Ingredient')}
@@ -150,10 +173,10 @@ const EditRecipe = ({ route, navigation }) => {
         {renderList('Your Notes', userNotes, setUserNotes, 'Note')}
 
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: '#28a745', padding: 20, marginBottom: 40 }]}
+          style={[styles.addButton, { backgroundColor: colors.success, padding: 20, marginBottom: 40 }]}
           onPress={handleSave}
         >
-          <Text style={[styles.addButtonText, { color: '#fff', fontWeight: 'bold' }]}>
+          <Text style={[styles.addButtonText, { color: colors.textOnPrimary, fontWeight: 'bold' }]}>
             Save Changes
           </Text>
         </TouchableOpacity>

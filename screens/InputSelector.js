@@ -3,10 +3,10 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
 
-const InputSelector = ({ route, navigation }) => {
-  const { recipeId } = route.params;
-
-  const goToEdit = () => navigation.replace('EditRecipe', { recipeId });
+const InputSelector = ({ navigation }) => {
+  // No recipe exists yet — we navigate to EditRecipe in "new" mode
+  // (no recipeId). The DB insert happens when the user hits Save there.
+  const goToEdit = () => navigation.replace('EditRecipe');
 
   return (
     <View style={styles.inputContainer}>
