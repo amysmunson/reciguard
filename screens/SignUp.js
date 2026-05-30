@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
+import { colors } from '../styles/theme';
 import { signUp } from '../lib/api/auth';
 
 const SignUp = ({ navigation }) => {
@@ -37,46 +38,48 @@ const SignUp = ({ navigation }) => {
 
       <Text style={styles.auth_title}>Create Account</Text>
 
-      <TextInput
-        style={styles.auth_input}
-        placeholder="Name"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.auth_input}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.auth_input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+    <View style={{ width: '100%', paddingBottom: 16 }}>
+        <TextInput
+          style={styles.auth_input}
+          placeholder="Name"
+          value={name}
+          onChangeText={setName}
+        />
+        <TextInput
+          style={styles.auth_input}
+          placeholder="Email"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={styles.auth_input}
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+      </View>
+
+      <TouchableOpacity style={styles.button_link} onPress={() => navigation.navigate('PrivacyPolicy')}>
+        <Text style={styles.buttonText_link}>Privacy Policy</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.auth_primaryButton}
+        style={[styles.button_base, styles.button_fullWidth, styles.button_authPrimary]}
         onPress={handleSignUp}
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.textOnPrimary} />
         ) : (
-          <Text style={styles.auth_primaryButtonText}>Sign Up</Text>
+          <Text style={[styles.buttonText_base, styles.buttonText_onAuthPrimary]}>Sign Up</Text>
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.auth_link}>Already have an account? Sign in</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
-        <Text style={styles.auth_link}>Privacy Policy</Text>
+      <TouchableOpacity style={styles.button_link} onPress={() => navigation.replace('Login')}>
+        <Text style={styles.buttonText_authLink}>Already have an account? Sign in</Text>
       </TouchableOpacity>
     </View>
   );
