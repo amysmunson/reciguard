@@ -1,24 +1,74 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Modal,
+  Pressable,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
-import { getFriend, updateFriend, deleteFriend } from '../lib/api/friends';
-import { getFriendAllergies, addAllergy, deleteAllergy } from '../lib/api/allergies';
+import { colors } from '../styles/theme';
+import {
+  getFriend,
+  updateFriend,
+  deleteFriend,
+  linkFriendByCode,
+  unlinkFriend,
+  friendDisplayName,
+} from '../lib/api/friends';
+import {
+  getFriendAllergies,
+  getLinkedUserAllergies,
+  addAllergy,
+  deleteAllergy,
+  updateAllergySeverity,
+  severityColor,
+  severityLabel,
+  normalizeSeverity,
+} from '../lib/api/allergies';
+import AllergyChecklist from '../components/AllergyChecklist';
+
+const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
 const FriendProfile = ({ route, navigation }) => {
   const { friendshipId } = route.params;
   const [friend, setFriend] = useState(null);
+  const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
+
   const [allergies, setAllergies] = useState([]);
-  const [newAllergy, setNewAllergy] = useState('');
+
+  const [theirAllergies, setTheirAllergies] = useState([]);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const f = await getFriend(friendshipId);
       setFriend(f);
+      setName(f.friendName ?? '');
       setNotes(f.friendNotes ?? '');
-      const a = await getFriendAllergies(friendshipId);
-      setAllergies(a);
+      const mine = await getFriendAllergies(friendshipId);
+      setAllergies(mine);
+      if (f.linkedProfile?.id) {
+        try {
+          const theirs = await getLinkedUserAllergies(f.linkedProfile.id);
+          setTheirAllergies(theirs);
+        } catch {
+          setTheirAllergies([]);
+        }
+      } else {
+        setTheirAllergies([]);
+      }
     } catch (err) {
       Alert.alert('Could not load friend', err.message ?? 'Unknown error');
     }
@@ -66,7 +116,7 @@ const FriendProfile = ({ route, navigation }) => {
   };
 
   const handleDeleteFriend = () => {
-    Alert.alert('Remove friend?', 'This deletes their notes and allergies.', [
+    Alert.alert('Remove friend?', 'This deletes your notes and allergies for them.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
@@ -91,63 +141,251 @@ const FriendProfile = ({ route, navigation }) => {
     );
   }
 
-  const displayName = friend.linkedProfile?.name || friend.friendName || 'Unnamed';
+  const isLinked = !!friend.existingFriendId;
+  const linkedAlive = !!friend.linkedProfile;
+  const displayName = friendDisplayName(friend);
+
+  const displayValue = (val) =>
+    val && val.trim().length > 0 ? (
+      <Text style={styles.display_fieldValue}>{val}</Text>
+    ) : (
+      <Text style={[styles.display_fieldValue, styles.display_fieldEmpty]}>Not set</Text>
+    );
 
   return (
-    <ScrollView style={styles.card_container}>
+    <ScrollView
+      style={styles.card_container}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       <TouchableOpacity style={styles.card_backButton} onPress={() => navigation.goBack()}>
         <Icon name="chevron-back" style={styles.card_backIcon} />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.card_edit} onPress={handleDeleteFriend}>
-        <Text style={[styles.card_editText, { color: '#c00' }]}>Remove</Text>
+      <TouchableOpacity
+        style={styles.card_edit}
+        onPress={isEditing ? handleCancel : () => setIsEditing(true)}
+      >
+        <Text style={styles.card_editText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
       </TouchableOpacity>
 
       <Text style={styles.card_header}>{displayName}</Text>
 
-      <Text style={styles.subheading}>Notes</Text>
-      <TextInput
-        style={[styles.input, { minHeight: 80 }]}
-        value={notes}
-        onChangeText={setNotes}
-        multiline
-        placeholder="Notes about this friend"
-      />
-      <TouchableOpacity
-        style={[styles.addButton, { backgroundColor: '#28a745', padding: 12, marginTop: 10 }]}
-        onPress={handleSaveNotes}
-      >
-        <Text style={[styles.addButtonText, { color: '#fff', fontWeight: 'bold' }]}>
-          Save Notes
-        </Text>
-      </TouchableOpacity>
+      {isLinked ? (
+        <View style={styles.linkStatus_row}>
+          <View style={styles.linkBadge}>
+            <Icon name="link" size={12} color={colors.textOnPrimary} />
+          </View>
+          <Text style={styles.linkStatus_text}>
+            {linkedAlive
+              ? 'Linked to a real account'
+              : 'Linked account no longer exists'}
+          </Text>
+          {isEditing && (
+            <TouchableOpacity onPress={handleUnlink}>
+              <Text style={styles.linkStatus_action}>Unlink</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        isEditing && (
+          <TouchableOpacity
+            style={styles.linkAccountButton}
+            onPress={() => setLinkModalOpen(true)}
+          >
+            <Icon name="link" size={18} color={colors.link} />
+            <Text style={styles.linkAccountButton_text}>Link to Real Account</Text>
+          </TouchableOpacity>
+        )
+      )}
+
+      {!isLinked && (
+        <>
+          <Text style={styles.spacing} />
+          <Text style={styles.subheading}>Name</Text>
+          {isEditing ? (
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Friend's name"
+            />
+          ) : (
+            displayValue(name)
+          )}
+        </>
+      )}
+
+      {linkedAlive && (friend.linkedProfile.notes ?? '').trim().length > 0 && (
+        <>
+          <Text style={styles.spacing} />
+          <Text style={styles.subheading}>About them</Text>
+          <View style={styles.readOnlyBlock}>
+            <Text style={styles.readOnlyText}>{friend.linkedProfile.notes}</Text>
+          </View>
+          <Text style={styles.readOnly_hint}>From their profile.</Text>
+        </>
+      )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>Allergies</Text>
+      <Text style={styles.subheading}>My Notes</Text>
+      {isEditing ? (
+        <>
+          <TextInput
+            style={[styles.input, { minHeight: 80 }]}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            placeholder="Private notes about this friend (only you see these)"
+          />
+          <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
+        </>
+      ) : (
+        <>
+          {displayValue(notes)}
+          <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
+        </>
+      )}
+
+      {isEditing && (
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: colors.success, padding: 12, marginTop: 10 }]}
+          onPress={handleSave}
+        >
+          <Text style={[styles.addButtonText, { color: colors.textOnPrimary, fontWeight: 'bold' }]}>
+            Save
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {linkedAlive && (
+        <>
+          <Text style={styles.spacing} />
+          <Text style={styles.subheading}>Their Allergies</Text>
+          {theirAllergies.length === 0 ? (
+            <Text style={styles.emptyText}>They haven&apos;t added any.</Text>
+          ) : (
+            theirAllergies.map((a) => (
+              <View key={a.id} style={styles.allergyRow}>
+                <Text style={[styles.ingredientItems, { flex: 1 }]}>• {cap(a.name)}</Text>
+                <View style={styles.severityChip}>
+                  <View
+                    style={[
+                      styles.severityDot,
+                      { backgroundColor: severityColor(a.severity) },
+                    ]}
+                  />
+                  <Text style={styles.severityChipLabel}>{severityLabel(a.severity)}</Text>
+                </View>
+              </View>
+            ))
+          )}
+          <Text style={styles.readOnly_hint}>From their profile.</Text>
+        </>
+      )}
+
+      <Text style={styles.spacing} />
+      <Text style={styles.subheading}>My Allergy Notes</Text>
       {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
       {allergies.map((a) => (
-        <View key={a.id} style={styles.ingredientRow}>
-          <Text style={[styles.ingredientItems, { flex: 1 }]}>• {a.name}</Text>
-          <TouchableOpacity onPress={() => handleRemoveAllergy(a.id)} style={styles.deleteButton}>
-            <Icon name="trash-outline" size={20} color="#900" />
+        <View key={a.id} style={styles.allergyRow}>
+          <Text style={[styles.ingredientItems, { flex: 1 }]}>• {cap(a.name)}</Text>
+          <TouchableOpacity
+            onPress={() => isEditing && handleCycleSeverity(a)}
+            disabled={!isEditing}
+            style={styles.severityChip}
+          >
+            <View
+              style={[
+                styles.severityDot,
+                { backgroundColor: severityColor(a.severity) },
+              ]}
+            />
+            <Text style={styles.severityChipLabel}>{severityLabel(a.severity)}</Text>
           </TouchableOpacity>
+          {isEditing && (
+            <TouchableOpacity onPress={() => handleRemoveAllergy(a.id)} style={styles.deleteButton}>
+              <Icon name="trash-outline" size={20} color={colors.danger} />
+            </TouchableOpacity>
+          )}
         </View>
       ))}
-      <View style={styles.ingredientRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Add allergy"
-          value={newAllergy}
-          onChangeText={setNewAllergy}
-          onSubmitEditing={handleAddAllergy}
+      {isEditing && (
+        <AllergyChecklist
+          existingNames={allergies.map((a) => a.name)}
+          onConfirm={handleAddBatch}
         />
-        <TouchableOpacity onPress={handleAddAllergy} style={styles.deleteButton}>
-          <Icon name="add-circle-outline" size={24} color="#0066cc" />
-        </TouchableOpacity>
-      </View>
+      )}
+      <Text style={styles.readOnly_hint}>
+        Extra allergies you want to track for this friend.
+      </Text>
 
       <Text style={styles.spacing} />
       <Text style={styles.spacing} />
+
+      {isEditing && (
+        <TouchableOpacity style={styles.removeFriendButton} onPress={handleDeleteFriend}>
+          <Icon name="trash-outline" size={18} color={colors.danger} />
+          <Text style={styles.removeFriendButton_text}>Remove Friend</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Link-by-code modal */}
+      <Modal
+        visible={linkModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setLinkModalOpen(false);
+          setCodeInput('');
+        }}
+      >
+        <Pressable
+          style={styles.modal_backdrop}
+          onPress={() => {
+            setLinkModalOpen(false);
+            setCodeInput('');
+          }}
+        >
+          <Pressable style={styles.modal_card} onPress={() => {}}>
+            <Text style={styles.modal_title}>Link to Real Account</Text>
+            <Text style={[styles.readOnly_hint, { marginBottom: 12 }]}>
+              Ask your friend for their friend code (shown on their Profile screen).
+            </Text>
+            <TextInput
+              style={[styles.auth_input, styles.codeInput]}
+              placeholder="ABCD-EFGH"
+              value={codeInput}
+              onChangeText={(t) => setCodeInput(normalizeCode(t))}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoFocus
+              maxLength={8}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <TouchableOpacity
+                style={styles.modal_button}
+                onPress={() => {
+                  setLinkModalOpen(false);
+                  setCodeInput('');
+                }}
+              >
+                <Text style={styles.modal_buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modal_button}
+                onPress={handleLink}
+                disabled={busy}
+              >
+                <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                  {busy ? 'Linking…' : 'Link'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 };
