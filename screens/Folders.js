@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,33 +10,25 @@ import {
   Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
 import { getFolders, createFolder } from '../lib/api/folders';
+import { useCachedResource } from '../lib/cache';
+import { useAuth } from '../lib/auth-context';
 import { startNewRecipe } from '../components/utils/addRecipe';
 import PlusIcon from '../components/icons/PlusIcon';
 
 const Folders = ({ navigation }) => {
-  const [folders, setFolders] = useState([]);
+  const { user } = useAuth();
+  const { data: foldersData } = useCachedResource({
+    resource: 'folders',
+    userId: user?.id,
+    fetcher: getFolders,
+  });
+  const folders = foldersData ?? [];
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
-
-  const load = useCallback(async () => {
-    try {
-      const list = await getFolders();
-      setFolders(list);
-    } catch (err) {
-      Alert.alert('Could not load folders', err.message ?? 'Unknown error');
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -44,7 +36,6 @@ const Folders = ({ navigation }) => {
       await createFolder({ name: newName.trim() });
       setNewName('');
       setCreating(false);
-      load();
     } catch (err) {
       Alert.alert('Could not create folder', err.message ?? 'Unknown error');
     }
