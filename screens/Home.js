@@ -26,6 +26,7 @@ import {
   severityColor,
 } from '../lib/api/allergies';
 import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
+import { useCachedResource } from '../lib/cache';
 import { useAuth } from '../lib/auth-context';
 import { colors } from '../styles/theme';
 import SearchIcon from '../components/icons/SearchIcon';
@@ -34,7 +35,12 @@ import FilterIcon from '../components/icons/FilterIcon';
 
 const Home = ({ navigation }) => {
   const { user } = useAuth();
-  const [recipes, setRecipes] = useState([]);
+  const { data: recipesData } = useCachedResource({
+    resource: 'recipes',
+    userId: user?.id,
+    fetcher: getRecipes,
+  });
+  const recipes = recipesData ?? [];
 
   // Selection state
   const [selectMode, setSelectMode] = useState(false);
@@ -62,15 +68,6 @@ const Home = ({ navigation }) => {
   const [sortOpen, setSortOpen] = useState(false);
   const [sortBy, setSortBy] = useState('created_at'); // 'created_at' | 'updated_at' | 'opened_at'
   const [openedMap, setOpenedMap] = useState({});
-
-  const loadRecipes = useCallback(async () => {
-    try {
-      const list = await getRecipes();
-      setRecipes(list);
-    } catch (err) {
-      Alert.alert('Could not load recipes', err.message ?? 'Unknown error');
-    }
-  }, []);
 
   const refreshActiveAllergies = useCallback(async (self, friendIds) => {
     try {
@@ -115,11 +112,9 @@ const Home = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      loadRecipes();
       refreshOpenedMap();
       if (filterHydrated) refreshActiveAllergies(includeSelf, selectedFriendIds);
     }, [
-      loadRecipes,
       refreshOpenedMap,
       refreshActiveAllergies,
       includeSelf,
@@ -165,7 +160,6 @@ const Home = ({ navigation }) => {
           try {
             await deleteRecipes(ids);
             exitSelect();
-            loadRecipes();
           } catch (err) {
             Alert.alert('Could not delete', err.message ?? 'Unknown error');
           }

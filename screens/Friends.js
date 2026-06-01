@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import FAIcon from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
@@ -24,6 +23,7 @@ import {
   friendDisplayName,
 } from '../lib/api/friends';
 import { getMyProfile } from '../lib/api/profile';
+import { useCachedResource } from '../lib/cache';
 import { startNewRecipe } from '../components/utils/addRecipe';
 
 // Strip non-alphanumeric, uppercase, max 8 chars.
@@ -31,8 +31,18 @@ const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').s
 
 const Friends = ({ navigation }) => {
   const { user } = useAuth();
-  const [friends, setFriends] = useState([]);
-  const [myName, setMyName] = useState('');
+  const fallbackName = user?.email || 'Me';
+
+  const { data } = useCachedResource({
+    resource: 'friends',
+    userId: user?.id,
+    fetcher: async () => {
+      const [list, profile] = await Promise.all([getFriends(), getMyProfile()]);
+      return { list, myName: profile?.name?.trim() || fallbackName };
+    },
+  });
+  const friends = data?.list ?? [];
+  const myName = data?.myName || fallbackName;
 
   // Modal state. Step "choose" picks path; "code" enters friend code;
   // "manual" enters a name for an off-platform friend.
@@ -40,22 +50,6 @@ const Friends = ({ navigation }) => {
   const [codeInput, setCodeInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const [list, profile] = await Promise.all([getFriends(), getMyProfile()]);
-      setFriends(list);
-      setMyName(profile?.name?.trim() || user?.email || 'Me');
-    } catch (err) {
-      Alert.alert('Could not load friends', err.message ?? 'Unknown error');
-    }
-  }, [user]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
 
   const closeModal = () => {
     setModalStep(null);
@@ -74,7 +68,6 @@ const Friends = ({ navigation }) => {
       setBusy(true);
       const friend = await addFriendByCode(code);
       closeModal();
-      load();
       Alert.alert('Added', `Linked to ${friendDisplayName(friend)}.`);
     } catch (err) {
       Alert.alert('Could not add by code', err.message ?? 'Unknown error');
@@ -89,7 +82,6 @@ const Friends = ({ navigation }) => {
       setBusy(true);
       await addFriend({ friendName: nameInput.trim() });
       closeModal();
-      load();
     } catch (err) {
       Alert.alert('Could not add friend', err.message ?? 'Unknown error');
     } finally {

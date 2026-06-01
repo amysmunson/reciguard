@@ -13,6 +13,7 @@ RecipeGuard is a React Native + Expo app with a Supabase backend for storing rec
 - Severity-aware allergy warnings inside recipes and in list
 - Friend profile linking via unique friend codes
 - Persistent per-user filters and preferences
+- Instant list loads with a stale-while-revalidate cache
 - Authentication with Supabase Auth
 
 
@@ -73,6 +74,7 @@ Linked friendships automatically include the friend's public allergies in allerg
     - Local recipe-open timestamps
     - Per-user filter persistence
     - Sort preferences
+    - Cached list snapshots (recipes, folders, friends)
     - Local storage keys are namespaced per-user.
 
 
@@ -85,6 +87,7 @@ recipes/
 │   ├── supabase.js
 │   ├── auth-context.js
 │   ├── storage.js
+│   ├── cache.js
 │   └── api/
 ├── screens/
 ├── components/
