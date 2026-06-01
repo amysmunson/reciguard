@@ -37,6 +37,7 @@ recipes/
 │   ├── supabase.js                 # Single createClient() instance (AsyncStorage + URL polyfill)
 │   ├── auth-context.js             # AuthProvider + useAuth() hook (session, user, loading)
 │   ├── storage.js                  # AsyncStorage helpers (loadJson, saveJson) + KEYS registry
+│   ├── cache.js                    # Stale-while-revalidate cache: useCachedResource() + invalidate()
 │   └── api/                        # Per-domain functions screens import
 │       ├── auth.js                 # signUp, signIn, signOut, deleteAccount
 │       ├── recipes.js              # getRecipes, getRecipe, create/update/deleteRecipe
@@ -201,6 +202,12 @@ Each file is a flat set of async functions. They:
   `extLink`, joined `recipe_ingredients` collapsed to `ingredients: string[]`).
 - Look up the current user via `supabase.auth.getUser()` and tag inserts with
   `user_id` automatically — screens never deal with user IDs.
+- **Bust the cache after mutations.** Every write (`createFolder`,
+  `updateRecipe`, `deleteFriend`, …) calls a small `bust*Caches()` helper after
+  the DB succeeds, which calls `invalidate(resource, userId)` from
+  [lib/cache.js](lib/cache.js). This forces any mounted `useCachedResource`
+  hooks for that resource to refetch and drops the stale on-disk snapshot. The
+  resource keys in use today are `'recipes'`, `'folders'`, and `'friends'`.
 
 When you need a new piece of data, add a function to the appropriate file (or
 a new file under `lib/api/`). Don't query Supabase from a screen.
@@ -210,8 +217,13 @@ a new file under `lib/api/`). Don't query Supabase from a screen.
 Each screen is a default-exported React component that:
 
 - Reads params via `route.params` (e.g. `recipeId`, `folderId`, `friendshipId`).
-- Calls `lib/api/*` functions inside `useFocusEffect` (for "refresh when shown")
-  or `useEffect` (for "load once").
+- Reads list data through the `useCachedResource()` hook from
+  [lib/cache.js](lib/cache.js) where a cached, focus-refreshed snapshot is
+  wanted (Home → recipes, Folders → folders, Friends → friends + profile name).
+  The hook owns the fetch/refresh/invalidation lifecycle, so these screens no
+  longer keep their own `useState` list + manual `load()` in `useFocusEffect`.
+- Still calls `lib/api/*` directly inside `useFocusEffect`/`useEffect` for data
+  that isn't cache-backed (e.g. Home's opened-map and active-allergy details).
 - Renders styles from `styles/main_style.js`.
 - Calls `navigation.navigate(...)` for transitions.
 - Uses `Alert` for errors (simple, non-blocking).
@@ -273,6 +285,34 @@ Plus two domain helpers built on the generic ones:
   into the recipe-opens map. Called from RecipeCard on focus.
 - `getRecipeOpenedMap(userId)` — read the full map. Called from Home on
   focus.
+
+### `lib/cache.js` — stale-while-revalidate cache
+
+A small client-side cache that lets list screens paint instantly from the last
+known data while a fresh fetch runs in the background. Built on `lib/storage.js`
+(AsyncStorage) for the persisted snapshot plus an in-memory pub/sub registry for
+live invalidation. Two exports:
+
+- **`useCachedResource({ resource, userId, fetcher, enabled })`** — the hook
+  screens use. On mount it hydrates `data` from the on-disk snapshot
+  (`cache:<resource>:<userId>`) so the UI paints with no spinner, then:
+  - refetches quietly via `fetcher()` on every screen focus (`useFocusEffect`),
+  - subscribes to `invalidate(resource)` events and refetches when one fires,
+  - writes each successful result back to disk.
+
+  Returns `{ data, loading, error, refresh }`. It's inert until both `userId` is
+  present and `enabled !== false`. The `fetcher` is held in a ref, so it can be
+  an inline async closure (e.g. Friends fetches friends + profile in one
+  `Promise.all`) without re-subscribing on every render.
+
+- **`invalidate(resource, userId)`** — called by the `lib/api/*` write helpers
+  after a mutation. Removes the on-disk snapshot (so a cold start doesn't flash
+  deleted data) and notifies every mounted hook for that resource to refetch.
+
+Cache keys are namespaced per user (`cache:<resource>:<userId ?? 'anon'>`),
+matching the per-user discipline of the `KEYS` registry. This is why mutations
+must call `invalidate()` — without it a screen would keep showing its cached
+list until the next focus refetch.
 
 ---
 
