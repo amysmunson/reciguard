@@ -29,6 +29,7 @@ export { default as PlusIcon } from './PlusIcon';
 export { default as SearchIcon } from './SearchIcon';
 export { default as SortIcon } from './SortIcon';
 export { default as FilterIcon } from './FilterIcon';
+export { default as EditIcon } from './EditIcon';
 
 // --- Navigation / structure ----------------------------------------------
 
@@ -70,8 +71,8 @@ export const LinkOutlineIcon = ({ style, ...rest }) => (
   <Ionicons name="link-outline" style={style} {...rest} />
 );
 
-export const CameraIcon = ({ style, ...rest }) => (
-  <Ionicons name="camera-outline" style={style} {...rest} />
+export const ImageIcon = ({ style, ...rest }) => (
+  <Ionicons name="image-outline" style={style} {...rest} />
 );
 
 export const KeyIcon = ({ size = 22, color = colors.link, style, ...rest }) => (

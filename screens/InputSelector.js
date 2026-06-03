@@ -13,7 +13,7 @@ import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { fetchRecipeFromUrl } from '../lib/recipeUrlParser';
 import { createRecipe } from '../lib/api/recipes';
-import { CameraIcon, LinkOutlineIcon } from '../components/icons';
+import { BackIcon, EditIcon, ImageIcon, LinkOutlineIcon } from '../components/icons';
 
 // Error messages the parser throws when the page loaded fine but no
 // usable recipe data could be extracted. These trigger the "create
@@ -37,7 +37,7 @@ const InputSelector = ({ navigation }) => {
   // No recipe exists yet — we navigate to EditRecipe in "new" mode
   // (no recipeId). The DB insert happens when the user hits Save there,
   // or here in handleFetch when a URL is successfully parsed.
-  const goToEdit = () => navigation.replace('EditRecipe');
+  const goToEdit = () => navigation.navigate('EditRecipe');
 
   // 'picker' = three big buttons; 'link' = URL entry; (future) 'camera'
   const [mode, setMode] = useState('picker');
@@ -112,7 +112,7 @@ const InputSelector = ({ navigation }) => {
         source: hostnameFromUrl(url),
         extLink: url.trim(),
       });
-      navigation.replace('EditRecipe', { recipeId: recipe.id });
+      navigation.navigate('EditRecipe', { recipeId: recipe.id });
     } catch (err) {
       setError(err.message ?? 'Could not create recipe.');
     } finally {
@@ -127,10 +127,19 @@ const InputSelector = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.linkEntry_container}>
-          <Text style={styles.linkEntry_title}>Add from a link</Text>
+          <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} 
+            onPress={() => {
+                if (loading) return;
+                setMode('picker');
+                setError(null);
+              }}>
+            <BackIcon style={styles.overlayIcon_lg} />
+          </TouchableOpacity>
+
+          <Text style={styles.header_tab}>Add via Link</Text>
+          
           <Text style={styles.linkEntry_hint}>
-            Paste a recipe URL from AllRecipes, NYT Cooking, Food Network, or most
-            recipe sites. We&apos;ll pull the name, ingredients, and steps.
+            Paste a recipe link below to be parsed.
           </Text>
 
           <TextInput
@@ -148,7 +157,9 @@ const InputSelector = ({ navigation }) => {
             onSubmitEditing={handleFetch}
           />
 
+          {/* If there's a format error (https://) */}
           {!!formatError && <Text style={styles.linkEntry_error}>{formatError}</Text>}
+          {/* If there's a general error that isn't format-related */}
           {!!error && !formatError && <Text style={styles.linkEntry_error}>{error}</Text>}
 
           <TouchableOpacity
@@ -162,30 +173,10 @@ const InputSelector = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color={colors.textOnPrimary} />
             ) : (
-              <Text style={styles.linkEntry_fetchButtonText}>Fetch recipe</Text>
+              <Text style={styles.linkEntry_fetchButtonText}>Create</Text>
             )}
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkEntry_backButton}
-            onPress={() => {
-              if (loading) return;
-              setMode('picker');
-              setError(null);
-            }}
-            disabled={loading}
-          >
-            <Text style={styles.linkEntry_backText}>Back</Text>
-          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => !loading && navigation.goBack()}
-          disabled={loading}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
 
         <Modal
           visible={noRecipeModalOpen}
@@ -223,20 +214,28 @@ const InputSelector = ({ navigation }) => {
 
   // mode === 'picker'
   return (
-    <View style={[styles.screen_base, styles.screen_inputSelectorPad]}>
+    <View style={[styles.screen_base, styles.screen_tabPad]}>
+      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} onPress={() => navigation.goBack()}>
+        <BackIcon style={styles.overlayIcon_lg} />
+      </TouchableOpacity>
+
+      <Text style={styles.header_tab}>Add a Recipe</Text>
+
       <TouchableOpacity style={styles.inputButton} onPress={() => setMode('link')}>
         <LinkOutlineIcon style={styles.inputButtonText} />
-        <Text style={[styles.inputButtonText, { marginLeft: 10 }]}>From link</Text>
+        <Text style={[styles.inputButtonText]}>Link</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.inputButton} onPress={goToEdit}>
-        <CameraIcon style={styles.inputButtonText} />
+        <EditIcon style={styles.inputButtonText} />
+        <Text style={styles.inputButtonText}>Manual</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.inputButton} onPress={goToEdit}>
-        <Text style={styles.inputButtonText}>Manual Entry</Text>
+        <ImageIcon style={styles.inputButtonText} />
+        <Text style={[styles.inputButtonText, { marginLeft: 10 }]}>Photo</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
+      {/* <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
         <Text style={styles.cancelButtonText}>Cancel</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 };

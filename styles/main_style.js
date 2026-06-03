@@ -69,13 +69,6 @@ const styles = StyleSheet.create({
       paddingTop: 100,
       paddingBottom: 30,
     },
-    // Input-selector padding — InputSelector. Tab-screen horizontal, but
-    // content is vertically centered so the picker buttons fill the screen.
-    screen_inputSelectorPad: {
-      paddingHorizontal: itemMargin / 2,
-      paddingVertical: itemMargin / 2,
-      justifyContent: 'center',
-    },
 
     // === Typography ======================================================
     // Compose: [text_<size>, text_bold?, text_centered?, ...]
@@ -572,13 +565,17 @@ const styles = StyleSheet.create({
     },
 
 //   Input Selector Styles
-//   Container: compose [screen_base, screen_inputSelectorPad] at the call site.
+//   Container: compose [screen_base, screen_tabPad] at the call site.
     inputButton: {
-        backgroundColor: colors.primarySoft,
+      // secondary:     palette.secondaryBlue,
+        // tertiary:      palette.surfaceAltDark,
+        // primarySubtle: palette.tintBlue,
+        // primarySoft:  
+        backgroundColor: colors.primarySubtle,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        height: ((screenHeight - 200) / 4),
+        height: ((screenHeight - 200) / 8),
         margin: 10,
         padding: 20,
         borderRadius: 10,
@@ -587,35 +584,15 @@ const styles = StyleSheet.create({
         color: colors.text,
       fontSize: 24,
       textAlign: 'center',
-    },
-    cancelButton: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 75,
-        alignSelf: 'center',
-        justifyContent: 'center',
-        backgroundColor: colors.primary,
-    },
-    cancelButtonText: {
-        color: colors.textOnPrimary,
-        fontSize: 24,
-        textAlign: 'center',
+      marginLeft: 10,
     },
 
 //   Link Entry (InputSelector "From link" mode)
     linkEntry_container: {
       flex: 1,
       paddingHorizontal: 24,
-      paddingTop: 80,
+      paddingTop: 70, // match screen_tabPad so the header aligns with picker mode
       backgroundColor: colors.background,
-    },
-    linkEntry_title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: colors.text,
-      marginBottom: 8,
     },
     linkEntry_hint: {
       fontSize: 14,
