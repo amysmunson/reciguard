@@ -186,6 +186,37 @@ const InputSelector = ({ navigation }) => {
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
+
+        <Modal
+          visible={noRecipeModalOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setNoRecipeModalOpen(false)}
+        >
+          <View style={styles.modal_backdrop}>
+            <View style={styles.surface_modal}>
+              <Text style={styles.header_modal}>Couldn&apos;t find a recipe</Text>
+              <Text style={[styles.text_body, { color: colors.textSecondary, marginBottom: 16 }]}>
+                We couldn&apos;t pull a recipe from this page. You can create one
+                anyway — we&apos;ll save the link so you can fill in the details
+                yourself.
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <TouchableOpacity
+                  style={styles.modal_button}
+                  onPress={() => setNoRecipeModalOpen(false)}
+                >
+                  <Text style={styles.modal_buttonText}>Go back</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modal_button} onPress={handleCreateAnyway}>
+                  <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                    Create anyway
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     );
   }
