@@ -63,8 +63,8 @@ const Settings = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
+    <View style={[styles.screen_base, styles.screen_tabPad]}>
+      <Text style={styles.header_tab}>Settings</Text>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
         {user?.user_metadata?.name ? (

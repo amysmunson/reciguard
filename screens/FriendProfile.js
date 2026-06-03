@@ -205,7 +205,7 @@ const FriendProfile = ({ route, navigation }) => {
 
   if (!friend) {
     return (
-      <View style={styles.card_container}>
+      <View style={[styles.screen_base, styles.screen_cardPad]}>
         <Text style={styles.emptyText}>Loading…</Text>
       </View>
     );
@@ -224,7 +224,7 @@ const FriendProfile = ({ route, navigation }) => {
 
   return (
     <ScrollView
-      style={styles.card_container}
+      style={[styles.screen_base, styles.screen_cardPad]}
       contentContainerStyle={{ paddingBottom: 80 }}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
@@ -234,16 +234,16 @@ const FriendProfile = ({ route, navigation }) => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.card_edit}
+        style={[styles.overlay_base, styles.overlay_topRight_card]}
         onPress={isEditing ? handleCancel : () => setIsEditing(true)}
       >
-        <Text style={styles.card_editText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
+        <Text style={styles.overlayText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.card_header}>{displayName}</Text>
+      <Text style={styles.header_card}>{displayName}</Text>
 
       {isLinked ? (
-        <View style={styles.linkStatus_row}>
+        <View style={[styles.surface_sm, styles.surface_tinted, { flexDirection: 'row', alignItems: 'center', marginBottom: 8 }]}>
           <View style={styles.linkBadge}>
             <LinkIcon />
           </View>
@@ -261,7 +261,7 @@ const FriendProfile = ({ route, navigation }) => {
       ) : (
         isEditing && (
           <TouchableOpacity
-            style={styles.linkAccountButton}
+            style={[styles.button_outline, styles.button_outline_link, { marginBottom: 8 }]}
             onPress={() => setLinkModalOpen(true)}
           >
             <LinkIcon size={18} color={colors.link} />
@@ -273,10 +273,10 @@ const FriendProfile = ({ route, navigation }) => {
       {!isLinked && (
         <>
           <Text style={styles.spacing} />
-          <Text style={styles.subheading}>Name</Text>
+          <Text style={styles.header_section}>Name</Text>
           {isEditing ? (
             <TextInput
-              style={styles.input}
+              style={styles.input_base}
               value={name}
               onChangeText={setName}
               placeholder="Friend's name"
@@ -290,8 +290,8 @@ const FriendProfile = ({ route, navigation }) => {
       {linkedAlive && (friend.linkedProfile.notes ?? '').trim().length > 0 && (
         <>
           <Text style={styles.spacing} />
-          <Text style={styles.subheading}>About them</Text>
-          <View style={styles.readOnlyBlock}>
+          <Text style={styles.header_section}>About them</Text>
+          <View style={[styles.surface_sm, { marginBottom: 4 }]}>
             <Text style={styles.readOnlyText}>{friend.linkedProfile.notes}</Text>
           </View>
           <Text style={styles.readOnly_hint}>From their profile.</Text>
@@ -299,11 +299,11 @@ const FriendProfile = ({ route, navigation }) => {
       )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>My Notes</Text>
+      <Text style={styles.header_section}>My Notes</Text>
       {isEditing ? (
         <>
           <TextInput
-            style={[styles.input, { minHeight: 80 }]}
+            style={[styles.input_base, { minHeight: 80 }]}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -332,7 +332,7 @@ const FriendProfile = ({ route, navigation }) => {
       {linkedAlive && (
         <>
           <Text style={styles.spacing} />
-          <Text style={styles.subheading}>Their Allergies</Text>
+          <Text style={styles.header_section}>Their Allergies</Text>
           {theirAllergies.length === 0 ? (
             <Text style={styles.emptyText}>They haven&apos;t added any.</Text>
           ) : (
@@ -356,7 +356,7 @@ const FriendProfile = ({ route, navigation }) => {
       )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>My Allergy Notes</Text>
+      <Text style={styles.header_section}>My Allergy Notes</Text>
       {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
       {allergies.map((a) => (
         <View key={a.id} style={styles.allergyRow}>
@@ -421,13 +421,13 @@ const FriendProfile = ({ route, navigation }) => {
             setCodeInput('');
           }}
         >
-          <Pressable style={styles.modal_card} onPress={() => {}}>
-            <Text style={styles.modal_title}>Link to Real Account</Text>
+          <Pressable style={styles.surface_modal} onPress={() => {}}>
+            <Text style={styles.header_modal}>Link to Real Account</Text>
             <Text style={[styles.readOnly_hint, { marginBottom: 12 }]}>
               Ask your friend for their friend code (shown on their Profile screen).
             </Text>
             <TextInput
-              style={[styles.auth_input, styles.codeInput]}
+              style={[styles.input_base, styles.input_spaced, styles.input_code]}
               placeholder="ABCD-EFGH"
               value={codeInput}
               onChangeText={(t) => setCodeInput(normalizeCode(t))}

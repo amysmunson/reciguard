@@ -223,7 +223,7 @@ const InputSelector = ({ navigation }) => {
 
   // mode === 'picker'
   return (
-    <View style={styles.inputContainer}>
+    <View style={[styles.screen_base, styles.screen_inputSelectorPad]}>
       <TouchableOpacity style={styles.inputButton} onPress={() => setMode('link')}>
         <LinkOutlineIcon style={styles.inputButtonText} />
         <Text style={[styles.inputButtonText, { marginLeft: 10 }]}>From link</Text>

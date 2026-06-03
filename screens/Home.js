@@ -315,8 +315,8 @@ const Home = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Your Recipes</Text>
+    <View style={[styles.screen_base, styles.screen_tabPad]}>
+      <Text style={styles.header_tab}>Your Recipes</Text>
 
       {selectMode ? (
         <View style={styles.selectBar}>
@@ -450,8 +450,8 @@ const Home = ({ navigation }) => {
           style={styles.modal_backdrop}
           onPress={() => setFolderPickerOpen(false)}
         >
-          <Pressable style={styles.modal_card} onPress={() => {}}>
-            <Text style={styles.modal_title}>Add to folder</Text>
+          <Pressable style={styles.surface_modal} onPress={() => {}}>
+            <Text style={styles.header_modal}>Add to folder</Text>
             <ScrollView style={{ maxHeight: 320 }}>
               {folders.length === 0 && (
                 <Text style={styles.emptyText}>No folders yet. Create one first.</Text>
