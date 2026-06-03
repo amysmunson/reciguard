@@ -69,7 +69,6 @@ const lightTheme = {
   textSecondary: palette.inkSecondary,
   textTertiary:  palette.inkTertiary,
   textMuted:     palette.muted,
-  textInverse:  palette.inkInverse,
   textLink:      palette.linkBlue,
   textOnPrimary: palette.white,
 
