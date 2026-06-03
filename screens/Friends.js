@@ -104,10 +104,10 @@ const Friends = ({ navigation }) => {
         data={friends}
         ListHeaderComponent={
           <TouchableOpacity
-            style={[styles.settings_row, styles.friends_meRow]}
+            style={[styles.row, styles.friends_meRow]}
             onPress={() => navigation.navigate('Profile')}
           >
-            <Text style={[styles.settings_rowText, { fontWeight: 'bold' }]}>
+            <Text style={[styles.rowText, { fontWeight: 'bold' }]}>
               {myName} (you)
             </Text>
           </TouchableOpacity>
@@ -116,11 +116,11 @@ const Friends = ({ navigation }) => {
           const linked = !!item.existingFriendId;
           return (
             <TouchableOpacity
-              style={styles.settings_row}
+              style={styles.row}
               onPress={() => navigation.navigate('FriendProfile', { friendshipId: item.id })}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <Text style={styles.settings_rowText}>{friendDisplayName(item)}</Text>
+                <Text style={styles.rowText}>{friendDisplayName(item)}</Text>
                 {linked && (
                   <View style={styles.linkBadge}>
                     <LinkIcon />

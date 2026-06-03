@@ -57,8 +57,8 @@ const Settings = ({ navigation }) => {
   };
 
   const Row = ({ label, onPress, danger }) => (
-    <TouchableOpacity style={styles.settings_row} onPress={onPress}>
-      <Text style={[styles.settings_rowText, danger && { color: colors.danger }]}>{label}</Text>
+    <TouchableOpacity style={styles.row} onPress={onPress}>
+      <Text style={[styles.rowText, danger && { color: colors.danger }]}>{label}</Text>
     </TouchableOpacity>
   );
 

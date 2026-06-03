@@ -437,11 +437,6 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 5,
   },
-  home_searchIcon: {
-    color: colors.textSecondary,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
   bottomNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -623,15 +618,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
   },
-  linkEntry_backButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  linkEntry_backText: {
-    color: colors.link,
-    fontSize: 15,
-  },
 
   //   Landing Styles
   //   Container → [screen_base, screen_landingPad].
@@ -679,13 +665,15 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  //   Settings Row Styles
+  //  Settings-specific styles
   settings_email: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     color: colors.textTertiary,
   },
-  settings_row: {
+
+  //   List Row Styles — shared by Settings and Friends.
+  row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -694,7 +682,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  settings_rowText: {
+  rowText: {
     fontSize: 16,
     color: colors.textSecondary,
   },
@@ -854,34 +842,6 @@ const styles = StyleSheet.create({
   allergyPopup_names: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-
-  //   Home Search Bar (replaces top icons when search is active)
-  searchBar: {
-    position: 'absolute',
-    top: 40,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    zIndex: 20,
-    elevation: 20,
-  },
-  searchBar_input: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.textSecondary,
-    paddingVertical: 6,
-  },
-  searchBar_cancel: {
-    fontSize: 16,
-    color: colors.link,
-    marginLeft: 12,
   },
 
   //   Home Action Bar (inline: [search input] sort filter)
