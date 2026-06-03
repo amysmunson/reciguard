@@ -175,7 +175,7 @@ const FolderDetail = ({ route, navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.screen_base, styles.screen_tabPad]}>
       {selectMode ? (
         <View style={styles.selectBar}>
           <TouchableOpacity onPress={exitSelect}>
@@ -207,7 +207,7 @@ const FolderDetail = ({ route, navigation }) => {
         </>
       )}
 
-      <Text style={styles.header}>{folder?.name || 'Folder'}</Text>
+      <Text style={styles.header_tab}>{folder?.name || 'Folder'}</Text>
 
       <FlatList
         data={sortedRecipes}

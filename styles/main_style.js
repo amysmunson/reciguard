@@ -9,20 +9,298 @@ const numColumns = 2;
 const itemSize = (screenWidth - (itemMargin * (numColumns + 1))) / numColumns;
 
 const styles = StyleSheet.create({
-    // Home Screen Styles
-    container: {
+    // === Containers ======================================================
+    // Compose on the outer wrapper (View / ScrollView):
+    //   [screen_base, screen_<archetype>Pad]
+    // For ScrollView contentContainerStyle, use screen_baseScroll instead
+    // so the container grows with content (flexGrow) rather than capping
+    // at the viewport (flex). Padding presets stay the same.
+
+    // Shared shape — flex:1 + theme background. Every screen starts here.
+    screen_base: {
       flex: 1,
-      padding: itemMargin / 2,
-      paddingTop: 70,
-      paddingBottom: 20,
       backgroundColor: colors.background,
     },
-    header: {
+    // Same but for ScrollView contentContainerStyle (uses flexGrow).
+    screen_baseScroll: {
+      flexGrow: 1,
+      backgroundColor: colors.background,
+    },
+
+    // Tab-screen padding — Home, Folders, Friends, Settings, FolderDetail.
+    // Tight horizontal padding (lets list items reach close to the edge);
+    // top clears the status bar + header; bottom clears the NavBar.
+    screen_tabPad: {
+      paddingHorizontal: itemMargin / 2,
+      paddingTop: 70,
+      paddingBottom: 20,
+    },
+    // Card-screen padding — Profile, FriendProfile (scrollable detail).
+    // Wider horizontal padding for readable prose; generous bottom space
+    // so the last content isn't covered by floating bottom actions.
+    screen_cardPad: {
+      paddingHorizontal: 20,
+      paddingTop: 40,
+      paddingBottom: 100,
+    },
+    // Edit-screen padding — EditRecipe. Same horizontal as card, but less
+    // bottom since the keyboard takes that space.
+    screen_editPad: {
+      paddingHorizontal: 20,
+      paddingTop: 40,
+      paddingBottom: 50,
+    },
+    // Auth-screen padding — Login, SignUp. Generous horizontal padding to
+    // center form inputs; large top clears the auth back button at top:60.
+    screen_authPad: {
+      paddingHorizontal: 30,
+      paddingTop: 100,
+    },
+    // Landing-screen padding — only horizontal; vertical is handled by
+    // flex regions inside (title area + bottom action stack).
+    screen_landingPad: {
+      paddingHorizontal: 30,
+    },
+    // Policy-screen padding — applied to a ScrollView contentContainerStyle.
+    // Symmetric vertical padding (no NavBar below) plus large top to clear
+    // the back button.
+    screen_policyPad: {
+      paddingHorizontal: 30,
+      paddingTop: 100,
+      paddingBottom: 30,
+    },
+    // Input-selector padding — InputSelector. Tab-screen horizontal, but
+    // content is vertically centered so the picker buttons fill the screen.
+    screen_inputSelectorPad: {
+      paddingHorizontal: itemMargin / 2,
+      paddingVertical: itemMargin / 2,
+      justifyContent: 'center',
+    },
+
+    // === Typography ======================================================
+    // Compose: [text_<size>, text_bold?, text_centered?, ...]
+    // Size atoms set fontSize only. Use the modifiers to add weight,
+    // alignment, or style; use the header presets below for common
+    // page-level headers that bundle size + weight + spacing.
+
+    // Size atoms.
+    text_display:   { fontSize: 48 },
+    text_h1:        { fontSize: 32 },
+    text_h2:        { fontSize: 28 },
+    text_h3:        { fontSize: 24 },
+    text_h4:        { fontSize: 20 },
+    text_h5:        { fontSize: 18 },
+    text_body:      { fontSize: 16 },
+    text_bodySmall: { fontSize: 15 },
+    text_caption:   { fontSize: 14 },
+    text_label:     { fontSize: 13 },
+    text_micro:     { fontSize: 12 },
+
+    // Modifiers.
+    text_bold:      { fontWeight: 'bold' },
+    text_italic:    { fontStyle: 'italic' },
+    text_centered:  { textAlign: 'center' },
+    text_uppercase: { textTransform: 'uppercase' },
+
+    // === Header presets ==================================================
+    // Ready-to-use header styles for common page archetypes. Each is
+    // size + weight + alignment + the spacing that fits its layout.
+    // For one-off headers that don't match one of these, compose
+    // typography atoms directly.
+
+    // Tab-screen page header — Home/Folders/Friends/Settings/FolderDetail.
+    header_tab: {
       fontSize: 24,
       fontWeight: 'bold',
       textAlign: 'center',
-      marginBottom: 20,
       marginTop: 20,
+      marginBottom: 20,
+    },
+    // Card-screen page header — Profile/FriendProfile/RecipeCard, plus
+    // the EditRecipe name input. Top padding clears the back button.
+    header_card: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      paddingTop: 60,
+      marginBottom: 20,
+    },
+    // Auth screen title — Login/SignUp.
+    header_auth: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 30,
+    },
+    // Landing hero title. Sized so an 11-char product name ("RecipeGuard")
+    // fits a single line inside a 360-wide LandingCard without wrapping.
+    header_landing: {
+      fontSize: 40,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 2,
+    },
+    // Modal title — shown at the top of a modal_card.
+    header_modal: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 16,
+    },
+    // In-content section label — Profile/FriendProfile field labels,
+    // EditRecipe section names. Add marginTop inline for extra breathing
+    // room above (e.g., between major sections).
+    header_section: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 5,
+    },
+    // Privacy Policy main title.
+    header_policyMain: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    // Privacy Policy in-content subheading.
+    header_policySection: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginTop: 16,
+      marginBottom: 6,
+    },
+
+    // === Top-Overlay Actions =============================================
+    // Absolute-positioned action buttons at the top corners of a screen
+    // (back arrow, edit toggle, etc.). Compose on the TouchableOpacity:
+    //   [overlay_base, overlay_<corner>_<spacing>]
+    // and use overlayIcon_sm/lg on the icon inside, or overlayText on a
+    // text label like "Edit"/"Cancel".
+    //
+    // Corner picks left/right; spacing picks how far in/down the action
+    // sits — `card` (top:20, tight to a card-screen header) vs `safe`
+    // (top:60, comfortable safe-area offset for screens without a header
+    // overlapping the top).
+
+    // Shared: absolute + zIndex above scrolling content.
+    overlay_base: {
+      position: 'absolute',
+      zIndex: 10,
+    },
+
+    // Card-screen overlay positions — small top offset; horizontal value
+    // is flush to the card content edge.
+    overlay_topLeft_card: {
+      top: 20,
+      left: -10,
+      paddingTop: 5,
+    },
+    overlay_topRight_card: {
+      top: 20,
+      right: 0,
+      paddingTop: 5,
+    },
+
+    // Safe-area overlay positions — for screens without a card-style
+    // header above (Login, SignUp, EditRecipe, FolderDetail, Privacy).
+    overlay_topLeft_safe: {
+      top: 60,
+      left: 10,
+      padding: 10,
+    },
+    overlay_topRight_safe: {
+      top: 60,
+      right: 10,
+      padding: 10,
+    },
+
+    // Icons inside an overlay action — sized to match surrounding visual
+    // weight. `sm` for card screens, `lg` for auth/privacy.
+    overlayIcon_sm: {
+      fontSize: 18,
+      color: colors.textSecondary,
+    },
+    overlayIcon_lg: {
+      fontSize: 24,
+      color: colors.textSecondary,
+    },
+
+    // Text label inside an overlay action (e.g. "Edit", "Cancel").
+    overlayText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+
+    // === Inputs ==========================================================
+    // Compose: [input_base, input_<modifier>?, ...]
+    // input_base gives a bordered single-line TextInput. Add modifiers for
+    // layout (stacked-form margin, inline-row flex) or specialized look
+    // (underline-only, monospace code entry).
+
+    // Base shape — bordered rectangle with comfortable padding.
+    input_base: {
+      borderWidth: 1,
+      borderColor: colors.borderInput,
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      fontSize: 16,
+    },
+    // Stacked form input — adds bottom margin so consecutive inputs in a
+    // vertical form separate without needing wrapper spacing.
+    input_spaced: {
+      marginBottom: 12,
+    },
+    // Inline row input — fills the row to the left of a trailing action
+    // button (e.g. delete icon in an ingredient row).
+    input_inRow: {
+      flex: 1,
+      marginRight: 10,
+    },
+    // Underline-only — used when the input doubles as a heading
+    // (e.g. EditRecipe's name input on top of header_card). Apply alongside
+    // a header style; no surrounding border, just a bottom rule.
+    input_underline: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingBottom: 6,
+    },
+    // Friend-code entry — large monospace characters with letter spacing,
+    // centered. Compose with [input_base, input_spaced, input_code].
+    input_code: {
+      textAlign: 'center',
+      letterSpacing: 4,
+      fontSize: 20,
+      fontFamily: 'Courier',
+    },
+
+    // === Surface Blocks ==================================================
+    // Compose: [surface_<size>, surface_<modifier>?, ...]
+    // Surfaces are rounded padded backgrounds for content blocks (cards,
+    // info rows, modals). Pick a size; add a tint modifier if the background
+    // should differ from the default neutral surface.
+
+    // Small surface — readOnlyBlock, linkStatus_row.
+    surface_sm: {
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      padding: 12,
+    },
+    // Large surface — friendCode_card.
+    surface_lg: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+    },
+    // Modal card — sits on top of a scrim, fills the modal width.
+    surface_modal: {
+      width: '100%',
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      padding: 20,
+    },
+    // Tint modifier — overrides surface bg with the subtle primary tint
+    // (used for info/link-status rows).
+    surface_tinted: {
+      backgroundColor: colors.primarySubtle,
     },
 
 
@@ -51,7 +329,7 @@ const styles = StyleSheet.create({
       backgroundColor: colors.primary,
     },
     button_secondary: {
-      backgroundColor: colors.tertiary,
+      backgroundColor: colors.background,
     },
     // Auth-screen primary — darker brand blue with extra bottom margin to
     // separate from the "switch to Sign in/up" link beneath it.
@@ -95,50 +373,38 @@ const styles = StyleSheet.create({
       color: colors.link,
       textAlign: 'center',
     },
-    
 
+    // --- Outline buttons (bordered, no fill — for secondary CTAs) -------
+    // Compose: [button_outline, button_outline_<color>] on the touchable,
+    // and [buttonText_outline, { color: <matching> }] on the label inside.
+    button_outline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingVertical: 12,
+    },
+    button_outline_link:   { borderColor: colors.link },
+    button_outline_danger: { borderColor: colors.danger },
+    // Shared label shape for outline buttons — bold with margin to space
+    // the text from a preceding icon.
+    buttonText_outline: {
+      fontWeight: 'bold',
+      marginLeft: 8,
+    },
 
+    // ===================================================================
+    // === DOMAIN-SPECIFIC STYLES =========================================
+    // ===================================================================
+    // Everything below is tied to a specific screen, component, or
+    // feature and isn't reused as a generic primitive. Many sections
+    // include a short "use X" breadcrumb pointing at the consolidated
+    // atom/preset for the slot in question (container, header, back
+    // button, etc.) — that's intentional; the named style was removed
+    // and only the breadcrumb remains.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//   Recipe / Folder Tile (square card for the home + folder grids)
     listItem: {
       width: itemSize,
       height: itemSize,    // force square shape
@@ -163,6 +429,19 @@ const styles = StyleSheet.create({
       backgroundColor: colors.background,
       paddingVertical: 20,
       paddingHorizontal: 20,
+      borderRadius: 5,
+    },
+    // Folders screen: sort + add buttons, aligned top-right.
+    folders_topActions: {
+      position: 'absolute',
+      top: 45, // leave space for status bar
+      right: 6,
+      flexDirection: 'row',
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    folders_topButton: {
+      padding: 14,
       borderRadius: 5,
     },
     home_searchIcon: {
@@ -212,21 +491,9 @@ const styles = StyleSheet.create({
 
 
 //   Recipe Card Styles
-    card_container: {
-      flex: 1,
-      paddingLeft: 20,
-      paddingRight: 20,
-      paddingTop: 40,
-      paddingBottom: 100,
-      backgroundColor: colors.background,
-    },
-    card_header: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      marginBottom: 20,
-      paddingTop: 60,
-    },
+//   Container → [screen_base, screen_cardPad]. Page header → header_card.
+//   Back arrow → [overlay_base, overlay_topLeft_card] + overlayIcon_sm.
+//   Edit toggle → [overlay_base, overlay_topRight_card] + overlayText.
     // Centered title row; link icon (if present) sits to the right of the title.
     card_headerRow: {
       flexDirection: 'row',
@@ -238,95 +505,25 @@ const styles = StyleSheet.create({
       paddingBottom: 22,
       marginLeft: 4,
     },
-    card_backButton: {
-      zIndex: 10,
-      paddingTop: 5,
-      position: 'absolute',
-      top: 20,
-      left: -10,
-    },
-    card_backIcon: {
-      fontSize: 18,
-      color: colors.textSecondary,
-    },
-    card_edit: {
-      zIndex: 10,
-      paddingTop: 5,
-      position: 'absolute',
-      top: 20,
-      right: 0,
-    },
-    card_editText: {
-      fontSize: 16,
-      color: colors.textSecondary,
-    },
-    // Placeholders
     ingredientItems: {
       fontSize: 16,
       marginVertical: 5,
       color: colors.textSecondary,
-    },
-    subheading: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      textAlign: 'left',
-      marginBottom: 5,
     },
     spacing: {
       marginBottom: 10,
     },
 
 //   Edit Recipe Styles
-    edit_container: {
-      flexGrow: 1,
-      paddingLeft: 20,
-      paddingRight: 20,
-      paddingTop: 40,
-      paddingBottom: 50,
-      backgroundColor: colors.background,
-    },
-    edit_header: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      marginBottom: 20,
-      paddingTop: 60,
-    },
-    edit_nameInput: {
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      paddingBottom: 6,
-    },
-    edit_backButton: {
-      zIndex: 10,
-      paddingTop: 10,
-      position: 'absolute',
-      top: 60,
-      left: 10,
-    },
-    edit_backButtonIcon: {
-      fontSize: 18,
-      color: colors.textSecondary,
-    },
-    ingredients: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 10,
-    },
+//   Container → [screen_base, screen_editPad] (View) or [screen_baseScroll,
+//     screen_editPad] (ScrollView contentContainerStyle).
+//   Name input  → [header_card, input_underline].
+//   Back arrow  → [overlay_base, overlay_topLeft_safe] + overlayIcon_sm.
+//   Ingredient inputs → [input_base, input_inRow].
     ingredientRow: {
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: 12,
-    },
-    input: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: colors.borderInput,
-      paddingVertical: 10,
-      paddingHorizontal: 15,
-      borderRadius: 6,
-      fontSize: 16,
-      marginRight: 10,
     },
     deleteRecipeButton: {
       padding: 10,
@@ -335,6 +532,14 @@ const styles = StyleSheet.create({
       position: 'absolute',
       top: 60,
       right: 10,
+      zIndex: 10,
+      elevation: 10,
+    },
+    // FolderDetail sort button — sits just left of the "Delete" button.
+    folderDetail_sortButton: {
+      top: 56,
+      right: 80,
+      padding: 10,
       zIndex: 10,
       elevation: 10,
     },
@@ -365,20 +570,9 @@ const styles = StyleSheet.create({
       fontSize: 18,
       marginLeft: 6,
     },
-    sectionHeader: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginTop: 10,
-      marginBottom: 10,
-    },
 
 //   Input Selector Styles
-    inputContainer: {
-      flex: 1,
-      padding: itemMargin / 2,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-    },
+//   Container: compose [screen_base, screen_inputSelectorPad] at the call site.
     inputButton: {
         backgroundColor: colors.primarySoft,
         flexDirection: 'row',
@@ -467,11 +661,9 @@ const styles = StyleSheet.create({
     },
 
 //   Landing Styles
-    landing_container: {
-      flex: 1,
-      backgroundColor: colors.background,
-      paddingHorizontal: 30,
-    },
+//   Container → [screen_base, screen_landingPad].
+//   Title     → [header_landing, { color: colors.text }].
+//   Subtitle  → [text_body, text_centered, { color: colors.text }].
     landing_overlay: {
       position: 'absolute',
       top: 0,
@@ -489,76 +681,24 @@ const styles = StyleSheet.create({
       paddingBottom: 40,
       width: '100%',
     },
-    landing_title: {
-      fontSize: 48,
-      fontWeight: 'bold',
-      marginBottom: 8,
-      color: colors.text,
-      textAlign: 'center',
-    },
-    landing_subtitle: {
-      fontSize: 16,
-      color: colors.text,
-      textAlign: 'center',
-    },
 
-//   Auth (Login / SignUp) Styles
-    auth_container: {
-      flex: 1,
-      backgroundColor: colors.background,
-      paddingHorizontal: 30,
-      paddingTop: 100,
-    },
-    auth_backButton: {
-      position: 'absolute',
-      top: 60,
-      left: 10,
-      padding: 10,
-      zIndex: 10,
-    },
-    auth_backIcon: {
-      fontSize: 24,
-      color: colors.textSecondary,
-    },
-    auth_title: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      marginBottom: 30,
-      textAlign: 'center',
-    },
-    auth_input: {
-      borderWidth: 1,
-      borderColor: colors.borderInput,
-      borderRadius: 8,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      fontSize: 16,
-      marginBottom: 12,
-    },
-    // Auth-specific button/link styles live in the Buttons block above:
-    //   primary CTA  → [button_base, button_fullWidth, button_authPrimary]
-    //                  + [buttonText_base, buttonText_onAuthPrimary]
-    //   switch link  → [button_link] + [buttonText_authLink]
+//   Auth Styles (Login, SignUp)
+//   Container   → [screen_base, screen_authPad].
+//   Back arrow  → [overlay_base, overlay_topLeft_safe] + overlayIcon_lg.
+//   Title       → header_auth.
+//   Form inputs → [input_base, input_spaced].
+//   Primary CTA → [button_base, button_fullWidth, button_authPrimary]
+//                 + [buttonText_base, buttonText_onAuthPrimary].
+//   Switch link → [button_link] + [buttonText_authLink].
 
 //   Privacy Policy Styles
-    policy_container: {
-      padding: 30,
-      paddingTop: 100,
-    },
-    policy_title: {
-      fontSize: 28,
-      fontWeight: 'bold',
-      marginBottom: 4,
-    },
+//   Container        → screen_policyPad (apply to ScrollView contentContainerStyle).
+//   Back arrow       → [overlay_base, overlay_topLeft_safe] + overlayIcon_lg.
+//   Page title       → header_policyMain.
+//   Section heading  → header_policySection.
     policy_updated: {
       color: colors.textMuted,
       marginBottom: 20,
-    },
-    policy_heading: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      marginTop: 16,
-      marginBottom: 6,
     },
     policy_body: {
       fontSize: 15,
@@ -587,23 +727,13 @@ const styles = StyleSheet.create({
     },
 
 //   Modal Styles
+//   Card body  → surface_modal.   Title → header_modal.
     modal_backdrop: {
       flex: 1,
       backgroundColor: colors.scrim,
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: 30,
-    },
-    modal_card: {
-      width: '100%',
-      backgroundColor: colors.background,
-      borderRadius: 12,
-      padding: 20,
-    },
-    modal_title: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 16,
     },
     modal_button: {
       paddingHorizontal: 16,
@@ -849,6 +979,12 @@ const styles = StyleSheet.create({
       color: colors.text,
       marginLeft: 12,
     },
+    sort_popdown_divider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: 4,
+      marginHorizontal: 14,
+    },
 
 //   Allergy Checklist — inline picker rows (on Profile & FriendProfile in edit mode)
     preset_sectionLabel: {
@@ -913,15 +1049,7 @@ const styles = StyleSheet.create({
       backgroundColor: colors.surface,
     },
 
-//   Friend Code Card (on Profile screen)
-    friendCode_card: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      padding: 16,
-      marginTop: 10,
-      marginBottom: 10,
-      alignItems: 'center',
-    },
+//   Friend Code Card (Profile): [surface_lg, { marginVertical: 10, alignItems: 'center' }]
     friendCode_label: {
       fontSize: 13,
       color: colors.textTertiary,
@@ -960,13 +1088,8 @@ const styles = StyleSheet.create({
       marginLeft: 8,
     },
 
-//   Friend Code Input (for entering someone else's)
-    codeInput: {
-      textAlign: 'center',
-      letterSpacing: 4,
-      fontSize: 20,
-      fontFamily: 'Courier',
-    },
+//   Friend Code Input (for entering someone else's): combine
+//   [input_base, input_spaced, input_code] (defined in Inputs block).
 
 //   Link Badge (small inline badge next to a friend's name)
     linkBadge: {
@@ -979,16 +1102,8 @@ const styles = StyleSheet.create({
       marginLeft: 8,
     },
 
-//   Link Status Row (on FriendProfile when linked)
-    linkStatus_row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.primarySubtle,
-      borderRadius: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      marginBottom: 8,
-    },
+//   Link Status Row (FriendProfile when linked):
+//   [surface_sm, surface_tinted, { flexDirection:'row', alignItems:'center', marginBottom:8 }]
     linkStatus_text: {
       flex: 1,
       marginLeft: 8,
@@ -1001,22 +1116,9 @@ const styles = StyleSheet.create({
       fontSize: 14,
     },
 
-//   "Link to Real Account" Button (on FriendProfile when not linked)
-    linkAccountButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.link,
-      borderRadius: 8,
-      paddingVertical: 12,
-      marginBottom: 8,
-    },
-    linkAccountButton_text: {
-      color: colors.link,
-      fontWeight: 'bold',
-      marginLeft: 8,
-    },
+//   "Link to Real Account" Button (FriendProfile when not linked):
+//   [button_outline, button_outline_link, { marginBottom: 8 }]
+//   + [buttonText_outline, { color: colors.link }]
 
 //   Add-Friend Choice Buttons (in Friends modal)
     addChoice_button: {
@@ -1052,30 +1154,12 @@ const styles = StyleSheet.create({
       color: colors.textMuted,
     },
 
-//   Bottom destructive "Remove Friend" button on FriendProfile
-    removeFriendButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.danger,
-      borderRadius: 8,
-      paddingVertical: 12,
-      marginTop: 20,
-    },
-    removeFriendButton_text: {
-      color: colors.danger,
-      fontWeight: 'bold',
-      marginLeft: 8,
-    },
+//   Bottom destructive "Remove Friend" button on FriendProfile:
+//   [button_outline, button_outline_danger, { marginTop: 20 }]
+//   + [buttonText_outline, { color: colors.danger }]
 
-//   Read-Only Display Blocks (linked friend's public notes)
-    readOnlyBlock: {
-      backgroundColor: colors.surface,
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 4,
-    },
+//   Read-Only Display Blocks (linked friend's public notes):
+//   [surface_sm, { marginBottom: 4 }]
     readOnlyText: {
       fontSize: 15,
       color: colors.textSecondary,

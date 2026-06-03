@@ -220,4 +220,31 @@ To add a sort key, add an entry to the relevant options array in
 `lib/sort.js` and a branch in `recipeKey()` / `folderKey()` — every
 consumer screen picks it up automatically. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#sorting-home-folders-folderdetail)
+### Icons
+
+Every icon used in the app is exported from a single registry at
+[`components/icons/index.js`](components/icons/index.js). Screens import
+semantic, named components (`<BackIcon>`, `<TrashIcon>`,
+`<CheckboxIcon checked />`, etc.) from `'../components/icons'` — no
+screen or shared component imports `react-native-vector-icons` directly.
+
+The registry contains three flavors:
+
+- **Custom SVG icons** — `PlusIcon`, `SearchIcon`, `SortIcon`,
+  `FilterIcon`. One file each, rendered via `react-native-svg`.
+- **Static vendor wrappers** — `BackIcon`, `TrashIcon`, `ShareIcon`,
+  `LinkIcon`, `LinkOutlineIcon`, `CameraIcon`, `ExternalLinkIcon`,
+  `KeyIcon`, `PersonAddIcon`, `RemoveCircleIcon`, `FolderIcon`. Each
+  pins a semantic name to one Ionicons/FontAwesome glyph and exposes
+  optional `size`, `color`, and `style` props.
+- **Stateful wrappers** — `CheckboxIcon` (`checked` / `partial`),
+  `SelectCircleIcon` (`selected`), `RadioIcon` (`selected`),
+  `SortArrowIcon` (`direction: 'asc' | 'desc'`), and `TabIcon` (matches
+  the bottom-tab route name). They pick the right glyph internally so
+  the caller doesn't manage paired icon strings.
+
+To swap a glyph across the app (change vendor, switch outline →
+filled, replace with a custom SVG), edit the registry in one place and
+every consumer picks it up. See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#componentsicons--central-icon-registry)
 for the full pattern.

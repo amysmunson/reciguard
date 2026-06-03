@@ -85,7 +85,7 @@ const Folders = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.header}>Folders</Text>
+      <Text style={styles.header_tab}>Folders</Text>
 
       <FlatList
         data={folders}
@@ -123,10 +123,10 @@ const Folders = ({ navigation }) => {
             setNewName('');
           }}
         >
-          <Pressable style={styles.modal_card} onPress={() => {}}>
-            <Text style={styles.modal_title}>New Folder</Text>
+          <Pressable style={styles.surface_modal} onPress={() => {}}>
+            <Text style={styles.header_modal}>New Folder</Text>
             <TextInput
-              style={styles.auth_input}
+              style={[styles.input_base, styles.input_spaced]}
               placeholder="Folder name"
               value={newName}
               onChangeText={setNewName}

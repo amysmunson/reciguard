@@ -92,12 +92,12 @@ const Friends = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.screen_base, styles.screen_tabPad]}>
       <TouchableOpacity style={styles.home_search} onPress={() => setModalStep('choose')}>
         <PlusIcon size={22} color={colors.textSecondary} />
       </TouchableOpacity>
 
-      <Text style={styles.header}>Friends</Text>
+      <Text style={styles.header_tab}>Friends</Text>
 
       <FlatList
         style={styles.friends_list}
@@ -143,10 +143,10 @@ const Friends = ({ navigation }) => {
         onRequestClose={closeModal}
       >
         <Pressable style={styles.modal_backdrop} onPress={closeModal}>
-          <Pressable style={styles.modal_card} onPress={() => {}}>
+          <Pressable style={styles.surface_modal} onPress={() => {}}>
             {modalStep === 'choose' && (
               <>
-                <Text style={styles.modal_title}>Add Friend</Text>
+                <Text style={styles.header_modal}>Add Friend</Text>
                 <TouchableOpacity
                   style={styles.addChoice_button}
                   onPress={() => setModalStep('code')}
@@ -179,9 +179,9 @@ const Friends = ({ navigation }) => {
 
             {modalStep === 'code' && (
               <>
-                <Text style={styles.modal_title}>Enter Friend Code</Text>
+                <Text style={styles.header_modal}>Enter Friend Code</Text>
                 <TextInput
-                  style={[styles.auth_input, styles.codeInput]}
+                  style={[styles.input_base, styles.input_spaced, styles.input_code]}
                   placeholder="ABCD-EFGH"
                   value={codeInput}
                   onChangeText={(t) => setCodeInput(normalizeCode(t))}
@@ -212,9 +212,9 @@ const Friends = ({ navigation }) => {
 
             {modalStep === 'manual' && (
               <>
-                <Text style={styles.modal_title}>Add Manually</Text>
+                <Text style={styles.header_modal}>Add Manually</Text>
                 <TextInput
-                  style={styles.auth_input}
+                  style={[styles.input_base, styles.input_spaced]}
                   placeholder="Friend's name"
                   value={nameInput}
                   onChangeText={setNameInput}

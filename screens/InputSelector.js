@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
 } from 'react-native';
 import styles from '../styles/main_style';
@@ -13,6 +14,24 @@ import { colors } from '../styles/theme';
 import { fetchRecipeFromUrl } from '../lib/recipeUrlParser';
 import { createRecipe } from '../lib/api/recipes';
 import { CameraIcon, LinkOutlineIcon } from '../components/icons';
+
+// Error messages the parser throws when the page loaded fine but no
+// usable recipe data could be extracted. These trigger the "create
+// anyway" modal instead of an inline error, since the user's URL was
+// reachable and they may well want to enter the recipe by hand.
+const NO_RECIPE_MESSAGES = new Set([
+  'No recipe data found on that page (no schema.org markup).',
+  "That page doesn't seem to have a recipe.",
+  "Couldn't read the recipe on that page.",
+]);
+
+const hostnameFromUrl = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+};
 
 const InputSelector = ({ navigation }) => {
   // No recipe exists yet — we navigate to EditRecipe in "new" mode
@@ -25,6 +44,27 @@ const InputSelector = ({ navigation }) => {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Inline format hint shown live as the user types — catches the
+  // missing-protocol case before they hit Fetch.
+  const [formatError, setFormatError] = useState(null);
+  // Modal shown when the page loaded but no recipe could be extracted.
+  const [noRecipeModalOpen, setNoRecipeModalOpen] = useState(false);
+
+  const isValidFormat = (text) => /^https?:\/\//i.test(text.trim());
+
+  const handleUrlChange = (text) => {
+    setUrl(text);
+    if (error) setError(null);
+    // Hold the protocol warning until the user has typed enough that
+    // they're clearly past the start of the URL — avoids flashing the
+    // hint on the first few keystrokes (e.g. "h", "ht", "htt") of an
+    // intended "https://".
+    if (text.trim().length > 5 && !isValidFormat(text)) {
+      setFormatError('URL must start with http:// or https://');
+    } else {
+      setFormatError(null);
+    }
+  };
 
   const handleFetch = async () => {
     setError(null);
@@ -45,7 +85,36 @@ const InputSelector = ({ navigation }) => {
       });
       navigation.popToTop();
     } catch (err) {
-      setError(err.message ?? 'Could not fetch that recipe.');
+      const msg = err.message ?? 'Could not fetch that recipe.';
+      if (NO_RECIPE_MESSAGES.has(msg)) {
+        setNoRecipeModalOpen(true);
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // "Create anyway" — page loaded but parser couldn't extract a recipe.
+  // Save a blank recipe with the source link attached, then drop the
+  // user into EditRecipe so they can fill in the rest by hand.
+  const handleCreateAnyway = async () => {
+    setNoRecipeModalOpen(false);
+    setLoading(true);
+    try {
+      const recipe = await createRecipe({
+        name: '',
+        ingredients: [],
+        steps: [],
+        authorNotes: [],
+        userNotes: [],
+        source: hostnameFromUrl(url),
+        extLink: url.trim(),
+      });
+      navigation.replace('EditRecipe', { recipeId: recipe.id });
+    } catch (err) {
+      setError(err.message ?? 'Could not create recipe.');
     } finally {
       setLoading(false);
     }
@@ -67,7 +136,7 @@ const InputSelector = ({ navigation }) => {
           <TextInput
             style={styles.linkEntry_input}
             value={url}
-            onChangeText={setUrl}
+            onChangeText={handleUrlChange}
             placeholder="https://www.allrecipes.com/recipe/..."
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
@@ -79,15 +148,16 @@ const InputSelector = ({ navigation }) => {
             onSubmitEditing={handleFetch}
           />
 
-          {!!error && <Text style={styles.linkEntry_error}>{error}</Text>}
+          {!!formatError && <Text style={styles.linkEntry_error}>{formatError}</Text>}
+          {!!error && !formatError && <Text style={styles.linkEntry_error}>{error}</Text>}
 
           <TouchableOpacity
             style={[
               styles.linkEntry_fetchButton,
-              (!url.trim() || loading) && { opacity: 0.5 },
+              (!url.trim() || !!formatError || loading) && { opacity: 0.5 },
             ]}
             onPress={handleFetch}
-            disabled={!url.trim() || loading}
+            disabled={!url.trim() || !!formatError || loading}
           >
             {loading ? (
               <ActivityIndicator color={colors.textOnPrimary} />
@@ -116,13 +186,44 @@ const InputSelector = ({ navigation }) => {
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
+
+        <Modal
+          visible={noRecipeModalOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setNoRecipeModalOpen(false)}
+        >
+          <View style={styles.modal_backdrop}>
+            <View style={styles.surface_modal}>
+              <Text style={styles.header_modal}>Couldn&apos;t find a recipe</Text>
+              <Text style={[styles.text_body, { color: colors.textSecondary, marginBottom: 16 }]}>
+                We couldn&apos;t pull a recipe from this page. You can create one
+                anyway — we&apos;ll save the link so you can fill in the details
+                yourself.
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <TouchableOpacity
+                  style={styles.modal_button}
+                  onPress={() => setNoRecipeModalOpen(false)}
+                >
+                  <Text style={styles.modal_buttonText}>Go back</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modal_button} onPress={handleCreateAnyway}>
+                  <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                    Create anyway
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     );
   }
 
   // mode === 'picker'
   return (
-    <View style={styles.inputContainer}>
+    <View style={[styles.screen_base, styles.screen_inputSelectorPad]}>
       <TouchableOpacity style={styles.inputButton} onPress={() => setMode('link')}>
         <LinkOutlineIcon style={styles.inputButtonText} />
         <Text style={[styles.inputButtonText, { marginLeft: 10 }]}>From link</Text>

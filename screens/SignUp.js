@@ -36,17 +36,17 @@ const SignUp = ({ navigation }) => {
         <BackIcon style={styles.overlayIcon_lg} />
       </TouchableOpacity>
 
-      <Text style={styles.auth_title}>Create Account</Text>
+      <Text style={styles.header_auth}>Create Account</Text>
 
-    <View style={{ width: '100%', paddingBottom: 16 }}>
+    <View style={{ width: '100%', paddingBottom: 4 }}>
         <TextInput
-          style={styles.auth_input}
+          style={[styles.input_base, styles.input_spaced]}
           placeholder="Name"
           value={name}
           onChangeText={setName}
         />
         <TextInput
-          style={styles.auth_input}
+          style={[styles.input_base, styles.input_spaced]}
           placeholder="Email"
           autoCapitalize="none"
           keyboardType="email-address"
@@ -54,7 +54,7 @@ const SignUp = ({ navigation }) => {
           onChangeText={setEmail}
         />
         <TextInput
-          style={styles.auth_input}
+          style={[styles.input_base, styles.input_spaced]}
           placeholder="Password"
           secureTextEntry
           value={password}
@@ -62,8 +62,11 @@ const SignUp = ({ navigation }) => {
         />
       </View>
 
-      <TouchableOpacity style={styles.button_link} onPress={() => navigation.navigate('PrivacyPolicy')}>
-        <Text style={styles.buttonText_link}>Privacy Policy</Text>
+      <TouchableOpacity
+        style={[styles.button_link, { alignSelf: 'flex-start' }]}
+        onPress={() => navigation.navigate('PrivacyPolicy')}
+      >
+        <Text style={[styles.buttonText_link, { color: colors.text }]}>Privacy Policy</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
