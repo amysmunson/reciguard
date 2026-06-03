@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
+import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
 
 const PrivacyPolicy = ({ navigation }) => (
   <View style={{ flex: 1, backgroundColor: colors.background }}>
-    <TouchableOpacity style={styles.auth_backButton} onPress={() => navigation.goBack()}>
-      <Icon name="chevron-back" style={styles.auth_backIcon} />
+    <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} onPress={() => navigation.goBack()}>
+      <BackIcon style={styles.overlayIcon_lg} />
     </TouchableOpacity>
 
     <ScrollView contentContainerStyle={styles.policy_container}>

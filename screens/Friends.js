@@ -9,12 +9,10 @@ import {
   TextInput,
   Pressable,
 } from 'react-native';
-import FAIcon from 'react-native-vector-icons/FontAwesome';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import PlusIcon from '../components/icons/PlusIcon';
+import { KeyIcon, LinkIcon, PersonAddIcon, PlusIcon } from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import {
   getFriends,
@@ -125,7 +123,7 @@ const Friends = ({ navigation }) => {
                 <Text style={styles.settings_rowText}>{friendDisplayName(item)}</Text>
                 {linked && (
                   <View style={styles.linkBadge}>
-                    <Ionicons name="link" size={12} color={colors.textOnPrimary} />
+                    <LinkIcon />
                   </View>
                 )}
               </View>
@@ -153,7 +151,7 @@ const Friends = ({ navigation }) => {
                   style={styles.addChoice_button}
                   onPress={() => setModalStep('code')}
                 >
-                  <Ionicons name="key-outline" size={22} color={colors.link} />
+                  <KeyIcon />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.addChoice_title}>By friend code</Text>
                     <Text style={styles.addChoice_subtitle}>
@@ -165,7 +163,7 @@ const Friends = ({ navigation }) => {
                   style={styles.addChoice_button}
                   onPress={() => setModalStep('manual')}
                 >
-                  <Ionicons name="person-add-outline" size={22} color={colors.link} />
+                  <PersonAddIcon />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.addChoice_title}>Manually</Text>
                     <Text style={styles.addChoice_subtitle}>

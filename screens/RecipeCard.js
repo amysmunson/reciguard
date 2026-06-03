@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { colors } from '../styles/theme';
+import { BackIcon, ExternalLinkIcon } from '../components/icons';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { useAuth } from '../lib/auth-context';
@@ -136,9 +135,9 @@ const RecipeCard = ({ route, navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.card_container}>
-      <TouchableOpacity style={styles.card_backButton} onPress={() => navigation.goBack()}>
-        <Icon name="chevron-back" style={styles.card_backIcon} />
+    <ScrollView style={[styles.screen_base, styles.screen_cardPad]}>
+      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={() => navigation.goBack()}>
+        <BackIcon style={styles.overlayIcon_sm} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -156,7 +155,7 @@ const RecipeCard = ({ route, navigation }) => {
             style={styles.card_sourceLink}
             accessibilityLabel={source ? `Open original on ${source}` : 'Open original recipe'}
           >
-            <Icon name="open-outline" size={20} color={colors.link} />
+            <ExternalLinkIcon />
           </TouchableOpacity>
         )}
       </View>

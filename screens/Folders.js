@@ -9,7 +9,6 @@ import {
   TextInput,
   Pressable,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
@@ -17,7 +16,7 @@ import { getFolders, createFolder } from '../lib/api/folders';
 import { useCachedResource } from '../lib/cache';
 import { useAuth } from '../lib/auth-context';
 import { startNewRecipe } from '../components/utils/addRecipe';
-import PlusIcon from '../components/icons/PlusIcon';
+import { PlusIcon, SortIcon } from '../components/icons';
 
 const Folders = ({ navigation }) => {
   const { user } = useAuth();

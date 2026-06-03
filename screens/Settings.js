@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';

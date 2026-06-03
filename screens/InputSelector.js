@@ -8,11 +8,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { fetchRecipeFromUrl } from '../lib/recipeUrlParser';
 import { createRecipe } from '../lib/api/recipes';
+import { CameraIcon, LinkOutlineIcon } from '../components/icons';
 
 const InputSelector = ({ navigation }) => {
   // No recipe exists yet — we navigate to EditRecipe in "new" mode
@@ -124,11 +124,11 @@ const InputSelector = ({ navigation }) => {
   return (
     <View style={styles.inputContainer}>
       <TouchableOpacity style={styles.inputButton} onPress={() => setMode('link')}>
-        <Icon name="link-outline" style={styles.inputButtonText} />
+        <LinkOutlineIcon style={styles.inputButtonText} />
         <Text style={[styles.inputButtonText, { marginLeft: 10 }]}>From link</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.inputButton} onPress={goToEdit}>
-        <Icon name="camera-outline" style={styles.inputButtonText} />
+        <CameraIcon style={styles.inputButtonText} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.inputButton} onPress={goToEdit}>
         <Text style={styles.inputButtonText}>Manual Entry</Text>

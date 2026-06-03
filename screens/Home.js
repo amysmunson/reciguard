@@ -10,8 +10,6 @@ import {
   TextInput,
   Pressable,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import FAIcon from 'react-native-vector-icons/FontAwesome';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
@@ -29,9 +27,15 @@ import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
 import { useCachedResource } from '../lib/cache';
 import { useAuth } from '../lib/auth-context';
 import { colors } from '../styles/theme';
-import SearchIcon from '../components/icons/SearchIcon';
-import SortIcon from '../components/icons/SortIcon';
-import FilterIcon from '../components/icons/FilterIcon';
+import {
+  CheckboxIcon,
+  FilterIcon,
+  FolderIcon,
+  SearchIcon,
+  SelectCircleIcon,
+  SortIcon,
+  TrashIcon,
+} from '../components/icons';
 
 const Home = ({ navigation }) => {
   const { user } = useAuth();
@@ -302,11 +306,7 @@ const Home = ({ navigation }) => {
 
           {selectMode && (
             <View style={styles.selectCheck}>
-              <Ionicons
-                name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
-                size={24}
-                color={isSelected ? colors.link : colors.iconInactive}
-              />
+              <SelectCircleIcon selected={isSelected} />
             </View>
           )}
         </View>
@@ -330,11 +330,10 @@ const Home = ({ navigation }) => {
               disabled={!selectedIds.size}
               style={{ marginRight: 16 }}
             >
-              <FAIcon name="folder" size={22} color={selectedIds.size ? colors.link : colors.iconDisabled} />
+              <FolderIcon color={selectedIds.size ? colors.link : colors.iconDisabled} />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleBulkDelete} disabled={!selectedIds.size}>
-              <Ionicons
-                name="trash-outline"
+              <TrashIcon
                 size={22}
                 color={selectedIds.size ? colors.danger : colors.iconDisabled}
               />
@@ -390,58 +389,26 @@ const Home = ({ navigation }) => {
         }
       />
 
-      {/* Sort modal */}
-      <Modal
+      {/* Sort menu */}
+      <SortMenu
         visible={sortOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSortOpen(false)}
-      >
-        <Pressable
-          style={styles.sort_popdown_backdrop}
-          onPress={() => setSortOpen(false)}
-        >
-          <Pressable style={styles.sort_popdown} onPress={() => {}}>
-            {[
-              { id: 'created_at', label: 'Date added' },
-              { id: 'updated_at', label: 'Last edited' },
-              { id: 'opened_at', label: 'Recently opened' },
-            ].map((opt) => {
-              const selected = sortBy === opt.id;
-              return (
-                <TouchableOpacity
-                  key={opt.id}
-                  style={styles.sort_popdown_row}
-                  onPress={() => applySort(opt.id)}
-                >
-                  <Ionicons
-                    name={selected ? 'radio-button-on' : 'radio-button-off'}
-                    size={20}
-                    color={selected ? colors.primary : colors.textMuted}
-                  />
-                  <Text style={styles.sort_popdown_rowText}>{opt.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setSortOpen(false)}
+        options={RECIPE_SORT_OPTIONS}
+        sort={sort}
+        onChange={applySort}
+      />
 
       {/* Filter modal */}
       <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
         <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
-          <Pressable style={styles.modal_card} onPress={() => {}}>
-            <Text style={styles.modal_title}>Allergy warnings for</Text>
+          <Pressable style={styles.surface_modal} onPress={() => {}}>
+            <Text style={styles.header_modal}>Allergy warnings for</Text>
             <ScrollView style={{ maxHeight: 320 }}>
               <TouchableOpacity
                 style={styles.filter_row}
                 onPress={() => setIncludeSelf((v) => !v)}
               >
-                <Ionicons
-                  name={includeSelf ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={includeSelf ? colors.link : colors.textMuted}
-                />
+                <CheckboxIcon checked={includeSelf} />
                 <Text style={styles.filter_rowText}>{myName} (you)</Text>
               </TouchableOpacity>
 
@@ -454,11 +421,7 @@ const Home = ({ navigation }) => {
                     style={styles.filter_row}
                     onPress={() => toggleFriend(f.id)}
                   >
-                    <Ionicons
-                      name={checked ? 'checkbox' : 'square-outline'}
-                      size={22}
-                      color={checked ? colors.link : colors.textMuted}
-                    />
+                    <CheckboxIcon checked={checked} />
                     <Text style={styles.filter_rowText}>{label}</Text>
                   </TouchableOpacity>
                 );
@@ -499,7 +462,7 @@ const Home = ({ navigation }) => {
                   style={styles.filter_row}
                   onPress={() => handleAddToFolder(f.id)}
                 >
-                  <FAIcon name="folder" size={20} color={colors.link} />
+                  <FolderIcon size={20} />
                   <Text style={styles.filter_rowText}>{f.name || 'Untitled'}</Text>
                 </TouchableOpacity>
               ))}

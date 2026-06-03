@@ -9,9 +9,9 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
+import { BackIcon, LinkIcon, TrashIcon } from '../components/icons';
 import {
   getFriend,
   updateFriend,
@@ -229,8 +229,8 @@ const FriendProfile = ({ route, navigation }) => {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <TouchableOpacity style={styles.card_backButton} onPress={() => navigation.goBack()}>
-        <Icon name="chevron-back" style={styles.card_backIcon} />
+      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={() => navigation.goBack()}>
+        <BackIcon style={styles.overlayIcon_sm} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -245,7 +245,7 @@ const FriendProfile = ({ route, navigation }) => {
       {isLinked ? (
         <View style={styles.linkStatus_row}>
           <View style={styles.linkBadge}>
-            <Icon name="link" size={12} color={colors.textOnPrimary} />
+            <LinkIcon />
           </View>
           <Text style={styles.linkStatus_text}>
             {linkedAlive
@@ -264,8 +264,8 @@ const FriendProfile = ({ route, navigation }) => {
             style={styles.linkAccountButton}
             onPress={() => setLinkModalOpen(true)}
           >
-            <Icon name="link" size={18} color={colors.link} />
-            <Text style={styles.linkAccountButton_text}>Link to Real Account</Text>
+            <LinkIcon size={18} color={colors.link} />
+            <Text style={[styles.buttonText_outline, { color: colors.link }]}>Link to Real Account</Text>
           </TouchableOpacity>
         )
       )}
@@ -376,7 +376,7 @@ const FriendProfile = ({ route, navigation }) => {
           </TouchableOpacity>
           {isEditing && (
             <TouchableOpacity onPress={() => handleRemoveAllergy(a.id)} style={styles.deleteButton}>
-              <Icon name="trash-outline" size={20} color={colors.danger} />
+              <TrashIcon />
             </TouchableOpacity>
           )}
         </View>
@@ -395,9 +395,12 @@ const FriendProfile = ({ route, navigation }) => {
       <Text style={styles.spacing} />
 
       {isEditing && (
-        <TouchableOpacity style={styles.removeFriendButton} onPress={handleDeleteFriend}>
-          <Icon name="trash-outline" size={18} color={colors.danger} />
-          <Text style={styles.removeFriendButton_text}>Remove Friend</Text>
+        <TouchableOpacity
+          style={[styles.button_outline, styles.button_outline_danger, { marginTop: 20 }]}
+          onPress={handleDeleteFriend}
+        >
+          <TrashIcon size={18} />
+          <Text style={[styles.buttonText_outline, { color: colors.danger }]}>Remove Friend</Text>
         </TouchableOpacity>
       )}
 

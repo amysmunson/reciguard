@@ -8,9 +8,8 @@ import {
   Alert,
   Share,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
-import { colors } from '../styles/theme';
+import { BackIcon, ShareIcon, TrashIcon } from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import { getMyProfile, updateMyProfile } from '../lib/api/profile';
 import {
@@ -146,8 +145,8 @@ const Profile = ({ navigation }) => {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <TouchableOpacity style={styles.card_backButton} onPress={() => navigation.goBack()}>
-        <Icon name="chevron-back" style={styles.card_backIcon} />
+      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={() => navigation.goBack()}>
+        <BackIcon style={styles.overlayIcon_sm} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -242,7 +241,7 @@ const Profile = ({ navigation }) => {
                 onPress={() => handleRemoveAllergy(a.id)}
                 style={styles.deleteButton}
               >
-                <Icon name="trash-outline" size={20} color={colors.danger} />
+                <TrashIcon />
               </TouchableOpacity>
             )}
           </View>
@@ -270,7 +269,7 @@ const Profile = ({ navigation }) => {
           onPress={handleShareCode}
           disabled={!friendCode}
         >
-          <Icon name="share-outline" size={18} color={colors.textOnPrimary} />
+          <ShareIcon />
           <Text style={styles.friendCode_shareText}>Share Code</Text>
         </TouchableOpacity>
       </View>
