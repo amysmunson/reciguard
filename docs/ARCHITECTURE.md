@@ -38,6 +38,7 @@ recipes/
 │   ├── auth-context.js             # AuthProvider + useAuth() hook (session, user, loading)
 │   ├── storage.js                  # AsyncStorage helpers (loadJson, saveJson) + KEYS registry
 │   ├── cache.js                    # Stale-while-revalidate cache: useCachedResource() + invalidate()
+│   ├── sort.js                     # Shared sort options + sortRecipes/sortFolders + normalizeSort
 │   └── api/                        # Per-domain functions screens import
 │       ├── auth.js                 # signUp, signIn, signOut, deleteAccount
 │       ├── recipes.js              # getRecipes, getRecipe, create/update/deleteRecipe
@@ -69,6 +70,7 @@ recipes/
 ├── components/                     # Shared UI + utilities (NOT screens)
 │   ├── NavigationBar.js            # Bottom tab bar with active-tab highlight
 │   ├── AllergyChecklist.js         # Inline picker: custom row + groups + individuals + severity + add
+│   ├── SortMenu.js                 # Pop-down sort menu shared by Home / Folders / FolderDetail
 │   ├── LandingCard.js              # Decorative oval-with-cusps SVG shape behind the Landing title
 │   ├── LandingCard2.js             # Alternate shape: smooth oval with 4 small outward points
 │   ├── icons/                      # SVG icon components (Heroicons-style)
@@ -244,6 +246,30 @@ The single helper for "create a blank recipe and start the add flow." Used by
 Home, Folders, Friends, and Settings so the `+` button works consistently
 everywhere.
 
+### `components/SortMenu.js`
+
+Pop-down menu shared by Home, Folders, and FolderDetail. Renders a radio
+list of options followed by an asc/desc direction toggle separated by a
+divider. The visuals are positioned (not centered) by the
+`sort_popdown` style block in `main_style.js`.
+
+Props (small, intentionally generic):
+
+| prop | type | meaning |
+|---|---|---|
+| `visible` | `boolean` | whether the menu is shown |
+| `onClose` | `() => void` | called on backdrop tap |
+| `options` | `[{ id, label }]` | the sort keys to render — pass `RECIPE_SORT_OPTIONS` or `FOLDER_SORT_OPTIONS` from [lib/sort.js](../lib/sort.js), or a custom list |
+| `sort` | `{ by, dir }` | current selection |
+| `onChange` | `(next) => void` | called when the user picks a row or flips the direction |
+| `popdownStyle` | object | optional style override (FolderDetail uses this to anchor the popdown to its own action button) |
+
+The menu is purely presentational — it does not know about
+AsyncStorage, screen-specific keys, or the data being sorted. Each
+parent screen owns the `useState` for `sort`, the persistence in
+AsyncStorage, and the call to `sortRecipes` / `sortFolders` on the
+list.
+
 ### `components/icons/*`
 
 Small reusable SVG icon components (Heroicons-style outline). `PlusIcon`,
@@ -274,8 +300,13 @@ state:
 
 - `KEYS.homeAllergyFilter(userId)` — selected profiles for Home's allergy
   filter modal.
-- `KEYS.homeSort(userId)` — last-chosen Home sort option
-  (`created_at` / `updated_at` / `opened_at`).
+- `KEYS.homeSort(userId)` — last-chosen sort selection for Home, stored as
+  a `{ by, dir }` object (e.g. `{ by: 'opened_at', dir: 'desc' }`). Legacy
+  installs that saved a bare string (`"created_at"`) are migrated lazily
+  by `normalizeSort()` in [lib/sort.js](../lib/sort.js).
+- `KEYS.foldersSort(userId)` — same shape, for the **Folders** grid.
+- `KEYS.folderRecipesSort(userId)` — same shape, applied to recipes
+  rendered **inside** any folder on FolderDetail.
 - `KEYS.recipeOpenedAt(userId)` — map of `{ recipeId: ISO timestamp }`
   for the "Recently opened" sort.
 
@@ -285,6 +316,43 @@ Plus two domain helpers built on the generic ones:
   into the recipe-opens map. Called from RecipeCard on focus.
 - `getRecipeOpenedMap(userId)` — read the full map. Called from Home on
   focus.
+
+### `lib/sort.js` — shared sort logic
+
+Pure-JS module that owns everything about how lists are sorted on Home,
+Folders, and FolderDetail. Screens import options + a `sortRecipes` /
+`sortFolders` helper from here; no sort math lives in the screens
+themselves.
+
+Exports:
+
+- **`RECIPE_SORT_OPTIONS`** — `[{ id, label }, ...]` consumed by
+  `SortMenu`. Today: *Date added* (`created_at`), *Last edited*
+  (`updated_at`), *Recently opened* (`opened_at`), *Alphabetical*
+  (`name`).
+- **`FOLDER_SORT_OPTIONS`** — *Alphabetical* (`name`), *Date added*
+  (`created_at`).
+- **`DEFAULT_RECIPE_SORT`** / **`DEFAULT_FOLDER_SORT`** — the
+  `{ by: 'created_at', dir: 'desc' }` defaults a screen uses when nothing
+  has been persisted yet.
+- **`normalizeSort(saved, fallback)`** — back-compat shim that accepts
+  whatever shape was previously written into `AsyncStorage`:
+  - a `{ by, dir }` object → returned as-is (clamping `dir` to `'asc'` or
+    `'desc'`);
+  - a bare string like `"created_at"` (the pre-direction-toggle format)
+    → upgraded to `{ by: <string>, dir: 'desc' }`;
+  - anything else → `fallback`.
+- **`sortRecipes(recipes, { by, dir }, openedMap = {})`** — returns a
+  new sorted array. Uses `openedMap` (the per-user recipe-opens map from
+  storage.js) for the `opened_at` key. Recipes missing the active key
+  sort to the bottom regardless of direction. `name` uses locale-aware
+  comparison so accented characters order correctly; everything else
+  sorts lexicographically on ISO timestamps.
+- **`sortFolders(folders, { by, dir })`** — same contract for folders.
+
+Adding a new sort option is one entry in `RECIPE_SORT_OPTIONS` or
+`FOLDER_SORT_OPTIONS` plus a branch in the matching `recipeKey` /
+`folderKey` helper inside this file. Screens pick it up automatically.
 
 ### `lib/cache.js` — stale-while-revalidate cache
 
@@ -414,23 +482,30 @@ Home's top region is a single inline action bar sitting **below** the
   `displayedRecipes` by case-insensitive substring on recipe name. No
   modal, no toggle — just type. `clearButtonMode="while-editing"` shows
   the native iOS × inside the input for one-tap clear.
-- **Sort** opens a small **popdown menu** (not a centered modal) anchored
-  below the sort button. Three options: *Date added* (`created_at`),
-  *Last edited* (`updated_at`), *Recently opened* (`opened_at`). Choice
-  persists per-user via `KEYS.homeSort(userId)` and re-applies on the
-  next launch. A small primary-colored dot appears on the sort icon when
-  the selection is non-default. Tap the backdrop to dismiss without
-  changing.
+- **Sort** opens the shared `SortMenu` popdown (not a centered modal)
+  anchored below the sort button. The available options come from
+  `RECIPE_SORT_OPTIONS` in [lib/sort.js](../lib/sort.js): *Date added*
+  (`created_at`), *Last edited* (`updated_at`), *Recently opened*
+  (`opened_at`), *Alphabetical* (`name`). A divider below the options
+  separates the ascending/descending direction toggle, so any sort key
+  can run in either direction. Choice persists per-user via
+  `KEYS.homeSort(userId)`, stored as `{ by, dir }`. A small
+  primary-colored dot appears on the sort icon when the selection is
+  non-default (i.e. anything other than `DEFAULT_RECIPE_SORT`). Tap the
+  backdrop to dismiss without changing.
 - **Filter** opens the existing allergy-profile modal (see "Allergy filter
   + severity-aware warnings" below).
 
-**Sort logic.** Three keys are read off each recipe at render time:
-`createdAt`/`updatedAt` come straight off the Supabase row;
+**Sort logic.** All ordering math lives in
+[lib/sort.js](../lib/sort.js); the screens just call
+`sortRecipes(recipesData, sort, openedMap)` and render the result.
+`createdAt` / `updatedAt` come straight off the Supabase row;
 `opened_at` is looked up from the in-memory copy of
-`KEYS.recipeOpenedAt(userId)` (the recipe-opens map). Sort direction is
-most-recent-first using lexicographic comparison on ISO timestamps.
-Recipes with no value for the active key sort to the bottom — so an
-unopened recipe under the "Recently opened" sort just falls off the top.
+`KEYS.recipeOpenedAt(userId)` (the recipe-opens map) that the screen
+passes in; `name` uses `String.prototype.localeCompare` so accented
+characters order correctly. Recipes with no value for the active key
+always sort to the bottom — so an unopened recipe under the "Recently
+opened" sort just falls off the end — regardless of direction.
 
 **Opened-at tracking.** [RecipeCard.js](screens/RecipeCard.js) calls
 `recordRecipeOpened(userId, recipeId)` inside its load effect; every time
@@ -442,6 +517,51 @@ into Supabase.
 
 **Selection mode** replaces the action bar inline (same vertical slot)
 with a `selectBar` showing Cancel / count / bulk-action buttons.
+
+### Sorting (Home, Folders, FolderDetail)
+
+Three screens render sortable grids — Home (recipes), Folders (folders),
+and FolderDetail (recipes inside a folder). They all share the same
+architecture so adding a new sort key, reordering options, or changing a
+visual is a single-file edit.
+
+The pieces:
+
+- **[lib/sort.js](../lib/sort.js)** owns options, defaults, the
+  `normalizeSort()` back-compat shim, and the pure `sortRecipes` /
+  `sortFolders` functions. See the layer-responsibilities section above
+  for the full API.
+- **[components/SortMenu.js](../components/SortMenu.js)** is the
+  pop-down UI. It's stateless about persistence — the parent screen
+  owns `useState`.
+- **AsyncStorage keys** (in [lib/storage.js](../lib/storage.js)) keep
+  each screen's selection per-user:
+  - `KEYS.homeSort(userId)` — Home recipes
+  - `KEYS.foldersSort(userId)` — Folders grid
+  - `KEYS.folderRecipesSort(userId)` — recipes inside any folder
+    (FolderDetail). One key for *all* folders rather than per-folder, so
+    flipping the sort while browsing applies the next time you open
+    *any* folder.
+
+Each screen's responsibilities are minimal: hold `sort` in `useState`,
+hydrate from AsyncStorage on mount (using `normalizeSort()` so legacy
+bare-string entries upgrade cleanly), save back on every change, pass
+the right options array to `<SortMenu>`, and feed the result through
+`sortRecipes` / `sortFolders` before rendering.
+
+A non-default selection is signaled with a small primary-colored dot on
+the sort icon (`home_actionBar_iconDot` style — reused across the three
+screens). FolderDetail places its sort button slightly differently from
+Home/Folders and passes `popdownStyle` to `SortMenu` to anchor the
+popdown correctly.
+
+**Adding a new sort key** (e.g. "Most ingredients" on recipes):
+
+1. Add `{ id: 'ingredient_count', label: 'Most ingredients' }` to
+   `RECIPE_SORT_OPTIONS` in `lib/sort.js`.
+2. Add a branch to `recipeKey()` returning the value to compare on.
+3. Done — Home and FolderDetail pick it up automatically; the
+   AsyncStorage migration is also automatic.
 
 ### Selection mode (Home, FolderDetail)
 
