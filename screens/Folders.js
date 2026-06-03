@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,14 @@ import { useCachedResource } from '../lib/cache';
 import { useAuth } from '../lib/auth-context';
 import { startNewRecipe } from '../components/utils/addRecipe';
 import { PlusIcon, SortIcon } from '../components/icons';
+import SortMenu from '../components/SortMenu';
+import { loadJson, saveJson, KEYS } from '../lib/storage';
+import {
+  FOLDER_SORT_OPTIONS,
+  DEFAULT_FOLDER_SORT,
+  normalizeSort,
+  sortFolders,
+} from '../lib/sort';
 
 const Folders = ({ navigation }) => {
   const { user } = useAuth();
@@ -25,9 +33,31 @@ const Folders = ({ navigation }) => {
     userId: user?.id,
     fetcher: getFolders,
   });
-  const folders = foldersData ?? [];
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+
+  // Sort state — { by, dir }
+  const [sortOpen, setSortOpen] = useState(false);
+  const [sort, setSort] = useState(DEFAULT_FOLDER_SORT);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const saved = await loadJson(KEYS.foldersSort(user.id), null);
+      if (!cancelled) setSort(normalizeSort(saved, DEFAULT_FOLDER_SORT));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const applySort = (next) => {
+    setSort(next);
+    if (user?.id) saveJson(KEYS.foldersSort(user.id), next);
+  };
+
+  const folders = sortFolders(foldersData ?? [], sort);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -45,10 +75,15 @@ const Folders = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.home_search} onPress={() => setCreating(true)}>
-        <PlusIcon size={22} color={colors.textSecondary} />
-      </TouchableOpacity>
+    <View style={[styles.screen_base, styles.screen_tabPad]}>
+      <View style={styles.folders_topActions}>
+        <TouchableOpacity style={styles.folders_topButton} onPress={() => setSortOpen(true)}>
+          <SortIcon size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.folders_topButton} onPress={() => setCreating(true)}>
+          <PlusIcon size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
 
       <Text style={styles.header}>Folders</Text>
 
@@ -116,6 +151,14 @@ const Folders = ({ navigation }) => {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <SortMenu
+        visible={sortOpen}
+        onClose={() => setSortOpen(false)}
+        options={FOLDER_SORT_OPTIONS}
+        sort={sort}
+        onChange={applySort}
+      />
 
       <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
     </View>

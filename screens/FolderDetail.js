@@ -17,6 +17,14 @@ import {
 } from '../lib/api/allergies';
 import { getMyProfile } from '../lib/api/profile';
 import { BackIcon, RemoveCircleIcon, SelectCircleIcon, SortIcon } from '../components/icons';
+import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
+import SortMenu from '../components/SortMenu';
+import {
+  RECIPE_SORT_OPTIONS,
+  DEFAULT_RECIPE_SORT,
+  normalizeSort,
+  sortRecipes,
+} from '../lib/sort';
 
 const FolderDetail = ({ route, navigation }) => {
   const { user } = useAuth();
@@ -29,6 +37,11 @@ const FolderDetail = ({ route, navigation }) => {
 
   const [activeAllergies, setActiveAllergies] = useState([]);
   const filterActive = activeAllergies.length > 0;
+
+  // Sort state — { by, dir }. Recipes inside folders sort like Home does.
+  const [sortOpen, setSortOpen] = useState(false);
+  const [sort, setSort] = useState(DEFAULT_RECIPE_SORT);
+  const [openedMap, setOpenedMap] = useState({});
 
   const loadRecipes = useCallback(async () => {
     try {
@@ -60,12 +73,39 @@ const FolderDetail = ({ route, navigation }) => {
     }
   }, [user?.id]);
 
+  // Hydrate the saved sort selection (shared across all folders).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const saved = await loadJson(KEYS.folderRecipesSort(user.id), null);
+      if (!cancelled) setSort(normalizeSort(saved, DEFAULT_RECIPE_SORT));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  // Refresh opened-at map on focus so sort-by-opened reflects recent views.
+  const refreshOpenedMap = useCallback(async () => {
+    if (!user?.id) return;
+    setOpenedMap(await getRecipeOpenedMap(user.id));
+  }, [user?.id]);
+
   useFocusEffect(
     useCallback(() => {
       loadRecipes();
       loadFilter();
-    }, [loadRecipes, loadFilter])
+      refreshOpenedMap();
+    }, [loadRecipes, loadFilter, refreshOpenedMap])
   );
+
+  const applySort = (next) => {
+    setSort(next);
+    if (user?.id) saveJson(KEYS.folderRecipesSort(user.id), next);
+  };
+
+  const sortedRecipes = sortRecipes(recipes, sort, openedMap);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -150,8 +190,15 @@ const FolderDetail = ({ route, navigation }) => {
         </View>
       ) : (
         <>
-          <TouchableOpacity style={styles.edit_backButton} onPress={() => navigation.goBack()}>
-            <Icon name="chevron-back" style={styles.edit_backButtonIcon} />
+          <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} onPress={() => navigation.goBack()}>
+            <BackIcon style={styles.overlayIcon_sm} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.overlay_base, styles.folderDetail_sortButton]}
+            onPress={() => setSortOpen(true)}
+          >
+            <SortIcon size={22} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.deleteRecipeButton} onPress={handleDeleteFolder}>
@@ -163,7 +210,7 @@ const FolderDetail = ({ route, navigation }) => {
       <Text style={styles.header}>{folder?.name || 'Folder'}</Text>
 
       <FlatList
-        data={recipes}
+        data={sortedRecipes}
         numColumns={2}
         renderItem={({ item }) => {
           const isSelected = selectedIds.has(item.id);
@@ -198,9 +245,17 @@ const FolderDetail = ({ route, navigation }) => {
             </TouchableOpacity>
           );
         }}
-        extraData={{ selectedIds, selectMode, activeAllergies }}
+        extraData={{ selectedIds, selectMode, activeAllergies, sort, openedMap }}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={<Text style={styles.emptyText}>No recipes in this folder.</Text>}
+      />
+
+      <SortMenu
+        visible={sortOpen}
+        onClose={() => setSortOpen(false)}
+        options={RECIPE_SORT_OPTIONS}
+        sort={sort}
+        onChange={applySort}
       />
     </View>
   );
