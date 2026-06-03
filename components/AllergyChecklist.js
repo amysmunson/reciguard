@@ -121,11 +121,13 @@ const AllergyChecklist = ({ existingNames = [], onConfirm }) => {
     <View style={{ marginTop: 8 }}>
       {/* Filter */}
       <View style={[styles.ingredientRow, { marginBottom: 8 }]}>
-        <View style={{ marginRight: 6 }}>
-          <SearchIcon size={16} color={colors.textMuted} />
+        {/* marginRight + icon size match the checkbox in the row below so
+            both inputs share the same left edge and full width. */}
+        <View style={{ marginRight: 12 }}>
+          <SearchIcon size={22} color={colors.textMuted} />
         </View>
         <TextInput
-          style={styles.input_base}
+          style={[styles.input_base, { flex: 1 }]}
           placeholder="Filter list"
           value={query}
           onChangeText={setQuery}
