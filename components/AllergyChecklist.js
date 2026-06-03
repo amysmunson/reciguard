@@ -246,17 +246,16 @@ const AllergyChecklist = ({ existingNames = [], onConfirm }) => {
       {/* Add button */}
       <TouchableOpacity
         style={[
-          styles.addButton,
-          {
-            backgroundColor: totalCount ? colors.link : colors.border,
-            padding: 14,
-            marginTop: 12,
-          },
+          styles.button_base,
+          styles.button_fullWidth,
+          styles.button_primary,
+          { marginTop: 12 },
+          !totalCount && { backgroundColor: colors.border },
         ]}
         onPress={handleAdd}
         disabled={!totalCount}
       >
-        <Text style={[styles.addButtonText, { color: colors.textOnPrimary, fontWeight: 'bold' }]}>
+        <Text style={[styles.buttonText_base, styles.buttonText_onPrimary]}>
           {totalCount ? `Add ${totalCount}` : 'Add'}
         </Text>
       </TouchableOpacity>

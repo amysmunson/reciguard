@@ -320,10 +320,10 @@ const FriendProfile = ({ route, navigation }) => {
 
       {isEditing && (
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: colors.success, padding: 12, marginTop: 10 }]}
+          style={[styles.button_base, styles.button_fullWidth, styles.button_primary, { marginTop: 10 }]}
           onPress={handleSave}
         >
-          <Text style={[styles.addButtonText, { color: colors.textOnPrimary, fontWeight: 'bold' }]}>
+          <Text style={[styles.buttonText_base, styles.buttonText_onPrimary]}>
             Save
           </Text>
         </TouchableOpacity>

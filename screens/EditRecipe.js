@@ -172,10 +172,10 @@ const EditRecipe = ({ route, navigation }) => {
         {renderList('Your Notes', userNotes, setUserNotes, 'Note')}
 
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: colors.success, padding: 20, marginBottom: 40 }]}
+          style={[styles.button_base, styles.button_fullWidth, styles.button_primary, { marginBottom: 40 }]}
           onPress={handleSave}
         >
-          <Text style={[styles.addButtonText, { color: colors.textOnPrimary, fontWeight: 'bold' }]}>
+          <Text style={[styles.buttonText_base, styles.buttonText_onPrimary]}>
             Save Changes
           </Text>
         </TouchableOpacity>
