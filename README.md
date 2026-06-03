@@ -7,7 +7,8 @@ RecipeGuard is a React Native + Expo app with a Supabase backend for storing rec
 
 - Create, edit, and delete recipes
 - Organize recipes into folders
-- Search and sort recipes
+- Search recipes by name
+- Sort recipes and folders by date added, last edited, recently opened, or alphabetical — ascending or descending, persisted per-user per-screen
 - Track allergies for yourself and friends
 - Filter by allergies for different people and groups
 - Severity-aware allergy warnings inside recipes and in list
@@ -190,6 +191,35 @@ for Expo-managed dependencies.
 - email
 
 
+### Sorting
+
+Three screens render sortable grids — Home (recipes), Folders (folders),
+and FolderDetail (recipes inside a folder). They all share the same
+architecture so the sort UI, persistence, and ordering behave
+identically across the app:
+
+- **[`lib/sort.js`](lib/sort.js)** owns the sort options
+  (`RECIPE_SORT_OPTIONS`, `FOLDER_SORT_OPTIONS`), the defaults, a
+  `normalizeSort()` back-compat shim, and the pure `sortRecipes` /
+  `sortFolders` helpers. Sort math lives here; screens just call into it.
+- **[`components/SortMenu.js`](components/SortMenu.js)** is a stateless
+  pop-down: a radio list of options plus an asc/desc direction toggle.
+  Used by all three screens with different `options` arrays.
+- **AsyncStorage keys** persist each screen's selection per-user:
+  - `KEYS.homeSort(userId)` — Home recipes
+  - `KEYS.foldersSort(userId)` — Folders grid
+  - `KEYS.folderRecipesSort(userId)` — recipes inside any folder
+
+Each screen holds the `sort` state, hydrates it from AsyncStorage on
+mount (via `normalizeSort()` so any legacy bare-string entries upgrade
+cleanly to the `{ by, dir }` shape), saves on change, and feeds the
+result through `sortRecipes` / `sortFolders` before rendering. A small
+primary-colored dot on the sort icon signals a non-default selection.
+
+To add a sort key, add an entry to the relevant options array in
+`lib/sort.js` and a branch in `recipeKey()` / `folderKey()` — every
+consumer screen picks it up automatically. See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#sorting-home-folders-folderdetail)
 ### Icons
 
 Every icon used in the app is exported from a single registry at

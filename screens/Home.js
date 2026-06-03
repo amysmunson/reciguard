@@ -36,6 +36,13 @@ import {
   SortIcon,
   TrashIcon,
 } from '../components/icons';
+import SortMenu from '../components/SortMenu';
+import {
+  RECIPE_SORT_OPTIONS,
+  DEFAULT_RECIPE_SORT,
+  normalizeSort,
+  sortRecipes,
+} from '../lib/sort';
 
 const Home = ({ navigation }) => {
   const { user } = useAuth();
@@ -68,9 +75,9 @@ const Home = ({ navigation }) => {
   // Search state — query string only; the input is always visible in the action bar
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sort state
+  // Sort state — { by, dir } where dir is 'asc' | 'desc'
   const [sortOpen, setSortOpen] = useState(false);
-  const [sortBy, setSortBy] = useState('created_at'); // 'created_at' | 'updated_at' | 'opened_at'
+  const [sort, setSort] = useState(DEFAULT_RECIPE_SORT);
   const [openedMap, setOpenedMap] = useState({});
 
   const refreshActiveAllergies = useCallback(async (self, friendIds) => {
@@ -95,11 +102,11 @@ const Home = ({ navigation }) => {
         includeSelf: false,
         friendIds: [],
       });
-      const savedSort = await loadJson(KEYS.homeSort(user.id), 'created_at');
+      const savedSort = await loadJson(KEYS.homeSort(user.id), null);
       if (cancelled) return;
       setIncludeSelf(!!saved.includeSelf);
       setSelectedFriendIds(new Set(saved.friendIds ?? []));
-      if (typeof savedSort === 'string') setSortBy(savedSort);
+      setSort(normalizeSort(savedSort, DEFAULT_RECIPE_SORT));
       setFilterHydrated(true);
     })();
     return () => {
@@ -250,23 +257,9 @@ const Home = ({ navigation }) => {
 
   const filterActive = includeSelf || selectedFriendIds.size > 0;
 
-  // Sort recipes by the selected field, then apply the search filter.
-  // Sort direction: most recent first. Missing values sort to the bottom.
-  const sortedRecipes = (() => {
-    const getKey = (r) => {
-      if (sortBy === 'opened_at') return openedMap[r.id] ?? null;
-      if (sortBy === 'updated_at') return r.updatedAt ?? r.createdAt ?? null;
-      return r.createdAt ?? null;
-    };
-    return [...recipes].sort((a, b) => {
-      const av = getKey(a);
-      const bv = getKey(b);
-      if (av && bv) return bv.localeCompare(av); // ISO strings sort lexicographically
-      if (av) return -1;
-      if (bv) return 1;
-      return 0;
-    });
-  })();
+  // Sort recipes by the selected field + direction, then apply the search
+  // filter. Missing values always sort to the bottom (see lib/sort).
+  const sortedRecipes = sortRecipes(recipes, sort, openedMap);
 
   const displayedRecipes = searchQuery.trim()
     ? sortedRecipes.filter((r) =>
@@ -275,8 +268,7 @@ const Home = ({ navigation }) => {
     : sortedRecipes;
 
   const applySort = (next) => {
-    setSortBy(next);
-    setSortOpen(false);
+    setSort(next);
     if (user?.id) saveJson(KEYS.homeSort(user.id), next);
   };
 
@@ -379,7 +371,7 @@ const Home = ({ navigation }) => {
         numColumns={2}
         renderItem={renderTile}
         keyExtractor={(item) => item.id}
-        extraData={{ selectedIds, selectMode, activeAllergies, searchQuery, sortBy, openedMap }}
+        extraData={{ selectedIds, selectMode, activeAllergies, searchQuery, sort, openedMap }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
             {searchQuery.trim()
