@@ -2,24 +2,28 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ImageBackground } from 'react-native';
 import styles from '../styles/main_style';
 import LandingCard from '../components/LandingCard';
-import colors from '../styles/theme';
+import { colors } from '../styles/theme';
 
 
 const Landing = ({ navigation }) => (
   <ImageBackground
-    source={require('../assets/images/watermelon.webp')}
-    style={styles.landing_container}
+    source={require('../assets/images/cookie-variety.webp')}
+    style={[styles.screen_base, styles.screen_landingPad]}
     resizeMode="cover"
   >
-    <View style={styles.landing_overlay} />
+    {/* <View style={styles.landing_overlay} /> */}
+    <View />
 
     {/* Title block — vertically centered in the upper area */}
     <View style={styles.landing_titleArea}>
-      <LandingCard width={300}>
-        <Text style={styles.landing_title}>RecipeGuard</Text>
-        <Text style={styles.landing_subtitle}>Your shared recipe book.</Text>
+      <LandingCard width={360} height={210}>
+        <Text style={[styles.header_landing, { color: colors.textInverse }]}>RecipeGuard</Text>
+        <Text style={[styles.text_body, styles.text_centered, { color: colors.textInverse }]}>
+          Your shared recipe book.
+        </Text>
       </LandingCard>
     </View>
+
 
     {/* Action stack — pinned to the bottom */}
     <View style={styles.landing_actions}>
