@@ -65,7 +65,7 @@ const RecipeCard = ({ route, navigation }) => {
 
   if (!recipe) {
     return (
-      <View style={styles.card_container}>
+      <View style={[styles.screen_base, styles.screen_cardPad]}>
         <Text style={styles.emptyText}>Loading…</Text>
       </View>
     );
@@ -141,14 +141,14 @@ const RecipeCard = ({ route, navigation }) => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.card_edit}
+        style={[styles.overlay_base, styles.overlay_topRight_card]}
         onPress={() => navigation.navigate('EditRecipe', { recipeId })}
       >
-        <Text style={styles.card_editText}>Edit</Text>
+        <Text style={styles.overlayText}>Edit</Text>
       </TouchableOpacity>
 
       <View style={styles.card_headerRow}>
-        <Text style={styles.card_header}>{name || 'Untitled'}</Text>
+        <Text style={styles.header_card}>{name || 'Untitled'}</Text>
         {!!extLink && (
           <TouchableOpacity
             onPress={openSource}
@@ -160,7 +160,7 @@ const RecipeCard = ({ route, navigation }) => {
         )}
       </View>
 
-      <Text style={styles.subheading}>Ingredients</Text>
+      <Text style={styles.header_section}>Ingredients</Text>
       {ingredients.length > 0 ? (
         ingredients.map(renderIngredient)
       ) : (
@@ -168,7 +168,7 @@ const RecipeCard = ({ route, navigation }) => {
       )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>Instructions</Text>
+      <Text style={styles.header_section}>Instructions</Text>
       {steps.length > 0 ? (
         steps.map((item, i) => (
           <Text key={i} style={styles.ingredientItems}>
@@ -182,7 +182,7 @@ const RecipeCard = ({ route, navigation }) => {
       {authorNotes.length > 0 && (
         <>
           <Text style={styles.spacing} />
-          <Text style={styles.subheading}>Author Notes</Text>
+          <Text style={styles.header_section}>Author Notes</Text>
           {authorNotes.map((item, i) => (
             <Text key={i} style={styles.ingredientItems}>
               • {item}
@@ -192,7 +192,7 @@ const RecipeCard = ({ route, navigation }) => {
       )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>Your Notes</Text>
+      <Text style={styles.header_section}>Your Notes</Text>
       {userNotes.length > 0 ? (
         userNotes.map((item, i) => (
           <Text key={i} style={styles.ingredientItems}>

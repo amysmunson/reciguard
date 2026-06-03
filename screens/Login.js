@@ -31,11 +31,11 @@ const Login = ({ navigation }) => {
         <BackIcon style={styles.overlayIcon_lg} />
       </TouchableOpacity>
 
-      <Text style={styles.auth_title}>Sign In</Text>
+      <Text style={styles.header_auth}>Sign In</Text>
 
       <View style={{ width: '100%', paddingBottom: 16 }}>
         <TextInput
-          style={styles.auth_input}
+          style={[styles.input_base, styles.input_spaced]}
           placeholder="Email"
           autoCapitalize="none"
           keyboardType="email-address"
@@ -43,7 +43,7 @@ const Login = ({ navigation }) => {
           onChangeText={setEmail}
         />
         <TextInput
-          style={styles.auth_input}
+          style={[styles.input_base, styles.input_spaced]}
           placeholder="Password"
           secureTextEntry
           value={password}

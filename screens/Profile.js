@@ -125,7 +125,7 @@ const Profile = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.card_container}>
+      <View style={[styles.screen_base, styles.screen_cardPad]}>
         <Text style={styles.emptyText}>Loading…</Text>
       </View>
     );
@@ -140,7 +140,7 @@ const Profile = ({ navigation }) => {
 
   return (
     <ScrollView
-      style={styles.card_container}
+      style={[styles.screen_base, styles.screen_cardPad]}
       contentContainerStyle={{ paddingBottom: 80 }}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
@@ -150,19 +150,19 @@ const Profile = ({ navigation }) => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.card_edit}
+        style={[styles.overlay_base, styles.overlay_topRight_card]}
         onPress={isEditing ? handleCancel : () => setIsEditing(true)}
       >
-        <Text style={styles.card_editText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
+        <Text style={styles.overlayText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.card_header}>My Profile</Text>
+      <Text style={styles.header_card}>My Profile</Text>
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>Name</Text>
+      <Text style={styles.header_section}>Name</Text>
       {isEditing ? (
         <TextInput
-          style={styles.input}
+          style={styles.input_base}
           value={name}
           onChangeText={setName}
           placeholder="Your name"
@@ -172,14 +172,14 @@ const Profile = ({ navigation }) => {
       )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>Email</Text>
+      <Text style={styles.header_section}>Email</Text>
       <Text style={styles.display_fieldValue}>{user?.email}</Text>
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>Phone</Text>
+      <Text style={styles.header_section}>Phone</Text>
       {isEditing ? (
         <TextInput
-          style={styles.input}
+          style={styles.input_base}
           value={phone}
           onChangeText={setPhone}
           placeholder="Phone"
@@ -190,10 +190,10 @@ const Profile = ({ navigation }) => {
       )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>Notes</Text>
+      <Text style={styles.header_section}>Notes</Text>
       {isEditing ? (
         <TextInput
-          style={[styles.input, { minHeight: 80 }]}
+          style={[styles.input_base, { minHeight: 80 }]}
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -220,7 +220,7 @@ const Profile = ({ navigation }) => {
       )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.subheading}>My Allergies</Text>
+      <Text style={styles.header_section}>My Allergies</Text>
       {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
       {allergies.map((a) => {
         const sev = normalizeSeverity(a.severity);
@@ -256,7 +256,7 @@ const Profile = ({ navigation }) => {
 
       <Text style={styles.spacing} />
 
-      <View style={styles.friendCode_card}>
+      <View style={[styles.surface_lg, { marginVertical: 10, alignItems: 'center' }]}>
         <Text style={styles.friendCode_label}>Your Friend Code</Text>
         <Text style={styles.friendCode_value}>
           {friendCode ? formatCode(friendCode) : '—'}
