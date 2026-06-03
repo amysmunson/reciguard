@@ -71,11 +71,12 @@ recipes/
 │   ├── AllergyChecklist.js         # Inline picker: custom row + groups + individuals + severity + add
 │   ├── LandingCard.js              # Decorative oval-with-cusps SVG shape behind the Landing title
 │   ├── LandingCard2.js             # Alternate shape: smooth oval with 4 small outward points
-│   ├── icons/                      # SVG icon components (Heroicons-style)
-│   │   ├── PlusIcon.js
-│   │   ├── SearchIcon.js
-│   │   ├── SortIcon.js
-│   │   └── FilterIcon.js
+│   ├── icons/                      # Central icon registry — one file controls every icon
+│   │   ├── index.js                # Barrel: re-exports SVGs + wraps every vector-icon glyph
+│   │   ├── PlusIcon.js             # Custom SVG (Heroicons-style outline)
+│   │   ├── SearchIcon.js           # Custom SVG
+│   │   ├── SortIcon.js             # Custom SVG
+│   │   └── FilterIcon.js           # Custom SVG
 │   ├── utils/
 │   │   └── addRecipe.js            # createRecipe() + navigate to InputSelector
 │   └── samples/
@@ -120,7 +121,7 @@ be safely removed if/when you confirm nothing pulls it in.
 | `@react-native-async-storage/async-storage` | Storage adapter for Supabase auth session and the per-user filter persistence in [lib/storage.js](lib/storage.js). |
 | `react-native-url-polyfill` | Side-effect import in [lib/supabase.js](lib/supabase.js) — Supabase needs URL globals that RN doesn't ship. |
 | `react-native-svg` | Used by `components/LandingCard*.js` for the decorative title shapes and by `components/icons/*.js` for the custom Heroicons-style glyphs (Plus / Search / Sort). |
-| `@expo/vector-icons` | Provides the `react-native-vector-icons/Ionicons` and `/FontAwesome` font sets used throughout (badges, dots, modals, etc.). |
+| `@expo/vector-icons` | Provides the `react-native-vector-icons/Ionicons` and `/FontAwesome` font sets. Direct imports are confined to [components/icons/index.js](components/icons/index.js); every screen consumes semantic wrappers (e.g. `<TrashIcon>`, `<BackIcon>`) from the registry instead. |
 
 ### Runtime — peer / framework requirements (not directly imported)
 
@@ -244,16 +245,51 @@ The single helper for "create a blank recipe and start the add flow." Used by
 Home, Folders, Friends, and Settings so the `+` button works consistently
 everywhere.
 
-### `components/icons/*`
+### `components/icons/*` — central icon registry
 
-Small reusable SVG icon components (Heroicons-style outline). `PlusIcon`,
-`SearchIcon`, `SortIcon`, and `FilterIcon` each accept `size`, `color`,
-and `strokeWidth` props and render via `react-native-svg`. Used in place
-of icon-font glyphs where we want consistent stroke weight and full color
-control. The `@expo/vector-icons` packs still cover all the *other* icons
-(chevrons, checkboxes, trash, folder, radio dots, etc.); the custom SVG
-set is just for the four glyphs that appear prominently in the Home
-action bar and the per-screen add buttons.
+Every icon used in the app is exported from
+[components/icons/index.js](../components/icons/index.js). Screens import
+**named semantic components** (`<BackIcon>`, `<TrashIcon>`, `<CheckboxIcon checked />`, etc.)
+from `'../components/icons'`. No screen or shared component imports
+`react-native-vector-icons` directly anymore — the only file that does
+is `index.js` itself. To swap a glyph globally (change vendor, switch
+from outline to filled, replace a vendor icon with a custom SVG), edit
+the registry in one place and every consumer picks it up.
+
+The registry has three kinds of icons:
+
+1. **Custom SVG icons** — `PlusIcon`, `SearchIcon`, `SortIcon`,
+   `FilterIcon`. One file each in this directory, rendered via
+   `react-native-svg`. Each accepts `size`, `color`, and `strokeWidth`
+   props. `index.js` re-exports them so the same import path works for
+   custom and vendor-backed icons alike.
+
+2. **Static vendor wrappers** — thin components that pin a semantic name
+   to one vendor icon string. Each takes optional `size`/`color`/`style`
+   props with sensible defaults; passing `style` always wins (react-
+   native-vector-icons honors `style.fontSize` and `style.color`).
+   Today: `BackIcon`, `ExternalLinkIcon`, `TrashIcon`, `RemoveCircleIcon`,
+   `ShareIcon`, `LinkIcon`, `LinkOutlineIcon`, `CameraIcon`, `KeyIcon`,
+   `PersonAddIcon`, `FolderIcon`.
+
+3. **Stateful wrappers** — take a state prop and pick the right glyph +
+   default color internally so callers don't have to keep two icon names
+   in sync. `CheckboxIcon` (`checked` / `partial`), `SelectCircleIcon`
+   (`selected`), `RadioIcon` (`selected`), `SortArrowIcon`
+   (`direction: 'asc' | 'desc'`).
+
+The bottom-tab bar has its own component:
+**`TabIcon`** takes a `name` prop matching the route name
+(`Home` / `Folders` / `Add` / `Friends` / `Settings`) and maps internally
+to the right FontAwesome glyph via a `TAB_GLYPHS` table at the bottom of
+the registry. `NavigationBar`'s `TABS` array therefore doesn't carry
+icon strings — just the route name and label.
+
+**Adding an icon.** Pick a semantic name, decide whether it's static or
+stateful, and add the wrapper to `index.js`. If you want a custom SVG,
+add a new file under `components/icons/` and re-export it from
+`index.js`. Then `import { YourIcon } from '../components/icons'` from
+wherever you need it.
 
 ### `components/LandingCard.js` and `LandingCard2.js`
 

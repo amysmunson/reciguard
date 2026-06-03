@@ -1,15 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigationState } from '@react-navigation/native';
 import styles from '../styles/main_style';
+import { TabIcon } from './icons';
 
+// Route names match the screen names registered in the navigator; the
+// per-route icon glyph is mapped in components/icons/index.js (TAB_GLYPHS).
 const TABS = [
-  { name: 'Home', label: 'Home', icon: 'home' },
-  { name: 'Folders', label: 'Folders', icon: 'folder' },
-  { name: 'Add', label: 'Add', icon: 'plus-square-o' },
-  { name: 'Friends', label: 'Friends', icon: 'users' },
-  { name: 'Settings', label: 'Settings', icon: 'cogs' },
+  { name: 'Home', label: 'Home' },
+  { name: 'Folders', label: 'Folders' },
+  { name: 'Add', label: 'Add' },
+  { name: 'Friends', label: 'Friends' },
+  { name: 'Settings', label: 'Settings' },
 ];
 
 const NavigationBar = ({ navigation, onAddPress }) => {
@@ -26,8 +28,8 @@ const NavigationBar = ({ navigation, onAddPress }) => {
         const isActive = activeRoute === tab.name;
         return (
           <TouchableOpacity key={tab.name} style={styles.navButton} onPress={() => go(tab.name)}>
-            <Icon
-              name={tab.icon}
+            <TabIcon
+              name={tab.name}
               style={[styles.navButtonIcon, isActive && styles.navButtonIconActive]}
             />
             <Text style={[styles.navButtonText, isActive && styles.navButtonTextActive]}>

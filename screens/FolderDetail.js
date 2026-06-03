@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
@@ -17,7 +16,7 @@ import {
   severityColor,
 } from '../lib/api/allergies';
 import { getMyProfile } from '../lib/api/profile';
-import { loadJson, KEYS } from '../lib/storage';
+import { BackIcon, RemoveCircleIcon, SelectCircleIcon, SortIcon } from '../components/icons';
 
 const FolderDetail = ({ route, navigation }) => {
   const { user } = useAuth();
@@ -144,9 +143,7 @@ const FolderDetail = ({ route, navigation }) => {
           </TouchableOpacity>
           <Text style={styles.selectBar_count}>{selectedIds.size} selected</Text>
           <TouchableOpacity onPress={handleBulkRemove} disabled={!selectedIds.size}>
-            <Icon
-              name="remove-circle-outline"
-              size={22}
+            <RemoveCircleIcon
               color={selectedIds.size ? colors.danger : colors.iconDisabled}
             />
           </TouchableOpacity>
@@ -194,11 +191,7 @@ const FolderDetail = ({ route, navigation }) => {
                 )}
                 {selectMode && (
                   <View style={styles.selectCheck}>
-                    <Icon
-                      name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={24}
-                      color={isSelected ? colors.link : colors.iconInactive}
-                    />
+                    <SelectCircleIcon selected={isSelected} />
                   </View>
                 )}
               </View>

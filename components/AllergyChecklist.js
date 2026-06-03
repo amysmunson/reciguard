@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
-import SearchIcon from './icons/SearchIcon';
+import { CheckboxIcon, SearchIcon } from './icons';
 import {
   ALLERGEN_PRESETS,
   ALLERGEN_GROUPS,
@@ -126,7 +125,7 @@ const AllergyChecklist = ({ existingNames = [], onConfirm }) => {
           <SearchIcon size={16} color={colors.textMuted} />
         </View>
         <TextInput
-          style={[styles.input, { marginRight: 0 }]}
+          style={styles.input_base}
           placeholder="Filter list"
           value={query}
           onChangeText={setQuery}
@@ -141,14 +140,10 @@ const AllergyChecklist = ({ existingNames = [], onConfirm }) => {
           onPress={() => setCustomChecked((v) => !v)}
           style={{ marginRight: 12 }}
         >
-          <Icon
-            name={customChecked ? 'checkbox' : 'square-outline'}
-            size={22}
-            color={customChecked ? colors.link : colors.textMuted}
-          />
+          <CheckboxIcon checked={customChecked} />
         </TouchableOpacity>
         <TextInput
-          style={[styles.input, { marginRight: 0, flex: 1 }]}
+          style={[styles.input_base, { flex: 1 }]}
           placeholder="Enter your own"
           value={customText}
           onChangeText={(t) => {
@@ -176,13 +171,7 @@ const AllergyChecklist = ({ existingNames = [], onConfirm }) => {
             onPress={() => toggleGroup(g)}
             disabled={disabled}
           >
-            <Icon
-              name={
-                checked ? 'checkbox' : partial ? 'remove-circle' : 'square-outline'
-              }
-              size={22}
-              color={checked || partial ? colors.link : colors.textMuted}
-            />
+            <CheckboxIcon checked={checked} partial={partial} />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.preset_groupTitle}>{g.name}</Text>
               {!!g.description && (
@@ -212,11 +201,7 @@ const AllergyChecklist = ({ existingNames = [], onConfirm }) => {
             onPress={() => togglePreset(p.id)}
             disabled={disabled}
           >
-            <Icon
-              name={checked ? 'checkbox' : 'square-outline'}
-              size={22}
-              color={checked ? colors.link : colors.textMuted}
-            />
+            <CheckboxIcon checked={checked} />
             <Text style={[styles.preset_itemName, { flex: 1, marginLeft: 12 }]}>
               {cap(p.name)}
             </Text>

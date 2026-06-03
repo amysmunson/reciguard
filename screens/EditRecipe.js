@@ -9,11 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { createRecipe, getRecipe, updateRecipe, deleteRecipe } from '../lib/api/recipes';
-import PlusIcon from '../components/icons/PlusIcon';
+import { BackIcon, PlusIcon, TrashIcon } from '../components/icons';
 
 const EditRecipe = ({ route, navigation }) => {
   const recipeId = route.params?.recipeId ?? null;
@@ -107,7 +106,7 @@ const EditRecipe = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.edit_container}>
+      <View style={[styles.screen_base, styles.screen_editPad]}>
         <Text style={styles.emptyText}>Loading…</Text>
       </View>
     );
@@ -115,13 +114,13 @@ const EditRecipe = ({ route, navigation }) => {
 
   const renderList = (label, list, setter, placeholder, numbered = false) => (
     <>
-      <Text style={styles.sectionHeader}>{label}</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>{label}</Text>
       {list.length === 0 && <Text style={styles.noItemsText}>No items yet.</Text>}
       {list.map((item, index) => (
         <View key={index} style={styles.ingredientRow}>
           {numbered && <Text>{index + 1}. </Text>}
           <TextInput
-            style={styles.input}
+            style={[styles.input_base, styles.input_inRow]}
             value={item}
             onChangeText={(text) => updateItem(setter, list, index, text)}
             placeholder={placeholder}
@@ -130,7 +129,7 @@ const EditRecipe = ({ route, navigation }) => {
             onPress={() => removeItem(setter, list, index)}
             style={styles.deleteButton}
           >
-            <Icon name="trash-outline" size={24} color={colors.danger} />
+            <TrashIcon size={24} />
           </TouchableOpacity>
         </View>
       ))}
@@ -147,11 +146,11 @@ const EditRecipe = ({ route, navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.edit_container}
+        contentContainerStyle={[styles.screen_baseScroll, styles.screen_editPad]}
         keyboardShouldPersistTaps="handled"
       >
-        <TouchableOpacity style={styles.edit_backButton} onPress={() => navigation.goBack()}>
-          <Icon name="chevron-back" style={styles.edit_backButtonIcon} />
+        <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} onPress={() => navigation.goBack()}>
+          <BackIcon style={styles.overlayIcon_sm} />
         </TouchableOpacity>
 
         {!isNew && (
@@ -161,7 +160,7 @@ const EditRecipe = ({ route, navigation }) => {
         )}
 
         <TextInput
-          style={[styles.edit_header, styles.edit_nameInput]}
+          style={[styles.header_card, styles.input_underline]}
           value={name}
           onChangeText={setName}
           placeholder={isNew ? 'New recipe name' : 'Recipe name'}

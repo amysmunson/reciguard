@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/main_style';
+import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
 import { signUp } from '../lib/api/auth';
 
@@ -31,9 +31,9 @@ const SignUp = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.auth_container}>
-      <TouchableOpacity style={styles.auth_backButton} onPress={() => navigation.goBack()}>
-        <Icon name="chevron-back" style={styles.auth_backIcon} />
+    <View style={[styles.screen_base, styles.screen_authPad]}>
+      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} onPress={() => navigation.goBack()}>
+        <BackIcon style={styles.overlayIcon_lg} />
       </TouchableOpacity>
 
       <Text style={styles.auth_title}>Create Account</Text>
