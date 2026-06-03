@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     width: itemSize,
     height: itemSize,    // force square shape
     margin: itemMargin / 2,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primarySubtle,
     borderRadius: 5,
     justifyContent: 'center',
     alignItems: 'center',
@@ -568,10 +568,6 @@ const styles = StyleSheet.create({
   //   Input Selector Styles
   //   Container: compose [screen_base, screen_tabPad] at the call site.
   inputButton: {
-    // secondary:     palette.secondaryBlue,
-    // tertiary:      palette.surfaceAltDark,
-    // primarySubtle: palette.tintBlue,
-    // primarySoft:  
     backgroundColor: colors.primarySubtle,
     flexDirection: 'row',
     alignItems: 'center',
