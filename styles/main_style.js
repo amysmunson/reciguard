@@ -452,6 +452,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.borderInput,
   },
   navButton: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 5,
