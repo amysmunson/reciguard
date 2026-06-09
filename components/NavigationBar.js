@@ -21,11 +21,12 @@ const TABS = [
   { name: 'Settings', label: 'Settings' },
 ];
 
-const NavigationBar = ({ navigation, onAddPress }) => {
+const NavigationBar = ({ navigation, onAddPress, onHomePress }) => {
   const activeRoute = useNavigationState((state) => state?.routes?.[state.index]?.name);
 
   const go = (name) => {
     if (name === 'Add') return onAddPress?.();
+    if (name === 'Home') onHomePress?.();
     navigation.navigate(name);
   };
 

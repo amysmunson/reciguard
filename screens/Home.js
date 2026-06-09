@@ -469,7 +469,11 @@ const Home = ({ navigation }) => {
         </Pressable>
       </Modal>
 
-      <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
+      <NavigationBar
+        navigation={navigation}
+        onAddPress={handleAddRecipe}
+        onHomePress={() => setSearchQuery('')}
+      />
     </View>
   );
 };
