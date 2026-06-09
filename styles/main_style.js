@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   // Auth "Already have an account? / Don't have one?" link — centered,
   // no underline, body-sized so it doesn't look like a footnote.
   buttonText_authLink: {
-    color: colors.link,
+    color: colors.primary,
     textAlign: 'center',
   },
 
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 12,
   },
-  button_outline_link: { borderColor: colors.link },
+  button_outline_link: { borderColor: colors.primary },
   button_outline_danger: { borderColor: colors.danger },
   // Shared label shape for outline buttons — bold with margin to space
   // the text from a preceding icon.
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   addButtonText: {
-    color: colors.link,
+    color: colors.primary,
     fontSize: 18,
     marginLeft: 6,
   },
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
   },
   selectBar_cancel: {
     fontSize: 16,
-    color: colors.link,
+    color: colors.primary,
   },
   selectBar_count: {
     fontSize: 16,
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
   },
   listItem_selected: {
     borderWidth: 2,
-    borderColor: colors.link,
+    borderColor: colors.primary,
     backgroundColor: colors.primarySubtle,
   },
   selectCheck: {
@@ -1026,7 +1026,7 @@ const styles = StyleSheet.create({
 
   //   Link Badge (small inline badge next to a friend's name)
   linkBadge: {
-    backgroundColor: colors.link,
+    backgroundColor: colors.primary,
     borderRadius: 10,
     width: 20,
     height: 20,
@@ -1044,14 +1044,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   linkStatus_action: {
-    color: colors.link,
+    color: colors.primary,
     fontWeight: 'bold',
     fontSize: 14,
   },
 
   //   "Link to Real Account" Button (FriendProfile when not linked):
   //   [button_outline, button_outline_link, { marginBottom: 8 }]
-  //   + [buttonText_outline, { color: colors.link }]
+  //   + [buttonText_outline, { color: colors.primary }]
 
   //   Add-Friend Choice Buttons (in Friends modal)
   addChoice_button: {
