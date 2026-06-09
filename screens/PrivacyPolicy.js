@@ -12,7 +12,7 @@ const PrivacyPolicy = ({ navigation }) => (
 
     <ScrollView contentContainerStyle={styles.screen_policyPad}>
       <Text style={styles.header_policyMain}>Privacy Policy</Text>
-      <Text style={styles.policy_updated}>Last updated: today</Text>
+      <Text style={styles.policy_updated}>Last updated: June 9, 2026</Text>
 
       <Text style={styles.header_policySection}>What we collect</Text>
       <Text style={styles.policy_body}>
