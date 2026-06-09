@@ -40,7 +40,7 @@ export const BackIcon = ({ style, ...rest }) => (
 );
 
 // "Open original" / external-link icon on RecipeCard.
-export const ExternalLinkIcon = ({ size = 20, color = colors.link, style, ...rest }) => (
+export const ExternalLinkIcon = ({ size = 20, color = colors.primary, style, ...rest }) => (
   <Ionicons name="open-outline" size={size} color={color} style={style} {...rest} />
 );
 
@@ -75,16 +75,16 @@ export const ImageIcon = ({ style, ...rest }) => (
   <Ionicons name="image-outline" style={style} {...rest} />
 );
 
-export const KeyIcon = ({ size = 22, color = colors.link, style, ...rest }) => (
+export const KeyIcon = ({ size = 22, color = colors.primary, style, ...rest }) => (
   <Ionicons name="key-outline" size={size} color={color} style={style} {...rest} />
 );
 
-export const PersonAddIcon = ({ size = 22, color = colors.link, style, ...rest }) => (
+export const PersonAddIcon = ({ size = 22, color = colors.primary, style, ...rest }) => (
   <Ionicons name="person-add-outline" size={size} color={color} style={style} {...rest} />
 );
 
 // --- Folder (bulk action in Home select bar + folder-picker rows) --------
-export const FolderIcon = ({ size = 22, color = colors.link, style, ...rest }) => (
+export const FolderIcon = ({ size = 22, color = colors.primary, style, ...rest }) => (
   <FAIcon name="folder" size={size} color={color} style={style} {...rest} />
 );
 
@@ -102,7 +102,7 @@ export const CheckboxIcon = ({
   ...rest
 }) => {
   const name = checked ? 'checkbox' : partial ? 'remove-circle' : 'square-outline';
-  const resolvedColor = color ?? (checked || partial ? colors.link : colors.textMuted);
+  const resolvedColor = color ?? (checked || partial ? colors.primary : colors.textMuted);
   return <Ionicons name={name} size={size} color={resolvedColor} style={style} {...rest} />;
 };
 
@@ -116,7 +116,7 @@ export const SelectCircleIcon = ({
   ...rest
 }) => {
   const name = selected ? 'checkmark-circle' : 'ellipse-outline';
-  const resolvedColor = color ?? (selected ? colors.link : colors.iconInactive);
+  const resolvedColor = color ?? (selected ? colors.primary : colors.iconInactive);
   return <Ionicons name={name} size={size} color={resolvedColor} style={style} {...rest} />;
 };
 

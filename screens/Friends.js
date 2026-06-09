@@ -208,7 +208,7 @@ const Friends = ({ navigation }) => {
                     onPress={handleAddByCode}
                     disabled={busy}
                   >
-                    <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                    <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
                       {busy ? 'Adding…' : 'Link'}
                     </Text>
                   </TouchableOpacity>
@@ -238,7 +238,7 @@ const Friends = ({ navigation }) => {
                     onPress={handleAddManual}
                     disabled={busy}
                   >
-                    <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                    <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
                       {busy ? 'Adding…' : 'Add'}
                     </Text>
                   </TouchableOpacity>
