@@ -29,7 +29,7 @@ const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').s
 
 const Friends = ({ navigation }) => {
   const { user } = useAuth();
-  const fallbackName = user?.email || 'Me';
+  const fallbackName = user?.email || 'you';
 
   const { data } = useCachedResource({
     resource: 'friends',
@@ -107,9 +107,15 @@ const Friends = ({ navigation }) => {
             style={[styles.row, styles.friends_meRow]}
             onPress={() => navigation.navigate('Profile')}
           >
-            <Text style={[styles.rowText, { fontWeight: 'bold' }]}>
+            {myName === fallbackName ? (
+              <Text style={[styles.rowText, { fontWeight: 'bold' }]}>
+              Your Profile ({fallbackName})
+            </Text>
+            ) : (
+              <Text style={[styles.rowText, { fontWeight: 'bold' }]}>
               {myName} (you)
             </Text>
+            )}
           </TouchableOpacity>
         }
         renderItem={({ item }) => {
