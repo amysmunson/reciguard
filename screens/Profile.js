@@ -156,19 +156,15 @@ const Profile = ({ navigation }) => {
         <Text style={styles.overlayText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.header_card}>My Profile</Text>
-
-      <Text style={styles.spacing} />
-      <Text style={styles.header_section}>Name</Text>
       {isEditing ? (
         <TextInput
-          style={styles.input_base}
+          style={[styles.header_card, styles.input_underline]}
           value={name}
           onChangeText={setName}
           placeholder="Your name"
         />
       ) : (
-        displayValue(name)
+        <Text style={styles.header_card}>{name || "Your Profile"}</Text>
       )}
 
       <Text style={styles.spacing} />
