@@ -572,9 +572,9 @@ const styles = StyleSheet.create({
   },
   inputButtonText: {
     color: colors.text,
-    fontSize: 24,
+    fontSize: 16,
     textAlign: 'center',
-    marginLeft: 10,
+    marginLeft: 4,
   },
 
   // iOS keyboard "Done" accessory bar — shown above the keyboard for

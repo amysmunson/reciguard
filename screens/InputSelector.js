@@ -229,12 +229,9 @@ const InputSelector = ({ navigation }) => {
         <EditIcon style={styles.inputButtonText} />
         <Text style={styles.inputButtonText}>Manual</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.inputButton} onPress={goToEdit}>
+      {/* <TouchableOpacity style={styles.inputButton} onPress={goToEdit}>
         <ImageIcon style={styles.inputButtonText} />
         <Text style={[styles.inputButtonText, { marginLeft: 10 }]}>Photo</Text>
-      </TouchableOpacity>
-      {/* <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.cancelButtonText}>Cancel</Text>
       </TouchableOpacity> */}
     </View>
   );
