@@ -913,6 +913,13 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     marginHorizontal: 14,
   },
+  // Overflow menu dropping from FolderDetail's ellipsis button (top:60).
+  // Reuses the sort_popdown surface; only the anchor position differs.
+  folderDetail_menu: {
+    top: 96,
+    right: 10,
+    minWidth: 180,
+  },
 
   //   Allergy Checklist — inline picker rows (on Profile & FriendProfile in edit mode)
   preset_sectionLabel: {

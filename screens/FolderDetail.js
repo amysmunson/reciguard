@@ -22,6 +22,7 @@ import { getMyProfile } from '../lib/api/profile';
 import {
   BackIcon,
   CheckboxIcon,
+  EllipsisIcon,
   FilterIcon,
   PlusIcon,
   RemoveCircleIcon,
@@ -47,6 +48,9 @@ const FolderDetail = ({ route, navigation }) => {
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Overflow menu (ellipsis) — currently just the delete-folder action.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Add-recipe picker — lists the user's recipes not already in this folder.
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -322,8 +326,8 @@ const FolderDetail = ({ route, navigation }) => {
             <BackIcon style={styles.overlayIcon_sm} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.deleteRecipeButton} onPress={handleDeleteFolder}>
-            <TrashIcon size={20}/>
+          <TouchableOpacity style={styles.deleteRecipeButton} onPress={() => setMenuOpen(true)}>
+            <EllipsisIcon size={20} />
           </TouchableOpacity>
         </>
       )}
@@ -430,6 +434,26 @@ const FolderDetail = ({ route, navigation }) => {
         sort={sort}
         onChange={applySort}
       />
+
+      {/* Overflow menu — dropped from the ellipsis button */}
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable style={styles.sort_popdown_backdrop} onPress={() => setMenuOpen(false)}>
+          <Pressable style={[styles.sort_popdown, styles.folderDetail_menu]} onPress={() => {}}>
+            <TouchableOpacity
+              style={styles.sort_popdown_row}
+              onPress={() => {
+                setMenuOpen(false);
+                handleDeleteFolder();
+              }}
+            >
+              <TrashIcon size={18} />
+              <Text style={[styles.sort_popdown_rowText, { color: colors.danger }]}>
+                Delete folder
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Allergy filter modal — same selection Home persists/reads */}
       <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
