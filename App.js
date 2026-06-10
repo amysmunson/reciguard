@@ -9,6 +9,7 @@ import Landing from './screens/Landing';
 import Login from './screens/Login';
 import SignUp from './screens/SignUp';
 import PrivacyPolicy from './screens/PrivacyPolicy';
+import ForgotPassword from './screens/ForgotPassword';
 
 import Home from './screens/Home';
 import RecipeCard from './screens/RecipeCard';
@@ -29,6 +30,7 @@ const AuthStack = () => (
     <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="SignUp" component={SignUp} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
   </Stack.Navigator>
 );
 
