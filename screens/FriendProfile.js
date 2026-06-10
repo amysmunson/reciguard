@@ -251,7 +251,7 @@ const FriendProfile = ({ route, navigation }) => {
           placeholder="Friend's name"
         />
       ) : (
-        <Text style={styles.header_card}>{name || 'Unnamed'}</Text>
+        <Text style={styles.header_card}>{name || 'Unnamed Friend'}</Text>
       )}
 
       {isLinked ? (
