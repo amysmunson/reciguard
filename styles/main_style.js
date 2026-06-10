@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   screen_editPad: {
     paddingHorizontal: 20,
     paddingTop: 40,
-    paddingBottom: 50,
+    paddingBottom: 40,
   },
   // Auth-screen padding — Login, SignUp. Generous horizontal padding to
   // center form inputs; large top clears the auth back button at top:60.
@@ -233,8 +233,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderInput,
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
     fontSize: 16,
   },
 
@@ -493,9 +493,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   card_sourceLink: {
-    paddingHorizontal: 8,
-    paddingBottom: 22,
+    paddingTop: 20,
     marginLeft: 4,
+    justifyContent: 'flex-start',
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center', 
   },
   ingredientItems: {
     fontSize: 16,
@@ -544,15 +547,15 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'left',
     marginTop: 10,
     marginBottom: 20,
     borderRadius: 20,
   },
   addButtonText: {
     color: colors.primary,
-    fontSize: 18,
-    marginLeft: 6,
+    fontSize: 16,
+    marginLeft: 4,
   },
 
   //   Input Selector Styles
@@ -572,6 +575,31 @@ const styles = StyleSheet.create({
     fontSize: 24,
     textAlign: 'center',
     marginLeft: 10,
+  },
+
+  // iOS keyboard "Done" accessory bar — shown above the keyboard for
+  // multiline inputs where Return inserts a newline instead of dismissing.
+  inputAccessory_bar: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderInput,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  inputAccessory_doneButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  inputAccessory_doneText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    marginLeft: 6,
   },
 
   //   Link Entry (InputSelector "From link" mode)
