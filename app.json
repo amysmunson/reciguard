@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Recipes",
-    "slug": "Recipes",
+    "name": "RecipeGuard",
+    "slug": "RecipeGuard",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
