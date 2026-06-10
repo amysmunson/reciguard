@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
-import { BackIcon, ExternalLinkIcon } from '../components/icons';
+import { BackIcon, LinkIcon } from '../components/icons';
+import {colors, useColors} from '../styles/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { useAuth } from '../lib/auth-context';
@@ -149,15 +150,6 @@ const RecipeCard = ({ route, navigation }) => {
 
       <View style={styles.card_headerRow}>
         <Text style={styles.header_card}>{name || 'Untitled'}</Text>
-        {!!extLink && (
-          <TouchableOpacity
-            onPress={openSource}
-            style={styles.card_sourceLink}
-            accessibilityLabel={source ? `Open original on ${source}` : 'Open original recipe'}
-          >
-            <ExternalLinkIcon />
-          </TouchableOpacity>
-        )}
       </View>
 
       <Text style={styles.header_section}>Ingredients</Text>
@@ -202,6 +194,19 @@ const RecipeCard = ({ route, navigation }) => {
       ) : (
         <Text style={styles.emptyText}>No items</Text>
       )}
+
+      {!!extLink && (
+          <TouchableOpacity
+            onPress={openSource}
+            style={[styles.card_sourceLink]}
+            accessibilityLabel={source ? `Open original on ${source}` : 'Open original recipe'}
+          >
+            <LinkIcon size={18} color={colors.primary} />
+            <Text style={[styles.ingredientItems, { color: colors.primary }]}>
+              Original Recipe
+            </Text>
+          </TouchableOpacity>
+        )}
 
       <Text style={styles.spacing} />
       <Text style={styles.spacing} />
