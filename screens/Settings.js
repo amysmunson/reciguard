@@ -67,12 +67,6 @@ const Settings = ({ navigation }) => {
       <Text style={styles.header_tab}>Settings</Text>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
-        {user?.user_metadata?.name ? (
-          <Text style={styles.settings_email}>Signed in as {user.user_metadata.name}</Text>
-        ) : (
-          <Text style={styles.settings_email}>Signed in as {user?.email}</Text>
-        )}
-
         <Row label="Your Profile" onPress={() => navigation.navigate('Profile')} />
         <Row label="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
         <Row label="Sign Out" onPress={handleSignOut} />
