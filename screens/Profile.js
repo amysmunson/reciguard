@@ -32,6 +32,7 @@ const Profile = ({ navigation }) => {
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [about, setAbout] = useState('');
   const [notes, setNotes] = useState('');
   const [friendCode, setFriendCode] = useState('');
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,7 @@ const Profile = ({ navigation }) => {
       const [profile, list] = await Promise.all([getMyProfile(), getMyAllergies()]);
       setName(profile?.name ?? '');
       setPhone(profile?.phone ?? '');
+      setAbout(profile?.about ?? '');
       setNotes(profile?.notes ?? '');
       setFriendCode(profile?.friend_code ?? '');
       setAllergies(list);
@@ -70,7 +72,7 @@ const Profile = ({ navigation }) => {
 
   const handleSave = async () => {
     try {
-      await updateMyProfile({ name, phone, notes });
+      await updateMyProfile({ name, phone, about, notes });
       setIsEditing(false);
       Alert.alert('Saved');
     } catch (err) {
@@ -183,6 +185,20 @@ const Profile = ({ navigation }) => {
         displayValue(phone)
       )}
 
+      <Text style={styles.header_section}>About</Text>
+      {isEditing ? (
+        <TextInput
+          style={[styles.input_base, { minHeight: 80 }]}
+          value={about}
+          onChangeText={setAbout}
+          multiline
+          placeholder="A short bio your friends can see"
+        />
+      ) : (
+        displayValue(about)
+      )}
+      <Text style={styles.readOnly_hint}>Friends you link with can see this.</Text>
+
       <Text style={styles.header_section}>Notes</Text>
       {isEditing ? (
         <TextInput
@@ -190,11 +206,12 @@ const Profile = ({ navigation }) => {
           value={notes}
           onChangeText={setNotes}
           multiline
-          placeholder="Anything you'd like to remember about yourself"
+          placeholder="Private notes only you can see"
         />
       ) : (
         displayValue(notes)
       )}
+      <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
 
       {isEditing && (
         <TouchableOpacity

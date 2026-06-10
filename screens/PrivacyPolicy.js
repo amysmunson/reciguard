@@ -51,7 +51,7 @@ const PrivacyPolicy = ({ navigation }) => (
       <Text style={styles.header_policySection}>Sharing and third parties</Text>
       <Text style={styles.policy_body}>
         {'• Hosting: the app’s backend is provided by Supabase, which stores your account and content on its servers on our behalf and provides our database and sign-in. Supabase processes this data only to run the service.\n'}
-        {'• Other users: when you link with someone using a friend code, the profile and allergy information you share becomes visible to that connected user. You control this by adding or removing friends and by unlinking.\n'}
+        {'• Other users: when you link with someone using a friend code, your name, your “About” bio, and your allergy information become visible to that connected user. Your private notes and contact details (such as your phone number) are never shared with them. You control this by adding or removing friends and by unlinking.\n'}
         {'• Recipe links: if you import a recipe from a web address, the app fetches that page to read its contents.'}
       </Text>
       <Text style={styles.policy_body}>

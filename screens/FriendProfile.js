@@ -282,13 +282,13 @@ const FriendProfile = ({ route, navigation }) => {
         )
       )}
 
-      {linkedAlive && (friend.linkedProfile.notes ?? '').trim().length > 0 && (
+      {linkedAlive && (friend.linkedProfile.about ?? '').trim().length > 0 && (
         <>
           <Text style={styles.spacing} />
-          <Text style={styles.header_section}>About them</Text>
+          <Text style={styles.header_section}>About</Text>
           <Text style={styles.readOnly_hint}>From their profile.</Text>
           <View style={[styles.surface_sm, { marginBottom: 4 }]}>
-            <Text style={styles.readOnlyText}>{friend.linkedProfile.notes}</Text>
+            <Text style={styles.readOnlyText}>{friend.linkedProfile.about}</Text>
           </View>
         </>
       )}
