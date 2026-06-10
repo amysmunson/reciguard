@@ -96,8 +96,8 @@ const Folders = ({ navigation }) => {
               navigation.navigate('FolderDetail', { folderId: item.id, folderName: item.name })
             }
           >
-            <View style={styles.listItem}>
-              <Text style={styles.listItemText}>{item.name || 'Untitled'}</Text>
+            <View style={styles.tile}>
+              <Text style={styles.tileText}>{item.name || 'Untitled'}</Text>
             </View>
           </TouchableOpacity>
         )}

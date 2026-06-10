@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   // and only the breadcrumb remains.
 
   //   Recipe / Folder Tile (square card for the home + folder grids)
-  listItem: {
+  tile: {
     width: itemSize,
     height: itemSize,    // force square shape
     margin: itemMargin / 2,
@@ -411,9 +411,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
-  listItemText: {
+  tileText: {
     textAlign: 'center',
     fontWeight: 'bold',
+    color: colors.text,
+    // textOnPrimary if you change background to primary later
   },
   home_search: {
     position: 'absolute',
@@ -728,7 +730,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.textSecondary,
   },
-  listItem_selected: {
+  tile_selected: {
     borderWidth: 2,
     borderColor: colors.primary,
     backgroundColor: colors.primarySubtle,

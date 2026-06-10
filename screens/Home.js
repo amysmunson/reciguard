@@ -282,8 +282,8 @@ const Home = ({ navigation }) => {
         onLongPress={() => enterSelect(item.id)}
         delayLongPress={300}
       >
-        <View style={[styles.listItem, isSelected && styles.listItem_selected]}>
-          <Text style={styles.listItemText}>{item.name || 'Untitled'}</Text>
+        <View style={[styles.tile, isSelected && styles.tile_selected]}>
+          <Text style={styles.tileText}>{item.name || 'Untitled'}</Text>
 
           {dots.length > 0 && (
             <View style={styles.allergyDotRow}>
