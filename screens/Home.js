@@ -322,7 +322,7 @@ const Home = ({ navigation }) => {
               disabled={!selectedIds.size}
               style={{ marginRight: 16 }}
             >
-              <FolderIcon color={selectedIds.size ? colors.link : colors.iconDisabled} />
+              <FolderIcon color={selectedIds.size ? colors.primary : colors.iconDisabled} />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleBulkDelete} disabled={!selectedIds.size}>
               <TrashIcon
@@ -423,7 +423,7 @@ const Home = ({ navigation }) => {
               )}
             </ScrollView>
             <TouchableOpacity style={styles.modal_button} onPress={closeFilter}>
-              <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+              <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
                 Done
               </Text>
             </TouchableOpacity>

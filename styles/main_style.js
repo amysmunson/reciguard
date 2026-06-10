@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     height: itemSize,    // force square shape
     margin: itemMargin / 2,
     backgroundColor: colors.primarySubtle,
-    borderRadius: 5,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: colors.shadowColor,
@@ -745,14 +745,14 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   tile_selected: {
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.primary,
     backgroundColor: colors.primarySubtle,
   },
   selectCheck: {
     position: 'absolute',
     top: 6,
-    right: 6,
+    left: 6,
   },
 
   //   Per-Person Allergy Dots (on recipe tiles in Home / FolderDetail)
