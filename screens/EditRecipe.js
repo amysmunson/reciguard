@@ -8,11 +8,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  InputAccessoryView,
 } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { createRecipe, getRecipe, updateRecipe, deleteRecipe } from '../lib/api/recipes';
-import { BackIcon, PlusIcon, TrashIcon } from '../components/icons';
+import { BackIcon, CheckIcon, PlusIcon, TrashIcon } from '../components/icons';
+
+// nativeID linking the multiline inputs to the iOS "Done" accessory bar.
+const DONE_ACCESSORY_ID = 'editRecipeDone';
 
 const EditRecipe = ({ route, navigation }) => {
   const recipeId = route.params?.recipeId ?? null;
@@ -115,26 +120,29 @@ const EditRecipe = ({ route, navigation }) => {
   const renderList = (label, list, setter, placeholder, numbered = false) => (
     <>
       <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>{label}</Text>
-      {list.length === 0 && <Text style={styles.noItemsText}>No items yet.</Text>}
+      {list.length === 0 && <Text style={[styles.noItemsText, styles.text_body]}>No items yet.</Text>}
       {list.map((item, index) => (
         <View key={index} style={styles.ingredientRow}>
-          {numbered && <Text>{index + 1}. </Text>}
+          {numbered && <Text style={[styles.ingredientItems]}>{index + 1}. </Text>}
           <TextInput
-            style={[styles.input_base, styles.input_inRow]}
+            multiline
+            scrollEnabled={false}
+            style={[styles.input_base, styles.input_inRow, styles.text_body]}
             value={item}
             onChangeText={(text) => updateItem(setter, list, index, text)}
             placeholder={placeholder}
+            inputAccessoryViewID={Platform.OS === 'ios' ? DONE_ACCESSORY_ID : undefined}
           />
           <TouchableOpacity
             onPress={() => removeItem(setter, list, index)}
             style={styles.deleteButton}
           >
-            <TrashIcon size={24} />
+            <TrashIcon size={20} />
           </TouchableOpacity>
         </View>
       ))}
       <TouchableOpacity style={styles.addButton} onPress={() => addItem(setter, list)}>
-        <PlusIcon size={28} color={colors.link} strokeWidth={1.75} />
+        <PlusIcon size={16} color={colors.primary} strokeWidth={1.75} />
         <Text style={styles.addButtonText}>Add {placeholder}</Text>
       </TouchableOpacity>
     </>
@@ -148,6 +156,7 @@ const EditRecipe = ({ route, navigation }) => {
       <ScrollView
         contentContainerStyle={[styles.screen_baseScroll, styles.screen_editPad]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} onPress={() => navigation.goBack()}>
           <BackIcon style={styles.overlayIcon_sm} />
@@ -172,7 +181,7 @@ const EditRecipe = ({ route, navigation }) => {
         {renderList('Your Notes', userNotes, setUserNotes, 'Note')}
 
         <TouchableOpacity
-          style={[styles.button_base, styles.button_fullWidth, styles.button_primary, { marginBottom: 40 }]}
+          style={[styles.button_base, styles.button_fullWidth, styles.button_primary, { marginTop: 30 }]}
           onPress={handleSave}
         >
           <Text style={[styles.buttonText_base, styles.buttonText_onPrimary]}>
@@ -180,6 +189,19 @@ const EditRecipe = ({ route, navigation }) => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* iOS-only "Done" bar above the keyboard — the multiline inputs use
+          Return for newlines, so this is how you dismiss the keyboard. */}
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={DONE_ACCESSORY_ID}>
+          <View style={styles.inputAccessory_bar}>
+            <TouchableOpacity style={styles.inputAccessory_doneButton} onPress={Keyboard.dismiss}>
+              <CheckIcon size={18} color={colors.primary} />
+              <Text style={styles.inputAccessory_doneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </KeyboardAvoidingView>
   );
 };
