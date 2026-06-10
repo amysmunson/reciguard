@@ -16,7 +16,7 @@ import { getFolders, createFolder } from '../lib/api/folders';
 import { useCachedResource } from '../lib/cache';
 import { useAuth } from '../lib/auth-context';
 import { startNewRecipe } from '../components/utils/addRecipe';
-import { PlusIcon, SortIcon } from '../components/icons';
+import { PlusIcon, SearchIcon, SortIcon } from '../components/icons';
 import SortMenu from '../components/SortMenu';
 import { loadJson, saveJson, KEYS } from '../lib/storage';
 import {
@@ -40,6 +40,9 @@ const Folders = ({ navigation }) => {
   const [sortOpen, setSortOpen] = useState(false);
   const [sort, setSort] = useState(DEFAULT_FOLDER_SORT);
 
+  // Search state — query string only; the input lives in the action bar.
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
@@ -58,6 +61,11 @@ const Folders = ({ navigation }) => {
   };
 
   const folders = sortFolders(foldersData ?? [], sort);
+  const displayedFolders = searchQuery.trim()
+    ? folders.filter((f) =>
+        (f.name ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : folders;
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -76,19 +84,38 @@ const Folders = ({ navigation }) => {
 
   return (
     <View style={[styles.screen_base, styles.screen_tabPad]}>
-      <View style={styles.folders_topActions}>
-        <TouchableOpacity style={styles.folders_topButton} onPress={() => setSortOpen(true)}>
+      <Text style={styles.header_tab}>Folders</Text>
+
+      <View style={styles.home_actionBar}>
+        <View style={styles.home_actionBar_searchBox}>
+          <SearchIcon size={18} color={colors.textMuted} />
+          <TextInput
+            style={styles.home_actionBar_searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search"
+            placeholderTextColor={colors.iconInactive}
+            autoCorrect={false}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+        </View>
+        <TouchableOpacity
+          style={styles.home_actionBar_iconButton}
+          onPress={() => setSortOpen(true)}
+        >
           <SortIcon size={22} color={colors.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.folders_topButton} onPress={() => setCreating(true)}>
+        <TouchableOpacity
+          style={styles.home_actionBar_iconButton}
+          onPress={() => setCreating(true)}
+        >
           <PlusIcon size={22} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.header_tab}>Folders</Text>
-
       <FlatList
-        data={folders}
+        data={displayedFolders}
         numColumns={2}
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -102,8 +129,13 @@ const Folders = ({ navigation }) => {
           </TouchableOpacity>
         )}
         keyExtractor={(item) => item.id}
+        extraData={searchQuery}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No folders yet. Tap + to create one.</Text>
+          <Text style={styles.emptyText}>
+            {searchQuery.trim()
+              ? `No folders match "${searchQuery}".`
+              : 'No folders yet. Tap + to create one.'}
+          </Text>
         }
       />
 

@@ -441,18 +441,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   // Folders screen: sort + add buttons, aligned top-right.
-  folders_topActions: {
-    position: 'absolute',
-    top: 45, // leave space for status bar
-    right: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  folders_topButton: {
-    padding: 14,
-    borderRadius: 5,
-  },
   bottomNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -536,14 +524,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     right: 10,
-    zIndex: 10,
-    elevation: 10,
-  },
-  // FolderDetail sort button — sits just left of the "Delete" button.
-  folderDetail_sortButton: {
-    top: 56,
-    right: 80,
-    padding: 10,
     zIndex: 10,
     elevation: 10,
   },
@@ -768,8 +748,7 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     marginLeft: 3,
-    borderWidth: 1,
-    borderColor: colors.shadowSubtle,
+    borderWidth: 0,
   },
 
   //   Severity Chip (next to allergy name in Profile / FriendProfile)
