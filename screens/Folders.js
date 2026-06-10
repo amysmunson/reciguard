@@ -164,7 +164,7 @@ const Folders = ({ navigation }) => {
               onChangeText={setNewName}
               autoFocus
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <View style={styles.modal_button_right}>
               <TouchableOpacity
                 style={styles.modal_button}
                 onPress={() => {

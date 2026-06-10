@@ -729,6 +729,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
+  modal_button_right: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+
   //   Selection Mode Styles
   selectBar: {
     flexDirection: 'row',

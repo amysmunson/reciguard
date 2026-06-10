@@ -422,11 +422,13 @@ const Home = ({ navigation }) => {
                 <Text style={styles.emptyText}>No friends added yet.</Text>
               )}
             </ScrollView>
-            <TouchableOpacity style={styles.modal_button} onPress={closeFilter}>
-              <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
-                Done
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.modal_button_right} >
+              <TouchableOpacity style={styles.modal_button} onPress={closeFilter}>
+                <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -459,12 +461,14 @@ const Home = ({ navigation }) => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TouchableOpacity
-              style={styles.modal_button}
-              onPress={() => setFolderPickerOpen(false)}
-            >
-              <Text style={styles.modal_buttonText}>Cancel</Text>
-            </TouchableOpacity>
+            <View style={styles.modal_button_right} >
+              <TouchableOpacity
+                style={styles.modal_button}
+                onPress={() => setFolderPickerOpen(false)}
+              >
+                <Text style={styles.modal_buttonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>

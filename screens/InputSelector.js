@@ -192,7 +192,7 @@ const InputSelector = ({ navigation }) => {
                 anyway — we&apos;ll save the link so you can fill in the details
                 yourself.
               </Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <View style={styles.modal_button_right}>
                 <TouchableOpacity
                   style={styles.modal_button}
                   onPress={() => setNoRecipeModalOpen(false)}

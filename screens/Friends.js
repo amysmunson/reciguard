@@ -125,7 +125,7 @@ const Friends = ({ navigation }) => {
               style={styles.row}
               onPress={() => navigation.navigate('FriendProfile', { friendshipId: item.id })}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View style={styles.modal_button_right}>
                 <Text style={styles.rowText}>{friendDisplayName(item)}</Text>
               </View>
             </TouchableOpacity>
@@ -172,9 +172,11 @@ const Friends = ({ navigation }) => {
                     </Text>
                   </View>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modal_button} onPress={closeModal}>
-                  <Text style={styles.modal_buttonText}>Cancel</Text>
-                </TouchableOpacity>
+                <View style={styles.modal_button_right}>
+                  <TouchableOpacity style={styles.modal_button} onPress={closeModal}>
+                    <Text style={styles.modal_buttonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
 
@@ -191,7 +193,7 @@ const Friends = ({ navigation }) => {
                   autoFocus
                   maxLength={8}
                 />
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <View style={styles.modal_button_right}>
                   <TouchableOpacity
                     style={styles.modal_button}
                     onPress={() => setModalStep('choose')}
@@ -221,7 +223,7 @@ const Friends = ({ navigation }) => {
                   onChangeText={setNameInput}
                   autoFocus
                 />
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <View style={styles.modal_button_right}>
                   <TouchableOpacity
                     style={styles.modal_button}
                     onPress={() => setModalStep('choose')}

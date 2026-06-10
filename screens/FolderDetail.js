@@ -524,7 +524,7 @@ const FolderDetail = ({ route, navigation }) => {
                 );
               })}
             </ScrollView>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <View style={styles.modal_button_right} >
             <TouchableOpacity style={styles.modal_button} onPress={() => setPickerOpen(false)}>
               <Text style={styles.modal_buttonText}>Cancel</Text>
             </TouchableOpacity>
