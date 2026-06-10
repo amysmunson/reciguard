@@ -55,6 +55,11 @@ export const EllipsisIcon = ({ size = 20, color = colors.textSecondary, style, .
   <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} style={style} {...rest} />
 );
 
+// Plain checkmark — e.g. the keyboard "Done" accessory.
+export const CheckIcon = ({ size = 20, color = colors.primary, style, ...rest }) => (
+  <Ionicons name="checkmark" size={size} color={color} style={style} {...rest} />
+);
+
 // Remove-from-folder action in FolderDetail's select bar.
 export const RemoveCircleIcon = ({ size = 22, color = colors.danger, style, ...rest }) => (
   <Ionicons name="remove-circle-outline" size={size} color={color} style={style} {...rest} />
