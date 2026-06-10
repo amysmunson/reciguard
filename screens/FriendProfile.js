@@ -18,7 +18,6 @@ import {
   deleteFriend,
   linkFriendByCode,
   unlinkFriend,
-  friendDisplayName,
 } from '../lib/api/friends';
 import {
   getFriendAllergies,
@@ -213,7 +212,9 @@ const FriendProfile = ({ route, navigation }) => {
 
   const isLinked = !!friend.existingFriendId;
   const linkedAlive = !!friend.linkedProfile;
-  const displayName = friendDisplayName(friend);
+  // A linked friend who set their own name overrides the user's local name
+  // and can't be edited here. Otherwise the name behaves like Profile's.
+  const friendSetOwnName = (friend.linkedProfile?.name ?? '').trim().length > 0;
 
   const displayValue = (val) =>
     val && val.trim().length > 0 ? (
@@ -240,7 +241,18 @@ const FriendProfile = ({ route, navigation }) => {
         <Text style={styles.overlayText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.header_card}>{displayName}</Text>
+      {friendSetOwnName ? (
+        <Text style={styles.header_card}>{friend.linkedProfile.name}</Text>
+      ) : isEditing ? (
+        <TextInput
+          style={[styles.header_card, styles.input_underline]}
+          value={name}
+          onChangeText={setName}
+          placeholder="Friend's name"
+        />
+      ) : (
+        <Text style={styles.header_card}>{name || 'Unnamed'}</Text>
+      )}
 
       {isLinked ? (
         <View style={[styles.surface_sm, styles.surface_tinted, { flexDirection: 'row', alignItems: 'center', marginBottom: 8 }]}>
@@ -268,23 +280,6 @@ const FriendProfile = ({ route, navigation }) => {
             <Text style={[styles.buttonText_outline, { color: colors.link }]}>Link to Real Account</Text>
           </TouchableOpacity>
         )
-      )}
-
-      {!isLinked && (
-        <>
-          <Text style={styles.spacing} />
-          <Text style={styles.header_section}>Name</Text>
-          {isEditing ? (
-            <TextInput
-              style={styles.input_base}
-              value={name}
-              onChangeText={setName}
-              placeholder="Friend's name"
-            />
-          ) : (
-            displayValue(name)
-          )}
-        </>
       )}
 
       {linkedAlive && (friend.linkedProfile.notes ?? '').trim().length > 0 && (
