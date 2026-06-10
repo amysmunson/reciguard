@@ -167,11 +167,9 @@ const Profile = ({ navigation }) => {
         <Text style={styles.header_card}>{name || "Your Profile"}</Text>
       )}
 
-      <Text style={styles.spacing} />
       <Text style={styles.header_section}>Email</Text>
       <Text style={styles.display_fieldValue}>{user?.email}</Text>
 
-      <Text style={styles.spacing} />
       <Text style={styles.header_section}>Phone</Text>
       {isEditing ? (
         <TextInput
@@ -185,7 +183,6 @@ const Profile = ({ navigation }) => {
         displayValue(phone)
       )}
 
-      <Text style={styles.spacing} />
       <Text style={styles.header_section}>Notes</Text>
       {isEditing ? (
         <TextInput
@@ -215,7 +212,6 @@ const Profile = ({ navigation }) => {
         </TouchableOpacity>
       )}
 
-      <Text style={styles.spacing} />
       <Text style={styles.header_section}>My Allergies</Text>
       {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
       {allergies.map((a) => {
@@ -270,7 +266,6 @@ const Profile = ({ navigation }) => {
         </TouchableOpacity>
       </View>
       
-      <Text style={styles.spacing} />
     </ScrollView>
   );
 };

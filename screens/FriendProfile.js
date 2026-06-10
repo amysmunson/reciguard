@@ -286,15 +286,16 @@ const FriendProfile = ({ route, navigation }) => {
         <>
           <Text style={styles.spacing} />
           <Text style={styles.header_section}>About them</Text>
+          <Text style={styles.readOnly_hint}>From their profile.</Text>
           <View style={[styles.surface_sm, { marginBottom: 4 }]}>
             <Text style={styles.readOnlyText}>{friend.linkedProfile.notes}</Text>
           </View>
-          <Text style={styles.readOnly_hint}>From their profile.</Text>
         </>
       )}
 
       <Text style={styles.spacing} />
       <Text style={styles.header_section}>My Notes</Text>
+      <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
       {isEditing ? (
         <>
           <TextInput
@@ -304,12 +305,10 @@ const FriendProfile = ({ route, navigation }) => {
             multiline
             placeholder="Private notes about this friend (only you see these)"
           />
-          <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
         </>
       ) : (
         <>
           {displayValue(notes)}
-          <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
         </>
       )}
 
@@ -328,6 +327,7 @@ const FriendProfile = ({ route, navigation }) => {
         <>
           <Text style={styles.spacing} />
           <Text style={styles.header_section}>Their Allergies</Text>
+          <Text style={styles.readOnly_hint}>From their profile.</Text>
           {theirAllergies.length === 0 ? (
             <Text style={styles.emptyText}>They haven&apos;t added any.</Text>
           ) : (
@@ -346,12 +346,14 @@ const FriendProfile = ({ route, navigation }) => {
               </View>
             ))
           )}
-          <Text style={styles.readOnly_hint}>From their profile.</Text>
         </>
       )}
 
       <Text style={styles.spacing} />
       <Text style={styles.header_section}>My Allergy Notes</Text>
+      <Text style={styles.readOnly_hint}>
+        Extra allergies you want to track for this friend.
+      </Text>
       {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
       {allergies.map((a) => (
         <View key={a.id} style={styles.allergyRow}>
@@ -382,9 +384,6 @@ const FriendProfile = ({ route, navigation }) => {
           onConfirm={handleAddBatch}
         />
       )}
-      <Text style={styles.readOnly_hint}>
-        Extra allergies you want to track for this friend.
-      </Text>
 
       <Text style={styles.spacing} />
       <Text style={styles.spacing} />
