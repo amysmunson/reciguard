@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, Modal, ScrollView, Pressable, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, Modal, ScrollView, Pressable, TextInput, Button } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
@@ -487,11 +487,13 @@ const FolderDetail = ({ route, navigation }) => {
                 <Text style={styles.emptyText}>No friends added yet.</Text>
               )}
             </ScrollView>
+            <View style={styles.modal_button_right} >
             <TouchableOpacity style={styles.modal_button} onPress={closeFilter}>
               <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
                 Done
               </Text>
             </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
