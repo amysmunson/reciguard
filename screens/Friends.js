@@ -12,7 +12,7 @@ import {
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import { KeyIcon, LinkIcon, PersonAddIcon, PlusIcon } from '../components/icons';
+import { KeyIcon, PersonAddIcon, PlusIcon } from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import {
   getFriends,
@@ -127,11 +127,6 @@ const Friends = ({ navigation }) => {
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                 <Text style={styles.rowText}>{friendDisplayName(item)}</Text>
-                {linked && (
-                  <View style={styles.linkBadge}>
-                    <LinkIcon />
-                  </View>
-                )}
               </View>
             </TouchableOpacity>
           );
