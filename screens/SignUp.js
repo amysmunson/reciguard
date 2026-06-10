@@ -9,6 +9,7 @@ const SignUp = ({ navigation }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
@@ -16,8 +17,12 @@ const SignUp = ({ navigation }) => {
       Alert.alert('Missing info', 'Enter a name, email, and password.');
       return;
     }
-    if (password.length < 6) {
-      Alert.alert('Weak password', 'Use at least 6 characters.');
+    if (password !== confirmPassword) {
+      Alert.alert('Passwords do not match', 'Please ensure passwords match exactly.');
+      return;
+    }
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(password)) {
+      Alert.alert('Weak password', 'Follow the password requirements.');
       return;
     }
     try {
@@ -38,13 +43,15 @@ const SignUp = ({ navigation }) => {
 
       <Text style={styles.header_auth}>Create Account</Text>
 
-    <View style={{ width: '100%', paddingBottom: 4 }}>
+      <View style={{ width: '100%', paddingBottom: 8 }}>
+        <Text style={styles.input_label}>Name</Text>
         <TextInput
           style={[styles.input_base, styles.input_spaced]}
           placeholder="Name"
           value={name}
           onChangeText={setName}
         />
+        <Text style={styles.input_label}>Email</Text>
         <TextInput
           style={[styles.input_base, styles.input_spaced]}
           placeholder="Email"
@@ -53,6 +60,7 @@ const SignUp = ({ navigation }) => {
           value={email}
           onChangeText={setEmail}
         />
+        <Text style={styles.input_label}>Password</Text>
         <TextInput
           style={[styles.input_base, styles.input_spaced]}
           placeholder="Password"
@@ -60,30 +68,49 @@ const SignUp = ({ navigation }) => {
           value={password}
           onChangeText={setPassword}
         />
+        <Text style={styles.input_label}>Re-enter Password</Text>
+        <TextInput
+          style={[styles.input_base]}
+          placeholder="Re-enter Password"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
+        <Text style={styles.input_sublabel}>
+          {'Password Requirements: \n'}
+          {'- At least 8 characters\n'}
+          {'- Uppercase and lowercase letters\n'}
+          {'- Special characters\n'}
+          {'- Numbers\n'}
+        </Text>
+        {/* Privacy Policy */}
+        <TouchableOpacity
+          style={[styles.button_link, { alignSelf: 'flex-start' }]}
+          onPress={() => navigation.navigate('PrivacyPolicy')}
+        >
+          <Text style={[styles.buttonText_link, { color: colors.text, fontSize: 16 }]}>Privacy Policy</Text>
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={[styles.button_link, { alignSelf: 'flex-start' }]}
-        onPress={() => navigation.navigate('PrivacyPolicy')}
-      >
-        <Text style={[styles.buttonText_link, { color: colors.text }]}>Privacy Policy</Text>
-      </TouchableOpacity>
+      <View style={[{ flex: 1 }]} />
 
-      <TouchableOpacity
-        style={[styles.button_base, styles.button_fullWidth, styles.button_authPrimary]}
-        onPress={handleSignUp}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color={colors.textOnPrimary} />
-        ) : (
-          <Text style={[styles.buttonText_base, styles.buttonText_onAuthPrimary]}>Sign Up</Text>
-        )}
-      </TouchableOpacity>
+      <View style={[styles.landing_actions]}>
+        <TouchableOpacity
+          style={[styles.button_base, styles.button_fullWidth, styles.button_authPrimary]}
+          onPress={handleSignUp}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.textOnPrimary} />
+          ) : (
+            <Text style={[styles.buttonText_base, styles.buttonText_onAuthPrimary]}>Sign Up</Text>
+          )}
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button_link} onPress={() => navigation.replace('Login')}>
-        <Text style={styles.buttonText_authLink}>Already have an account? Sign in</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.button_link} onPress={() => navigation.replace('Login')}>
+          <Text style={styles.buttonText_authLink}>Already have an account? Sign in</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };

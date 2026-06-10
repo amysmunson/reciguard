@@ -237,6 +237,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
   },
+
+  input_label: {
+    fontSize: 16,
+    color: colors.text,
+    marginVertical: 4,
+    marginHorizontal: 2,
+  },
+  input_sublabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    margin: 4,
+  },
+
   // Stacked form input — adds bottom margin so consecutive inputs in a
   // vertical form separate without needing wrapper spacing.
   input_spaced: {
@@ -351,7 +364,8 @@ const styles = StyleSheet.create({
   // --- Link-style buttons (text-only, no fill) -------------------------
   // Compose: [button_link] + [buttonText_link] (or buttonText_authLink).
   button_link: {
-    padding: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
     alignSelf: 'center',
   },
   // Default link label — small, underlined, link color.
