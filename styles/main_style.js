@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: 'center', 
   },
-  ingredientItems: {
+  recipeItem: {
     fontSize: 16,
     marginVertical: 5,
     color: colors.textSecondary,

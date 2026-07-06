@@ -100,7 +100,7 @@ const RecipeCard = ({ route, navigation }) => {
 
     if (!info) {
       return (
-        <Text key={i} style={styles.ingredientItems}>
+        <Text key={i} style={styles.recipeItem}>
           • {item}
         </Text>
       );
@@ -115,7 +115,7 @@ const RecipeCard = ({ route, navigation }) => {
             { backgroundColor: info.background, borderColor: info.color },
           ]}
         >
-          <Text style={[styles.ingredientItems, { flex: 1, marginVertical: 0 }]}>
+          <Text style={[styles.recipeItem, { flex: 1, marginVertical: 0 }]}>
             • {item}
           </Text>
           <View style={[styles.allergyDot, { backgroundColor: info.color, marginLeft: 8 }]} />
@@ -190,7 +190,7 @@ const RecipeCard = ({ route, navigation }) => {
       <Text style={styles.header_section}>Instructions</Text>
       {steps.length > 0 ? (
         steps.map((item, i) => (
-          <Text key={i} style={styles.ingredientItems}>
+          <Text key={i} style={styles.recipeItem}>
             {i + 1}. {item}
           </Text>
         ))
@@ -203,7 +203,7 @@ const RecipeCard = ({ route, navigation }) => {
           <Text style={styles.spacing} />
           <Text style={styles.header_section}>Author Notes</Text>
           {authorNotes.map((item, i) => (
-            <Text key={i} style={styles.ingredientItems}>
+            <Text key={i} style={styles.recipeItem}>
               • {item}
             </Text>
           ))}
@@ -214,7 +214,7 @@ const RecipeCard = ({ route, navigation }) => {
       <Text style={styles.header_section}>Your Notes</Text>
       {userNotes.length > 0 ? (
         userNotes.map((item, i) => (
-          <Text key={i} style={styles.ingredientItems}>
+          <Text key={i} style={styles.recipeItem}>
             • {item}
           </Text>
         ))
@@ -229,7 +229,7 @@ const RecipeCard = ({ route, navigation }) => {
             accessibilityLabel={source ? `Open original on ${source}` : 'Open original recipe'}
           >
             <LinkIcon size={18} color={colors.primary} />
-            <Text style={[styles.ingredientItems, { color: colors.primary }]}>
+            <Text style={[styles.recipeItem, { color: colors.primary, fontWeight: 'bold' }]}> 
               Original Recipe
             </Text>
           </TouchableOpacity>
