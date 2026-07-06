@@ -1011,11 +1011,11 @@ const styles = StyleSheet.create({
   },
 
   //   Friends Screen
-  //   Apply friends_list to the <FlatList> itself — negative horizontal
+  //   Apply list_marginless to the <FlatList> itself — negative horizontal
   //   margin pulls the list's content area out to the screen edges while the
   //   surrounding container keeps its padding (so the nav bar + "+" button
   //   stay inset like Home/Folders/Settings).
-  friends_list: {
+  list_marginless: {
     marginHorizontal: -itemMargin / 2,
   },
   friends_meRow: {

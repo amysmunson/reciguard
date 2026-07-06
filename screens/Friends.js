@@ -100,7 +100,7 @@ const Friends = ({ navigation }) => {
       <Text style={styles.header_tab}>Friends</Text>
 
       <FlatList
-        style={styles.friends_list}
+        style={styles.list_marginless}
         data={friends}
         ListHeaderComponent={
           <TouchableOpacity

@@ -66,7 +66,7 @@ const Settings = ({ navigation }) => {
     <View style={[styles.screen_base, styles.screen_tabPad]}>
       <Text style={styles.header_tab}>Settings</Text>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
+      <ScrollView style={[{ flex: 1 }, styles.list_marginless]} contentContainerStyle={{ paddingBottom: 12 }}>
         <Row label="Your Profile" onPress={() => navigation.navigate('Profile')} />
         <Row label="Accessibility" onPress={() => navigation.navigate('Accessibility')} />
         <Row label="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
