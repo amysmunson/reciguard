@@ -37,7 +37,7 @@ recipes/
 │   ├── supabase.js                 # Single createClient() instance (AsyncStorage + URL polyfill)
 │   ├── auth-context.js             # AuthProvider + useAuth() hook (session, user, loading)
 │   ├── storage.js                  # AsyncStorage helpers (loadJson, saveJson) + KEYS registry
-│   ├── cache.js                    # Stale-while-revalidate cache: useCachedResource() + invalidate()
+│   ├── cache.js                    # Stale-while-revalidate cache: useCachedResource() + mutateCachedResource() + invalidate()
 │   ├── sort.js                     # Shared sort options + sortRecipes/sortFolders + normalizeSort
 │   └── api/                        # Per-domain functions screens import
 │       ├── auth.js                 # signUp, signIn, signOut, deleteAccount
@@ -65,7 +65,8 @@ recipes/
 │   ├── Friends.js                  # Friends list with "Me" row at top
 │   ├── FriendProfile.js            # Friend name + notes + per-friend allergies (editable)
 │   ├── Profile.js                  # Edit your own profile + manage your allergies
-│   └── Settings.js                 # Sign out + delete account + privacy policy link
+│   ├── Settings.js                 # Sign out + delete account + privacy policy link
+│   └── Accessibility.js            # High-contrast mode toggle tied to profile settings
 │
 ├── components/                     # Shared UI + utilities (NOT screens)
 │   ├── NavigationBar.js            # Bottom tab bar with active-tab highlight
@@ -210,7 +211,10 @@ Each file is a flat set of async functions. They:
   the DB succeeds, which calls `invalidate(resource, userId)` from
   [lib/cache.js](lib/cache.js). This forces any mounted `useCachedResource`
   hooks for that resource to refetch and drops the stale on-disk snapshot. The
-  resource keys in use today are `'recipes'`, `'folders'`, and `'friends'`.
+  profile flow also uses `mutateCachedResource('profile', userId, nextValue)`
+  so the Accessibility toggle updates instantly before the Supabase write
+  completes. The resource keys in use today are `'recipes'`, `'folders'`,
+  `'friends'`, and `'profile'`.
 
 When you need a new piece of data, add a function to the appropriate file (or
 a new file under `lib/api/`). Don't query Supabase from a screen.
@@ -227,6 +231,9 @@ Each screen is a default-exported React component that:
   longer keep their own `useState` list + manual `load()` in `useFocusEffect`.
 - Still calls `lib/api/*` directly inside `useFocusEffect`/`useEffect` for data
   that isn't cache-backed (e.g. Home's opened-map and active-allergy details).
+- The Accessibility screen also uses the profile cache, but writes the
+  `contrast` field optimistically so the switch responds immediately before the
+  Supabase update finishes.
 - Renders styles from `styles/main_style.js`.
 - Calls `navigation.navigate(...)` for transitions.
 - Uses `Alert` for errors (simple, non-blocking).
@@ -407,6 +414,11 @@ known data while a fresh fetch runs in the background. Built on `lib/storage.js`
 (AsyncStorage) for the persisted snapshot plus an in-memory pub/sub registry for
 live invalidation. Two exports:
 
+- **`mutateCachedResource(resource, userId, nextData)`** — optimistic cache
+  helper used by the Accessibility toggle. Persists the new snapshot, notifies
+  mounted hooks with the fresh value immediately, and returns the value so the
+  caller can continue with the DB write.
+
 - **`useCachedResource({ resource, userId, fetcher, enabled })`** — the hook
   screens use. On mount it hydrates `data` from the on-disk snapshot
   (`cache:<resource>:<userId>`) so the UI paints with no spinner, then:
@@ -472,7 +484,8 @@ Sign-out / delete-account works the same way in reverse.
 auth.users (managed by Supabase Auth)
    │ 1:1
    ▼
-profiles (id FK → auth.users, name, email, notes, phone, friend_code unique)
+profiles (id FK → auth.users, name, email, notes, phone, friend_code unique,
+          contrast boolean default false)
    │ 1:N
    ├──▶ recipes (id, user_id, name, photo, source, ext_link,
    │     │              author_notes text[], user_notes text[], is_public)
@@ -496,6 +509,9 @@ Key relationships:
 
 - A user has one profile row, auto-created by the `handle_new_user` trigger
   on `auth.users` insert.
+- The profile row carries `contrast` to control high-contrast accessibility
+  mode. The Accessibility screen updates this flag, and the profile cache keeps
+  the toggle responsive without waiting for a round trip.
 - A recipe has many ordered ingredients and steps in child tables (designed
   this way so the future allergy-detection feature can join `allergies` to
   `recipe_ingredients` instead of unnesting JSONB).
@@ -680,6 +696,26 @@ the "Worst: SEVERITY" label and the comma-separated, color-coded names.
 Both FolderDetail and RecipeCard read the filter from AsyncStorage on
 focus rather than holding their own filter UI — the source of truth is
 Home's filter modal, and the other screens follow.
+
+### High-contrast mode
+
+The Accessibility screen toggles `profiles.contrast` on and off. That value is
+cached in the `profile` resource, so the switch updates immediately by mutating
+the cached profile first and then syncing the change to Supabase.
+
+The value is consumed by the profile-aware screens that need contrast-sensitive
+text rendering:
+
+- `RecipeCard` changes text color and severity highlighting rules so the
+  foreground stays readable.
+- `Home`, `Folders`, and `FolderDetail` use the flag for the search bar's icon
+  and placeholder text so those controls stay readable in contrast mode.
+- `Accessibility` itself reads the cached profile so the switch reflects the
+  stored value immediately on mount and focus.
+
+The general rule is: contrast mode adjusts text-oriented affordances, while the
+underlying highlights/backgrounds stay unchanged unless a screen needs a
+specific override.
 
 ### Allergy checklist (Profile & FriendProfile, edit mode)
 

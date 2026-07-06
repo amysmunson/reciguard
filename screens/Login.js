@@ -38,6 +38,7 @@ const Login = ({ navigation }) => {
         <TextInput
           style={[styles.input_base, styles.input_spaced]}
           placeholder="Email"
+          placeholderTextColor={colors.borderInput}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -47,6 +48,7 @@ const Login = ({ navigation }) => {
         <TextInput
           style={[styles.input_base, styles.input_spaced]}
           placeholder="Password"
+          placeholderTextColor={colors.borderInput}
           secureTextEntry
           value={password}
           onChangeText={setPassword}

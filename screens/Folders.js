@@ -13,6 +13,7 @@ import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
 import { getFolders, createFolder } from '../lib/api/folders';
+import { getMyProfile } from '../lib/api/profile';
 import { useCachedResource } from '../lib/cache';
 import { useAuth } from '../lib/auth-context';
 import { startNewRecipe } from '../components/utils/addRecipe';
@@ -33,6 +34,12 @@ const Folders = ({ navigation }) => {
     userId: user?.id,
     fetcher: getFolders,
   });
+  const { data: profile } = useCachedResource({
+    resource: 'profile',
+    userId: user?.id,
+    fetcher: getMyProfile,
+  });
+  const contrast = !!profile?.contrast;
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -88,13 +95,13 @@ const Folders = ({ navigation }) => {
 
       <View style={styles.home_actionBar}>
         <View style={styles.home_actionBar_searchBox}>
-          <SearchIcon size={18} color={colors.textMuted} />
+          <SearchIcon size={18} color={contrast ? colors.text : colors.textMuted} />
           <TextInput
             style={styles.home_actionBar_searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search"
-            placeholderTextColor={colors.iconInactive}
+            placeholderTextColor={contrast ? colors.text : colors.iconInactive}
             autoCorrect={false}
             returnKeyType="search"
             clearButtonMode="while-editing"
