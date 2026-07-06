@@ -147,6 +147,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
   },
+  header_section_marginless: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
   // Privacy Policy main title.
   header_policyMain: {
     fontSize: 28,
@@ -1138,6 +1142,18 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontStyle: 'italic',
     marginBottom: 8,
+  },
+
+  //   Accessibility Toggle Row and Label (Accessibility screen)
+  toggle_row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  toggle_label: {
+    flex: 1,
   },
 });
 
