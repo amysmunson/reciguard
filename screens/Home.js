@@ -51,6 +51,12 @@ const Home = ({ navigation }) => {
     userId: user?.id,
     fetcher: getRecipes,
   });
+  const { data: profile } = useCachedResource({
+    resource: 'profile',
+    userId: user?.id,
+    fetcher: getMyProfile,
+  });
+  const contrast = !!profile?.contrast;
   const recipes = recipesData ?? [];
 
   // Selection state
@@ -335,13 +341,13 @@ const Home = ({ navigation }) => {
       ) : (
         <View style={styles.home_actionBar}>
           <View style={styles.home_actionBar_searchBox}>
-            <SearchIcon size={18} color={colors.textMuted} />
+            <SearchIcon size={18} color={contrast ? colors.text : colors.textMuted} />
             <TextInput
               style={styles.home_actionBar_searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search"
-              placeholderTextColor={colors.iconInactive}
+              placeholderTextColor={contrast ? colors.text : colors.iconInactive}
               autoCorrect={false}
               returnKeyType="search"
               clearButtonMode="while-editing"

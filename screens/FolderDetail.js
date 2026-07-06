@@ -78,6 +78,13 @@ const FolderDetail = ({ route, navigation }) => {
   const [sort, setSort] = useState(DEFAULT_RECIPE_SORT);
   const [openedMap, setOpenedMap] = useState({});
 
+  const { data: profile } = useCachedResource({
+    resource: 'profile',
+    userId: user?.id,
+    fetcher: getMyProfile,
+  });
+  const contrast = !!profile?.contrast;
+
   const loadRecipes = useCallback(async () => {
     try {
       const [f, list] = await Promise.all([getFolder(folderId), getRecipesInFolder(folderId)]);
@@ -349,13 +356,13 @@ const FolderDetail = ({ route, navigation }) => {
       ) : (
         <View style={styles.home_actionBar}>
           <View style={styles.home_actionBar_searchBox}>
-            <SearchIcon size={18} color={colors.textMuted} />
+            <SearchIcon size={18} color={contrast ? colors.text : colors.textMuted} />
             <TextInput
               style={styles.home_actionBar_searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search"
-              placeholderTextColor={colors.iconInactive}
+              placeholderTextColor={contrast ? colors.text : colors.iconInactive}
               autoCorrect={false}
               returnKeyType="search"
               clearButtonMode="while-editing"
