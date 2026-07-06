@@ -21,6 +21,7 @@ import FolderDetail from './screens/FolderDetail';
 import Friends from './screens/Friends';
 import FriendProfile from './screens/FriendProfile';
 import Profile from './screens/Profile';
+import Accessibility from './screens/Accessibility';
 
 const Stack = createStackNavigator();
 
@@ -46,6 +47,7 @@ const AppStack = () => (
     <Stack.Screen name="FriendProfile" component={FriendProfile} />
     <Stack.Screen name="Profile" component={Profile} />
     <Stack.Screen name="Settings" component={Settings} options={{ animation: 'none' }} />
+    <Stack.Screen name="Accessibility" component={Accessibility} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
   </Stack.Navigator>
 );

@@ -68,6 +68,7 @@ const Settings = ({ navigation }) => {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
         <Row label="Your Profile" onPress={() => navigation.navigate('Profile')} />
+        <Row label="Accessibility" onPress={() => navigation.navigate('Accessibility')} />
         <Row label="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
         <Row label="Sign Out" onPress={handleSignOut} />
         <Row label="Delete Account" onPress={handleDeleteAccount} danger />
