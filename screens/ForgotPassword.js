@@ -74,6 +74,7 @@ const ForgotPassword = ({ navigation }) => {
           <TextInput
             style={[styles.input_base, styles.input_spaced]}
             placeholder="Email"
+            placeholderTextColor={colors.borderInput}
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
@@ -89,6 +90,7 @@ const ForgotPassword = ({ navigation }) => {
           <TextInput
             style={[styles.input_base, styles.input_spaced, styles.input_code]}
             placeholder="000000"
+            placeholderTextColor={colors.borderInput}
             autoCapitalize="none"
             keyboardType="number-pad"
             value={code}
@@ -98,6 +100,7 @@ const ForgotPassword = ({ navigation }) => {
           <TextInput
             style={[styles.input_base, styles.input_spaced]}
             placeholder="Password"
+            placeholderTextColor={colors.borderInput}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
@@ -106,6 +109,7 @@ const ForgotPassword = ({ navigation }) => {
           <TextInput
             style={[styles.input_base]}
             placeholder="Re-enter Password"
+            placeholderTextColor={colors.borderInput}
             secureTextEntry
             value={confirmPassword}
             onChangeText={setConfirmPassword}

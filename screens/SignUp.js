@@ -48,6 +48,7 @@ const SignUp = ({ navigation }) => {
         <TextInput
           style={[styles.input_base, styles.input_spaced]}
           placeholder="Name"
+          placeholderTextColor={colors.borderInput}
           value={name}
           onChangeText={setName}
         />
@@ -55,6 +56,7 @@ const SignUp = ({ navigation }) => {
         <TextInput
           style={[styles.input_base, styles.input_spaced]}
           placeholder="Email"
+          placeholderTextColor={colors.borderInput}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -64,6 +66,7 @@ const SignUp = ({ navigation }) => {
         <TextInput
           style={[styles.input_base, styles.input_spaced]}
           placeholder="Password"
+          placeholderTextColor={colors.borderInput}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -72,6 +75,7 @@ const SignUp = ({ navigation }) => {
         <TextInput
           style={[styles.input_base]}
           placeholder="Re-enter Password"
+          placeholderTextColor={colors.borderInput}
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
