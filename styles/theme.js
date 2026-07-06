@@ -32,14 +32,14 @@ const palette = {
   // Allergy severity — semantic, distinct from generic danger/warning so
   // the severity scale stays self-consistent across foreground + bg tints.
     // Status
-  severityHigh:    '#c22147',
-  severityMedium:  '#ff9539',
-  severityLow:     '#ffd100',
-  severityNone:    '#a3a2a2',
-  severityHighBg:   'rgba(192, 57, 43, 0.18)',
-  severityMediumBg: 'rgba(230, 126, 34, 0.22)',
-  severityLowBg:    'rgba(241, 196, 15, 0.28)',
-  severityNoneBg:   'rgba(160, 160, 160, 0.18)',
+  severityHigh:    '#a61436',
+  severityMedium:  '#e37214',
+  severityLow:     '#ffd000',
+  severityNone:    '#465b6d',
+  severityHighBg: 'rgba(166, 20, 54, 0.16)',
+  severityMediumBg: 'rgba(227, 114, 20, 0.18)', 
+  severityLowBg:    'rgba(255, 228, 107, 0.24)',
+  severityNoneBg:   'rgba(80, 110, 125, 0.16)',
 
   // Neutrals
   muted:       '#888888',
