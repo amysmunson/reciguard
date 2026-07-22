@@ -812,25 +812,50 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  //   Severity Picker (for new-allergy entry: Mild / Moderate / Severe)
-  severityPicker: {
+  //   Severity Legend (EditAllergies — key explaining the 4 severity
+  //   colors once, so per-row choices below can skip repeating labels)
+  severityLegend_row: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 6,
-    marginBottom: 4,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
   },
-  severityPickerChip: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.borderInput,
+  severityLegend_item: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 3,
   },
-  severityPickerLabel: {
-    fontSize: 13,
+  severityLegend_label: {
+    fontSize: 12,
     color: colors.textSecondary,
+  },
+
+  //   Severity Choice (EditAllergies — 4-way per-row picker: unspecified /
+  //   mild / moderate / severe). The hit area is a fixed size so the row
+  //   never reflows; the ring border is transparent until selected, at
+  //   which point it's set to the option's own color (inline) and exactly
+  //   fills the gap around the inner dot, reading as one bigger solid
+  //   circle rather than a boxy outline.
+  //   Compose: [severityChoice_hitArea, isSelected && { borderColor }],
+  //   containing a child [severityChoice_dot, { backgroundColor }].
+  severityChoice_row: {
+    flexDirection: 'row',
+    gap: 6,
+    marginRight: 8,
+  },
+  severityChoice_hitArea: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 6,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  severityChoice_dot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
   },
 
   //   Allergy Row (allergy name + severity chip + optional trash)
