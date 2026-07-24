@@ -57,17 +57,27 @@ const Friends = ({ navigation }) => {
     : friends;
 
   // Modal state. Step "choose" picks path; "code" enters friend code;
-  // "manual" enters a name for an off-platform friend.
-  const [modalStep, setModalStep] = useState(null); // null | 'choose' | 'code' | 'manual'
+  // "manual" enters a name for an off-platform friend. modalVisible is
+  // separate from modalStep on purpose — closing only flips modalVisible,
+  // leaving modalStep (and its content) alone so the box doesn't collapse
+  // to empty and flash a thin blank box while the fade-out is still playing.
+  // modalStep only gets reset (to 'choose') the next time it opens.
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalStep, setModalStep] = useState('choose'); // 'choose' | 'code' | 'manual'
   const [codeInput, setCodeInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const closeModal = () => {
-    setModalStep(null);
+  const openAddFriend = () => {
+    setModalStep('choose');
     setCodeInput('');
     setNameInput('');
     setBusy(false);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
   };
 
   const handleAddByCode = async () => {
@@ -107,10 +117,6 @@ const Friends = ({ navigation }) => {
 
   return (
     <View style={[styles.screen_base, styles.screen_tabPad]}>
-      <TouchableOpacity style={styles.home_search} onPress={() => setModalStep('choose')}>
-        <PlusIcon size={22} color={colors.textSecondary} />
-      </TouchableOpacity>
-
       <Text style={styles.header_tab}>Friends</Text>
 
       <View style={styles.home_actionBar}>
@@ -184,7 +190,7 @@ const Friends = ({ navigation }) => {
       />
 
       <Modal
-        visible={!!modalStep}
+        visible={modalVisible}
         transparent
         animationType="fade"
         onRequestClose={closeModal}
