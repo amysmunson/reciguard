@@ -22,6 +22,8 @@ const DONE_ACCESSORY_ID = 'editRecipeDone';
 const EditRecipe = ({ route, navigation }) => {
   const recipeId = route.params?.recipeId ?? null;
   const isNew = !recipeId;
+  // If create new recipe, go back to home after saving
+  const fromCreate = !!route.params?.fromCreate;
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -82,7 +84,8 @@ const EditRecipe = ({ route, navigation }) => {
         navigation.popToTop();
       } else {
         await updateRecipe(recipeId, payload);
-        navigation.goBack();
+        if (fromCreate) navigation.popToTop();
+        else navigation.goBack();
       }
     } catch (err) {
       Alert.alert('Could not save', err.message ?? 'Unknown error');
@@ -123,7 +126,7 @@ const EditRecipe = ({ route, navigation }) => {
       {list.length === 0 && <Text style={[styles.noItemsText, styles.text_body]}>No items yet.</Text>}
       {list.map((item, index) => (
         <View key={index} style={styles.ingredientRow}>
-          {numbered && <Text style={[styles.ingredientItems]}>{index + 1}. </Text>}
+          {numbered && <Text style={[styles.recipeItem]}>{index + 1}. </Text>}
           <TextInput
             multiline
             scrollEnabled={false}
