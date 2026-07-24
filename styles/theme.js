@@ -31,14 +31,18 @@ const palette = {
 
   // Allergy severity — semantic, distinct from generic danger/warning so
   // the severity scale stays self-consistent across foreground + bg tints.
-  severityHigh:    '#c0392b',
-  severityMedium:  '#e67e22',
-  severityLow:     '#f1c40f',
-  severityNone:    '#999999',
-  severityHighBg:   'rgba(192, 57, 43, 0.18)',
-  severityMediumBg: 'rgba(230, 126, 34, 0.22)',
-  severityLowBg:    'rgba(241, 196, 15, 0.28)',
-  severityNoneBg:   'rgba(160, 160, 160, 0.18)',
+    // Status
+  severityHigh:    '#a61436',
+  severityMedium:  '#e37214',
+  severityLow:     '#ffd000',
+  // severityNone:    '#465b6d',
+  // new one matches primaryBlue 
+  severityNone:    '#004c72',
+  severityHighBg: 'rgba(166, 20, 54, 0.16)',
+  severityMediumBg: 'rgba(227, 114, 20, 0.18)', 
+  severityLowBg:    'rgba(255, 228, 107, 0.24)',
+  // severityNoneBg:   'rgba(80, 110, 125, 0.16)',
+  severityNoneBg:   'rgba(0, 76, 114, 0.16)',
 
   // Neutrals
   muted:       '#888888',
@@ -47,7 +51,7 @@ const palette = {
   border:      '#eeeeee',  // divider lines / row borders (light mode)
   borderInput: '#cccccc',  // input outlines
   borderDark:  '#2a2f36',
-  surfaceAlt:  '#f4f4f4',  // cards / list-item backgrounds in light mode
+  surfaceAlt:  '#f8f8f8',  // cards / list-item backgrounds in light mode
   surfaceAltDark: '#1c1f24',
 
   // Translucent
@@ -69,8 +73,7 @@ const lightTheme = {
   textSecondary: palette.inkSecondary,
   textTertiary:  palette.inkTertiary,
   textMuted:     palette.muted,
-  textInverse:  palette.inkInverse,
-  textLink:      palette.linkBlue,
+  textLink:      palette.primaryBlue,
   textOnPrimary: palette.white,
 
   primary:       palette.primaryBlue,
@@ -78,7 +81,7 @@ const lightTheme = {
   tertiary:      palette.surfaceAlt,
   primarySubtle: palette.tintBlue,    // selected/info-row background
   primarySoft:   palette.softBlue,    // soft prominent button fill
-  link:          palette.linkBlue,
+  link:          palette.primaryBlue,
 
   border:        palette.border,        // light divider (#eee)
   borderInput:   palette.borderInput,   // input outline (#ccc)

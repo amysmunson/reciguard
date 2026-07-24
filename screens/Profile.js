@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,20 +8,14 @@ import {
   Alert,
   Share,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
-import { BackIcon, ShareIcon, TrashIcon } from '../components/icons';
+import { colors } from '../styles/theme';
+import { BackIcon, ShareIcon } from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import { getMyProfile, updateMyProfile } from '../lib/api/profile';
-import {
-  getMyAllergies,
-  addAllergy,
-  deleteAllergy,
-  updateAllergySeverity,
-  severityColor,
-  severityLabel,
-  normalizeSeverity,
-} from '../lib/api/allergies';
-import AllergyChecklist from '../components/AllergyChecklist';
+import { getMyAllergies, severityColor, severityLabel } from '../lib/api/allergies';
+import ConfirmModal from '../components/ConfirmModal';
 
 const formatCode = (code) =>
   code ? code.slice(0, 4) + '-' + code.slice(4, 8) : '';
@@ -32,18 +26,29 @@ const Profile = ({ navigation }) => {
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [about, setAbout] = useState('');
   const [notes, setNotes] = useState('');
   const [friendCode, setFriendCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [allergies, setAllergies] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [baseline, setBaseline] = useState({ name: '', phone: '', about: '', notes: '' });
+  const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const [profile, list] = await Promise.all([getMyProfile(), getMyAllergies()]);
-      setName(profile?.name ?? '');
-      setPhone(profile?.phone ?? '');
-      setNotes(profile?.notes ?? '');
+      const loaded = {
+        name: profile?.name ?? '',
+        phone: profile?.phone ?? '',
+        about: profile?.about ?? '',
+        notes: profile?.notes ?? '',
+      };
+      setName(loaded.name);
+      setPhone(loaded.phone);
+      setAbout(loaded.about);
+      setNotes(loaded.notes);
+      setBaseline(loaded);
       setFriendCode(profile?.friend_code ?? '');
       setAllergies(list);
     } catch (err) {
@@ -53,9 +58,20 @@ const Profile = ({ navigation }) => {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const isDirty =
+    name !== baseline.name ||
+    phone !== baseline.phone ||
+    about !== baseline.about ||
+    notes !== baseline.notes;
+
+  // Refreshes on every focus (not just mount) so allergy edits made on
+  // EditAllergies — which saves straight to the database itself — show up
+  // here as soon as you navigate back.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const handleShareCode = async () => {
     if (!friendCode) return;
@@ -70,57 +86,30 @@ const Profile = ({ navigation }) => {
 
   const handleSave = async () => {
     try {
-      await updateMyProfile({ name, phone, notes });
+      await updateMyProfile({ name, phone, about, notes });
       setIsEditing(false);
-      Alert.alert('Saved');
+      setBaseline({ name, phone, about, notes });
     } catch (err) {
       Alert.alert('Could not save', err.message ?? 'Unknown error');
     }
   };
 
-  const handleCancel = () => {
+  const handleDiscard = () => {
+    setConfirmDiscardVisible(false);
     setIsEditing(false);
     load(); // revert any in-flight edits
   };
 
-  const handleAddBatch = async ({ items, severity }) => {
-    if (!items?.length) return;
-    try {
-      await Promise.all(
-        items.map(({ name, userCustom }) =>
-          addAllergy({ name, severity, userCustom })
-        )
-      );
-      const updated = await getMyAllergies();
-      setAllergies(updated);
-    } catch (err) {
-      Alert.alert('Could not add allergies', err.message ?? 'Unknown error');
+  const handleBackPress = () => {
+    if (!isEditing) {
+      navigation.goBack();
+      return;
     }
-  };
-
-  const handleCycleSeverity = async (allergy) => {
-    // Cycle: unknown → mild → moderate → severe → unknown
-    const order = ['unknown', 'mild', 'moderate', 'severe'];
-    const current = normalizeSeverity(allergy.severity);
-    const next = order[(order.indexOf(current) + 1) % order.length];
-    const dbValue = next === 'unknown' ? null : next;
-    try {
-      await updateAllergySeverity(allergy.id, dbValue);
-      setAllergies((prev) =>
-        prev.map((a) => (a.id === allergy.id ? { ...a, severity: dbValue } : a))
-      );
-    } catch (err) {
-      Alert.alert('Could not update severity', err.message ?? 'Unknown error');
+    if (isDirty) {
+      setConfirmDiscardVisible(true);
+      return;
     }
-  };
-
-  const handleRemoveAllergy = async (id) => {
-    try {
-      await deleteAllergy(id);
-      setAllergies((prev) => prev.filter((a) => a.id !== id));
-    } catch (err) {
-      Alert.alert('Could not remove allergy', err.message ?? 'Unknown error');
-    }
+    handleDiscard();
   };
 
   if (loading) {
@@ -141,42 +130,57 @@ const Profile = ({ navigation }) => {
   return (
     <ScrollView
       style={[styles.screen_base, styles.screen_cardPad]}
-      contentContainerStyle={{ paddingBottom: 80 }}
+      contentContainerStyle={{ paddingBottom: 40 }}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={() => navigation.goBack()}>
+      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
         <BackIcon style={styles.overlayIcon_sm} />
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.overlay_base, styles.overlay_topRight_card]}
-        onPress={isEditing ? handleCancel : () => setIsEditing(true)}
+        onPress={isEditing ? handleSave : () => setIsEditing(true)}
       >
-        <Text style={styles.overlayText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
+        <Text style={styles.overlayText}>{isEditing ? 'Save' : 'Edit'}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.header_card}>My Profile</Text>
-
-      <Text style={styles.spacing} />
-      <Text style={styles.header_section}>Name</Text>
       {isEditing ? (
         <TextInput
-          style={styles.input_base}
+          style={[styles.header_card, styles.input_underline]}
           value={name}
           onChangeText={setName}
           placeholder="Your name"
         />
       ) : (
-        displayValue(name)
+        <Text style={styles.header_card}>{name || "Your Profile"}</Text>
       )}
 
-      <Text style={styles.spacing} />
-      <Text style={styles.header_section}>Email</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Your Friend Code</Text>
+      <Text style={styles.readOnly_hint}>Share this with friends so they can link your profile to theirs.</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, marginBottom: 12 }}>
+        <Text
+          style={[
+            styles.display_fieldValue,
+            styles.friendCode_value,
+            { paddingBottom: 0, marginBottom: 0 },
+          ]}
+        >
+          {friendCode ? formatCode(friendCode) : '—'}
+        </Text>
+        <TouchableOpacity
+          style={styles.friendCode_shareButton}
+          onPress={handleShareCode}
+          disabled={!friendCode}
+        >
+          <ShareIcon color={styles.friendCode_shareText.color} />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Email</Text>
       <Text style={styles.display_fieldValue}>{user?.email}</Text>
 
-      <Text style={styles.spacing} />
-      <Text style={styles.header_section}>Phone</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Phone</Text>
       {isEditing ? (
         <TextInput
           style={styles.input_base}
@@ -189,92 +193,67 @@ const Profile = ({ navigation }) => {
         displayValue(phone)
       )}
 
-      <Text style={styles.spacing} />
-      <Text style={styles.header_section}>Notes</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>About</Text>
+      <Text style={styles.readOnly_hint}>Your friends can see this section.</Text>
+      {isEditing ? (
+        <TextInput
+          style={[styles.input_base, { minHeight: 80 }]}
+          value={about}
+          onChangeText={setAbout}
+          multiline
+          placeholder="A short bio your friends can see"
+        />
+      ) : (
+        displayValue(about)
+      )}
+
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Notes</Text>
+      <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
       {isEditing ? (
         <TextInput
           style={[styles.input_base, { minHeight: 80 }]}
           value={notes}
           onChangeText={setNotes}
           multiline
-          placeholder="Anything you'd like to remember about yourself"
+          placeholder="Private notes only you can see"
         />
       ) : (
         displayValue(notes)
       )}
 
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Allergies</Text>
+      {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
+      {allergies.map((a) => (
+        <View key={a.id} style={styles.allergyRow}>
+          <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
+          <View style={styles.severityChip}>
+            <View style={[styles.severityDot, { backgroundColor: severityColor(a.severity) }]} />
+            <Text style={styles.severityChipLabel}>{severityLabel(a.severity)}</Text>
+          </View>
+        </View>
+      ))}
       {isEditing && (
         <TouchableOpacity
-          style={[
-            styles.button_base,
-            styles.button_fullWidth,
-            styles.button_primary,
-            { padding: 12, marginTop: 10 },
-          ]}
-          onPress={handleSave}
+          style={[styles.button_outline, styles.button_outline_link, { marginTop: 8 }]}
+          onPress={() => navigation.navigate('EditAllergies', { allergies })}
         >
-          <Text style={[styles.buttonText_base, styles.buttonText_onPrimary]}>
-            Save Profile
+          <Text style={[styles.buttonText_outline, { color: colors.primary }]}>
+            Edit Allergies
           </Text>
         </TouchableOpacity>
       )}
 
       <Text style={styles.spacing} />
-      <Text style={styles.header_section}>My Allergies</Text>
-      {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
-      {allergies.map((a) => {
-        const sev = normalizeSeverity(a.severity);
-        const dotColor = severityColor(a.severity);
-        return (
-          <View key={a.id} style={styles.allergyRow}>
-            <Text style={[styles.ingredientItems, { flex: 1 }]}>• {cap(a.name)}</Text>
-            <TouchableOpacity
-              onPress={() => isEditing && handleCycleSeverity(a)}
-              disabled={!isEditing}
-              style={styles.severityChip}
-            >
-              <View style={[styles.severityDot, { backgroundColor: dotColor }]} />
-              <Text style={styles.severityChipLabel}>{severityLabel(sev)}</Text>
-            </TouchableOpacity>
-            {isEditing && (
-              <TouchableOpacity
-                onPress={() => handleRemoveAllergy(a.id)}
-                style={styles.deleteButton}
-              >
-                <TrashIcon />
-              </TouchableOpacity>
-            )}
-          </View>
-        );
-      })}
-      {isEditing && (
-        <AllergyChecklist
-          existingNames={allergies.map((a) => a.name)}
-          onConfirm={handleAddBatch}
-        />
-      )}
 
-      <Text style={styles.spacing} />
-
-      <View style={[styles.surface_lg, { marginVertical: 10, alignItems: 'center' }]}>
-        <Text style={styles.friendCode_label}>Your Friend Code</Text>
-        <Text style={styles.friendCode_value}>
-          {friendCode ? formatCode(friendCode) : '—'}
-        </Text>
-        <Text style={styles.friendCode_hint}>
-          Share this with friends so they can link your profile to theirs.
-        </Text>
-        <TouchableOpacity
-          style={styles.friendCode_shareButton}
-          onPress={handleShareCode}
-          disabled={!friendCode}
-        >
-          <ShareIcon />
-          <Text style={styles.friendCode_shareText}>Share Code</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <Text style={styles.spacing} />
+      <ConfirmModal
+        visible={confirmDiscardVisible}
+        title="Discard changes?"
+        message="Your edits haven't been saved."
+        confirmLabel="Discard"
+        cancelLabel="Keep Editing"
+        onConfirm={handleDiscard}
+        onCancel={() => setConfirmDiscardVisible(false)}
+      />
     </ScrollView>
   );
 };

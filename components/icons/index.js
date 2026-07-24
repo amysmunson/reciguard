@@ -29,6 +29,7 @@ export { default as PlusIcon } from './PlusIcon';
 export { default as SearchIcon } from './SearchIcon';
 export { default as SortIcon } from './SortIcon';
 export { default as FilterIcon } from './FilterIcon';
+export { default as EditIcon } from './EditIcon';
 
 // --- Navigation / structure ----------------------------------------------
 
@@ -39,7 +40,7 @@ export const BackIcon = ({ style, ...rest }) => (
 );
 
 // "Open original" / external-link icon on RecipeCard.
-export const ExternalLinkIcon = ({ size = 20, color = colors.link, style, ...rest }) => (
+export const ExternalLinkIcon = ({ size = 20, color = colors.primary, style, ...rest }) => (
   <Ionicons name="open-outline" size={size} color={color} style={style} {...rest} />
 );
 
@@ -47,6 +48,16 @@ export const ExternalLinkIcon = ({ size = 20, color = colors.link, style, ...res
 
 export const TrashIcon = ({ size = 20, color = colors.danger, style, ...rest }) => (
   <Ionicons name="trash-outline" size={size} color={color} style={style} {...rest} />
+);
+
+// Overflow ("more actions") menu
+export const EllipsisIcon = ({ size = 20, color = colors.textSecondary, style, ...rest }) => (
+  <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} style={style} {...rest} />
+);
+
+// Plain checkmark — e.g. the keyboard "Done" accessory.
+export const CheckIcon = ({ size = 20, color = colors.primary, style, ...rest }) => (
+  <Ionicons name="checkmark" size={size} color={color} style={style} {...rest} />
 );
 
 // Remove-from-folder action in FolderDetail's select bar.
@@ -70,20 +81,25 @@ export const LinkOutlineIcon = ({ style, ...rest }) => (
   <Ionicons name="link-outline" style={style} {...rest} />
 );
 
-export const CameraIcon = ({ style, ...rest }) => (
-  <Ionicons name="camera-outline" style={style} {...rest} />
+export const ImageIcon = ({ style, ...rest }) => (
+  <Ionicons name="image-outline" style={style} {...rest} />
 );
 
-export const KeyIcon = ({ size = 22, color = colors.link, style, ...rest }) => (
+export const KeyIcon = ({ size = 22, color = colors.primary, style, ...rest }) => (
   <Ionicons name="key-outline" size={size} color={color} style={style} {...rest} />
 );
 
-export const PersonAddIcon = ({ size = 22, color = colors.link, style, ...rest }) => (
+export const PersonAddIcon = ({ size = 22, color = colors.primary, style, ...rest }) => (
   <Ionicons name="person-add-outline" size={size} color={color} style={style} {...rest} />
 );
 
+// Allergy-overview entry point (Home action bar).
+export const AllergyListIcon = ({ size = 22, color = colors.textSecondary, style, ...rest }) => (
+  <Ionicons name="list-outline" size={size} color={color} style={style} {...rest} />
+);
+
 // --- Folder (bulk action in Home select bar + folder-picker rows) --------
-export const FolderIcon = ({ size = 22, color = colors.link, style, ...rest }) => (
+export const FolderIcon = ({ size = 22, color = colors.primary, style, ...rest }) => (
   <FAIcon name="folder" size={size} color={color} style={style} {...rest} />
 );
 
@@ -101,7 +117,7 @@ export const CheckboxIcon = ({
   ...rest
 }) => {
   const name = checked ? 'checkbox' : partial ? 'remove-circle' : 'square-outline';
-  const resolvedColor = color ?? (checked || partial ? colors.link : colors.textMuted);
+  const resolvedColor = color ?? (checked || partial ? colors.primary : colors.textMuted);
   return <Ionicons name={name} size={size} color={resolvedColor} style={style} {...rest} />;
 };
 
@@ -115,7 +131,7 @@ export const SelectCircleIcon = ({
   ...rest
 }) => {
   const name = selected ? 'checkmark-circle' : 'ellipse-outline';
-  const resolvedColor = color ?? (selected ? colors.link : colors.iconInactive);
+  const resolvedColor = color ?? (selected ? colors.primary : colors.iconInactive);
   return <Ionicons name={name} size={size} color={resolvedColor} style={style} {...rest} />;
 };
 

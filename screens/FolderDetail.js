@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, Modal, ScrollView, Pressable, TextInput, Button } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
@@ -9,15 +9,29 @@ import {
   getRecipesInFolder,
   deleteFolder,
   removeRecipesFromFolder,
+  addRecipesToFolder,
 } from '../lib/api/folders';
+import { getRecipes } from '../lib/api/recipes';
 import {
   getActiveAllergyDetails,
   dotsForRecipe,
   severityColor,
 } from '../lib/api/allergies';
 import { getMyProfile } from '../lib/api/profile';
-import { BackIcon, RemoveCircleIcon, SelectCircleIcon, SortIcon } from '../components/icons';
+import {
+  BackIcon,
+  CheckboxIcon,
+  EllipsisIcon,
+  PlusIcon,
+  RemoveCircleIcon,
+  SearchIcon,
+  SelectCircleIcon,
+  SortIcon,
+  TrashIcon,
+} from '../components/icons';
 import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
+import { useCachedResource } from '../lib/cache';
+import AllergyFilterControl from '../components/AllergyFilterControl';
 import SortMenu from '../components/SortMenu';
 import {
   RECIPE_SORT_OPTIONS,
@@ -35,13 +49,39 @@ const FolderDetail = ({ route, navigation }) => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
+  // Overflow menu (ellipsis) — currently just the delete-folder action.
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Add-recipe picker — lists the user's recipes not already in this folder.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerRecipes, setPickerRecipes] = useState([]);
+  const [pickerSelected, setPickerSelected] = useState(new Set());
+
+  // Allergy filter — selection itself lives in AllergyFilterControl (shared
+  // with Home, same persisted key); it reports the selection here via
+  // onSelectionChange so tile dots can be computed.
+  const [allergySelection, setAllergySelection] = useState({
+    includeSelf: false,
+    selectedFriendIds: new Set(),
+  });
+  const [allergySelectionReady, setAllergySelectionReady] = useState(false);
   const [activeAllergies, setActiveAllergies] = useState([]);
-  const filterActive = activeAllergies.length > 0;
+  const filterActive = allergySelection.includeSelf || allergySelection.selectedFriendIds.size > 0;
+
+  // Search state — query string only; the input lives in the action bar.
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Sort state — { by, dir }. Recipes inside folders sort like Home does.
   const [sortOpen, setSortOpen] = useState(false);
   const [sort, setSort] = useState(DEFAULT_RECIPE_SORT);
   const [openedMap, setOpenedMap] = useState({});
+
+  const { data: profile } = useCachedResource({
+    resource: 'profile',
+    userId: user?.id,
+    fetcher: getMyProfile,
+  });
+  const contrast = !!profile?.contrast;
 
   const loadRecipes = useCallback(async () => {
     try {
@@ -53,25 +93,24 @@ const FolderDetail = ({ route, navigation }) => {
     }
   }, [folderId]);
 
-  // Read the user's persisted Home filter so dots show in folders too.
-  const loadFilter = useCallback(async () => {
-    if (!user?.id) return;
+  // Recompute the active-allergy details for the current filter selection.
+  const refreshActiveAllergies = useCallback(async (self, friendIds) => {
     try {
-      const saved = await loadJson(KEYS.homeAllergyFilter(user.id), {
-        includeSelf: false,
-        friendIds: [],
-      });
-      const profile = await getMyProfile();
       const details = await getActiveAllergyDetails({
-        includeSelf: !!saved.includeSelf,
-        friendshipIds: saved.friendIds ?? [],
-        myName: profile?.name?.trim() || 'Me',
+        includeSelf: self,
+        friendshipIds: Array.from(friendIds),
+        myName: 'Me',
       });
       setActiveAllergies(details);
     } catch (err) {
       Alert.alert('Could not load allergies', err.message ?? 'Unknown error');
     }
-  }, [user?.id]);
+  }, []);
+
+  const handleAllergySelectionChange = useCallback((self, friendIds) => {
+    setAllergySelection({ includeSelf: self, selectedFriendIds: friendIds });
+    setAllergySelectionReady(true);
+  }, []);
 
   // Hydrate the saved sort selection (shared across all folders).
   useEffect(() => {
@@ -95,9 +134,17 @@ const FolderDetail = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadRecipes();
-      loadFilter();
       refreshOpenedMap();
-    }, [loadRecipes, loadFilter, refreshOpenedMap])
+      if (allergySelectionReady) {
+        refreshActiveAllergies(allergySelection.includeSelf, allergySelection.selectedFriendIds);
+      }
+    }, [
+      loadRecipes,
+      refreshOpenedMap,
+      refreshActiveAllergies,
+      allergySelection,
+      allergySelectionReady,
+    ])
   );
 
   const applySort = (next) => {
@@ -106,6 +153,11 @@ const FolderDetail = ({ route, navigation }) => {
   };
 
   const sortedRecipes = sortRecipes(recipes, sort, openedMap);
+  const displayedRecipes = searchQuery.trim()
+    ? sortedRecipes.filter((r) =>
+        (r.name ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : sortedRecipes;
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -129,6 +181,41 @@ const FolderDetail = ({ route, navigation }) => {
   const handleTilePress = (item) => {
     if (selectMode) toggleSelect(item.id);
     else navigation.navigate('RecipeCard', { recipeId: item.id });
+  };
+
+  // --- Add-recipe picker --------------------------------------------------
+  const openRecipePicker = async () => {
+    try {
+      const all = await getRecipes();
+      const inFolder = new Set(recipes.map((r) => r.id));
+      setPickerRecipes(all.filter((r) => !inFolder.has(r.id)));
+      setPickerSelected(new Set());
+      setPickerOpen(true);
+    } catch (err) {
+      Alert.alert('Could not load recipes', err.message ?? 'Unknown error');
+    }
+  };
+
+  const togglePick = (id) => {
+    setPickerSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAddSelected = async () => {
+    const ids = Array.from(pickerSelected);
+    if (!ids.length) return;
+    try {
+      await addRecipesToFolder({ recipeIds: ids, folderId });
+      setPickerOpen(false);
+      loadRecipes();
+      Alert.alert('Added', `${ids.length} recipe(s) added to this folder.`);
+    } catch (err) {
+      Alert.alert('Could not add to folder', err.message ?? 'Unknown error');
+    }
   };
 
   const handleBulkRemove = () => {
@@ -176,6 +263,20 @@ const FolderDetail = ({ route, navigation }) => {
 
   return (
     <View style={[styles.screen_base, styles.screen_tabPad]}>
+      {!selectMode && (
+        <>
+          <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} onPress={() => navigation.goBack()}>
+            <BackIcon style={styles.overlayIcon_sm} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.deleteRecipeButton} onPress={() => setMenuOpen(true)}>
+            <EllipsisIcon size={20} />
+          </TouchableOpacity>
+        </>
+      )}
+
+      <Text style={styles.header_tab}>{folder?.name || 'Folder'}</Text>
+
       {selectMode ? (
         <View style={styles.selectBar}>
           <TouchableOpacity onPress={exitSelect}>
@@ -189,28 +290,43 @@ const FolderDetail = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       ) : (
-        <>
-          <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_safe]} onPress={() => navigation.goBack()}>
-            <BackIcon style={styles.overlayIcon_sm} />
-          </TouchableOpacity>
-
+        <View style={styles.home_actionBar}>
+          <View style={styles.home_actionBar_searchBox}>
+            <SearchIcon size={18} color={contrast ? colors.text : colors.textMuted} />
+            <TextInput
+              style={styles.home_actionBar_searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search"
+              placeholderTextColor={contrast ? colors.text : colors.iconInactive}
+              autoCorrect={false}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+          </View>
           <TouchableOpacity
-            style={[styles.overlay_base, styles.folderDetail_sortButton]}
+            style={styles.home_actionBar_iconButton}
             onPress={() => setSortOpen(true)}
           >
             <SortIcon size={22} color={colors.textSecondary} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.deleteRecipeButton} onPress={handleDeleteFolder}>
-            <Text style={styles.deleteButtonText}>Delete</Text>
+          <AllergyFilterControl
+            navigation={navigation}
+            route={route}
+            returnTo={{
+              screen: 'FolderDetail',
+              params: { folderId, folderName: folder?.name ?? initialName },
+            }}
+            onSelectionChange={handleAllergySelectionChange}
+          />
+          <TouchableOpacity style={styles.home_actionBar_iconButton} onPress={openRecipePicker}>
+            <PlusIcon size={22} color={colors.textSecondary} />
           </TouchableOpacity>
-        </>
+        </View>
       )}
 
-      <Text style={styles.header_tab}>{folder?.name || 'Folder'}</Text>
-
       <FlatList
-        data={sortedRecipes}
+        data={displayedRecipes}
         numColumns={2}
         renderItem={({ item }) => {
           const isSelected = selectedIds.has(item.id);
@@ -221,8 +337,8 @@ const FolderDetail = ({ route, navigation }) => {
               onLongPress={() => enterSelect(item.id)}
               delayLongPress={300}
             >
-              <View style={[styles.listItem, isSelected && styles.listItem_selected]}>
-                <Text style={styles.listItemText}>{item.name || 'Untitled'}</Text>
+              <View style={[styles.tile, isSelected && styles.tile_selected]}>
+                <Text style={styles.tileText}>{item.name || 'Untitled'}</Text>
                 {dots.length > 0 && (
                   <View style={styles.allergyDotRow}>
                     {dots.map((d) => (
@@ -245,9 +361,15 @@ const FolderDetail = ({ route, navigation }) => {
             </TouchableOpacity>
           );
         }}
-        extraData={{ selectedIds, selectMode, activeAllergies, sort, openedMap }}
+        extraData={{ selectedIds, selectMode, activeAllergies, searchQuery, sort, openedMap }}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={<Text style={styles.emptyText}>No recipes in this folder.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {searchQuery.trim()
+              ? `No recipes match "${searchQuery}".`
+              : 'No recipes in this folder.'}
+          </Text>
+        }
       />
 
       <SortMenu
@@ -257,6 +379,77 @@ const FolderDetail = ({ route, navigation }) => {
         sort={sort}
         onChange={applySort}
       />
+
+      {/* Overflow menu — dropped from the ellipsis button */}
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable style={styles.sort_popdown_backdrop} onPress={() => setMenuOpen(false)}>
+          <Pressable style={[styles.sort_popdown, styles.folderDetail_menu]} onPress={() => {}}>
+            <TouchableOpacity
+              style={styles.sort_popdown_row}
+              onPress={() => {
+                setMenuOpen(false);
+                handleDeleteFolder();
+              }}
+            >
+              <TrashIcon size={18} />
+              <Text style={[styles.sort_popdown_rowText, { color: colors.danger }]}>
+                Delete folder
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Add-recipe picker modal */}
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerOpen(false)}
+      >
+        <Pressable style={styles.modal_backdrop} onPress={() => setPickerOpen(false)}>
+          <Pressable style={styles.surface_modal} onPress={() => {}}>
+            <Text style={styles.header_modal}>Add recipes</Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              {pickerRecipes.length === 0 && (
+                <Text style={styles.emptyText}>All your recipes are already in this folder.</Text>
+              )}
+              {pickerRecipes.map((r) => {
+                const checked = pickerSelected.has(r.id);
+                return (
+                  <TouchableOpacity
+                    key={r.id}
+                    style={styles.filter_row}
+                    onPress={() => togglePick(r.id)}
+                  >
+                    <CheckboxIcon checked={checked} />
+                    <Text style={styles.filter_rowText}>{r.name || 'Untitled'}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.modal_button_right} >
+            <TouchableOpacity style={styles.modal_button} onPress={() => setPickerOpen(false)}>
+              <Text style={styles.modal_buttonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modal_button}
+              onPress={handleAddSelected}
+              disabled={!pickerSelected.size}
+            >
+              <Text
+                style={[
+                  styles.modal_buttonText,
+                  { color: pickerSelected.size ? colors.primary : colors.iconDisabled, fontWeight: 'bold' },
+                ]}
+              >
+                {pickerSelected.size ? `Add ${pickerSelected.size}` : 'Add'}
+              </Text>
+            </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 };

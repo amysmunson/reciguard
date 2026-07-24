@@ -17,9 +17,9 @@ const Landing = ({ navigation }) => (
     {/* Title block — vertically centered in the upper area */}
     <View style={styles.landing_titleArea}>
       <LandingCard width={360} height={210}>
-        <Text style={[styles.header_landing, { color: colors.textInverse }]}>RecipeGuard</Text>
-        <Text style={[styles.text_body, styles.text_centered, { color: colors.textInverse }]}>
-          Your shared recipe book.
+        <Text style={[styles.header_landing, { color: colors.textOnPrimary }]}>RecipeGuard</Text>
+        <Text style={[styles.text_body, styles.text_centered, { color: colors.textOnPrimary }]}>
+          Your recipe book.
         </Text>
       </LandingCard>
     </View>

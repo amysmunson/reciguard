@@ -12,7 +12,13 @@ import {
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import { KeyIcon, LinkIcon, PersonAddIcon, PlusIcon } from '../components/icons';
+import {
+  AllergyListIcon,
+  KeyIcon,
+  PersonAddIcon,
+  PlusIcon,
+  SearchIcon,
+} from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import {
   getFriends,
@@ -29,7 +35,7 @@ const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').s
 
 const Friends = ({ navigation }) => {
   const { user } = useAuth();
-  const fallbackName = user?.email || 'Me';
+  const fallbackName = user?.email || 'you';
 
   const { data } = useCachedResource({
     resource: 'friends',
@@ -42,18 +48,36 @@ const Friends = ({ navigation }) => {
   const friends = data?.list ?? [];
   const myName = data?.myName || fallbackName;
 
+  // Search state — filters the friends list below by display name.
+  const [searchQuery, setSearchQuery] = useState('');
+  const displayedFriends = searchQuery.trim()
+    ? friends.filter((f) =>
+        friendDisplayName(f).toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : friends;
+
   // Modal state. Step "choose" picks path; "code" enters friend code;
-  // "manual" enters a name for an off-platform friend.
-  const [modalStep, setModalStep] = useState(null); // null | 'choose' | 'code' | 'manual'
+  // "manual" enters a name for an off-platform friend. modalVisible is
+  // separate from modalStep on purpose — closing only flips modalVisible,
+  // leaving modalStep (and its content) alone so the box doesn't collapse
+  // to empty and flash a thin blank box while the fade-out is still playing.
+  // modalStep only gets reset (to 'choose') the next time it opens.
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalStep, setModalStep] = useState('choose'); // 'choose' | 'code' | 'manual'
   const [codeInput, setCodeInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const closeModal = () => {
-    setModalStep(null);
+  const openAddFriend = () => {
+    setModalStep('choose');
     setCodeInput('');
     setNameInput('');
     setBusy(false);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
   };
 
   const handleAddByCode = async () => {
@@ -93,51 +117,80 @@ const Friends = ({ navigation }) => {
 
   return (
     <View style={[styles.screen_base, styles.screen_tabPad]}>
-      <TouchableOpacity style={styles.home_search} onPress={() => setModalStep('choose')}>
-        <PlusIcon size={22} color={colors.textSecondary} />
-      </TouchableOpacity>
-
       <Text style={styles.header_tab}>Friends</Text>
 
+      <View style={styles.home_actionBar}>
+        <View style={styles.home_actionBar_searchBox}>
+          <SearchIcon size={18} color={colors.textMuted} />
+          <TextInput
+            style={styles.home_actionBar_searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search"
+            placeholderTextColor={colors.iconInactive}
+            autoCorrect={false}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+        </View>
+        <TouchableOpacity
+          style={styles.home_actionBar_iconButton}
+          onPress={() => navigation.navigate('AllergyOverview')}
+        >
+          <AllergyListIcon size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.home_actionBar_iconButton}
+          onPress={openAddFriend}
+        >
+          <PlusIcon size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        style={styles.friends_list}
-        data={friends}
+        style={styles.list_marginless}
+        data={displayedFriends}
         ListHeaderComponent={
           <TouchableOpacity
-            style={[styles.settings_row, styles.friends_meRow]}
+            style={[styles.row, styles.friends_meRow]}
             onPress={() => navigation.navigate('Profile')}
           >
-            <Text style={[styles.settings_rowText, { fontWeight: 'bold' }]}>
+            {myName === fallbackName ? (
+              <Text style={[styles.rowText, { fontWeight: 'bold' }]}>
+              Your Profile ({fallbackName})
+            </Text>
+            ) : (
+              <Text style={[styles.rowText, { fontWeight: 'bold' }]}>
               {myName} (you)
             </Text>
+            )}
           </TouchableOpacity>
         }
         renderItem={({ item }) => {
           const linked = !!item.existingFriendId;
           return (
             <TouchableOpacity
-              style={styles.settings_row}
+              style={styles.row}
               onPress={() => navigation.navigate('FriendProfile', { friendshipId: item.id })}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <Text style={styles.settings_rowText}>{friendDisplayName(item)}</Text>
-                {linked && (
-                  <View style={styles.linkBadge}>
-                    <LinkIcon />
-                  </View>
-                )}
+              <View style={styles.modal_button_right}>
+                <Text style={styles.rowText}>{friendDisplayName(item)}</Text>
               </View>
             </TouchableOpacity>
           );
         }}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No friends yet. Tap + to add one.</Text>
+          <Text style={styles.emptyText}>
+            {searchQuery.trim()
+              ? `No friends match "${searchQuery}".`
+              : 'No friends yet. Tap + to add one.'}
+          </Text>
         }
       />
 
       <Modal
-        visible={!!modalStep}
+        visible={modalVisible}
         transparent
         animationType="fade"
         onRequestClose={closeModal}
@@ -171,9 +224,11 @@ const Friends = ({ navigation }) => {
                     </Text>
                   </View>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modal_button} onPress={closeModal}>
-                  <Text style={styles.modal_buttonText}>Cancel</Text>
-                </TouchableOpacity>
+                <View style={styles.modal_button_right}>
+                  <TouchableOpacity style={styles.modal_button} onPress={closeModal}>
+                    <Text style={styles.modal_buttonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
 
@@ -190,7 +245,7 @@ const Friends = ({ navigation }) => {
                   autoFocus
                   maxLength={8}
                 />
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <View style={styles.modal_button_right}>
                   <TouchableOpacity
                     style={styles.modal_button}
                     onPress={() => setModalStep('choose')}
@@ -202,7 +257,7 @@ const Friends = ({ navigation }) => {
                     onPress={handleAddByCode}
                     disabled={busy}
                   >
-                    <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                    <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
                       {busy ? 'Adding…' : 'Link'}
                     </Text>
                   </TouchableOpacity>
@@ -214,13 +269,13 @@ const Friends = ({ navigation }) => {
               <>
                 <Text style={styles.header_modal}>Add Manually</Text>
                 <TextInput
-                  style={[styles.input_base, styles.input_spaced]}
+                  style={[styles.input_base, {letterSpacing: 0}]}
                   placeholder="Friend's name"
                   value={nameInput}
                   onChangeText={setNameInput}
                   autoFocus
                 />
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <View style={styles.modal_button_right}>
                   <TouchableOpacity
                     style={styles.modal_button}
                     onPress={() => setModalStep('choose')}
@@ -232,7 +287,7 @@ const Friends = ({ navigation }) => {
                     onPress={handleAddManual}
                     disabled={busy}
                   >
-                    <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                    <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
                       {busy ? 'Adding…' : 'Add'}
                     </Text>
                   </TouchableOpacity>

@@ -13,10 +13,10 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
+import AllergyFilterControl from '../components/AllergyFilterControl';
 import { startNewRecipe } from '../components/utils/addRecipe';
 import { getRecipes, deleteRecipes } from '../lib/api/recipes';
 import { getFolders, addRecipesToFolder } from '../lib/api/folders';
-import { getFriends } from '../lib/api/friends';
 import { getMyProfile } from '../lib/api/profile';
 import {
   getActiveAllergyDetails,
@@ -28,8 +28,6 @@ import { useCachedResource } from '../lib/cache';
 import { useAuth } from '../lib/auth-context';
 import { colors } from '../styles/theme';
 import {
-  CheckboxIcon,
-  FilterIcon,
   FolderIcon,
   SearchIcon,
   SelectCircleIcon,
@@ -44,29 +42,35 @@ import {
   sortRecipes,
 } from '../lib/sort';
 
-const Home = ({ navigation }) => {
+const Home = ({ navigation, route }) => {
   const { user } = useAuth();
   const { data: recipesData } = useCachedResource({
     resource: 'recipes',
     userId: user?.id,
     fetcher: getRecipes,
   });
+  const { data: profile } = useCachedResource({
+    resource: 'profile',
+    userId: user?.id,
+    fetcher: getMyProfile,
+  });
+  const contrast = !!profile?.contrast;
   const recipes = recipesData ?? [];
 
   // Selection state
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // Allergy filter state
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [friends, setFriends] = useState([]);
-  const [myName, setMyName] = useState('Me');
-  const [includeSelf, setIncludeSelf] = useState(false);
-  const [selectedFriendIds, setSelectedFriendIds] = useState(new Set());
+  // Allergy filter — selection itself lives in AllergyFilterControl (shared
+  // with FolderDetail); it reports the selection here via onSelectionChange
+  // so tile dots can be computed.
+  const [allergySelection, setAllergySelection] = useState({
+    includeSelf: false,
+    selectedFriendIds: new Set(),
+  });
+  const [allergySelectionReady, setAllergySelectionReady] = useState(false);
   const [activeAllergies, setActiveAllergies] = useState([]);
-  const [filterHydrated, setFilterHydrated] = useState(false);
-  // Snapshot of filter state when the modal opens, so backdrop-tap reverts.
-  const [filterSnapshot, setFilterSnapshot] = useState(null);
+  const filterActive = allergySelection.includeSelf || allergySelection.selectedFriendIds.size > 0;
 
   // Add-to-folder picker
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
@@ -85,29 +89,27 @@ const Home = ({ navigation }) => {
       const details = await getActiveAllergyDetails({
         includeSelf: self,
         friendshipIds: Array.from(friendIds),
-        myName: myName || 'Me',
+        myName: 'Me',
       });
       setActiveAllergies(details);
     } catch (err) {
       Alert.alert('Could not load allergies', err.message ?? 'Unknown error');
     }
-  }, [myName]);
+  }, []);
 
-  // Hydrate persisted filter + sort selection on mount (per-user).
+  const handleAllergySelectionChange = useCallback((self, friendIds) => {
+    setAllergySelection({ includeSelf: self, selectedFriendIds: friendIds });
+    setAllergySelectionReady(true);
+  }, []);
+
+  // Hydrate persisted sort selection on mount (per-user).
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
     (async () => {
-      const saved = await loadJson(KEYS.homeAllergyFilter(user.id), {
-        includeSelf: false,
-        friendIds: [],
-      });
       const savedSort = await loadJson(KEYS.homeSort(user.id), null);
       if (cancelled) return;
-      setIncludeSelf(!!saved.includeSelf);
-      setSelectedFriendIds(new Set(saved.friendIds ?? []));
       setSort(normalizeSort(savedSort, DEFAULT_RECIPE_SORT));
-      setFilterHydrated(true);
     })();
     return () => {
       cancelled = true;
@@ -124,14 +126,10 @@ const Home = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       refreshOpenedMap();
-      if (filterHydrated) refreshActiveAllergies(includeSelf, selectedFriendIds);
-    }, [
-      refreshOpenedMap,
-      refreshActiveAllergies,
-      includeSelf,
-      selectedFriendIds,
-      filterHydrated,
-    ])
+      if (allergySelectionReady) {
+        refreshActiveAllergies(allergySelection.includeSelf, allergySelection.selectedFriendIds);
+      }
+    }, [refreshOpenedMap, refreshActiveAllergies, allergySelection, allergySelectionReady])
   );
 
   // --- Selection helpers --------------------------------------------------
@@ -201,61 +199,10 @@ const Home = ({ navigation }) => {
     }
   };
 
-  // --- Filter helpers -----------------------------------------------------
-  const openFilter = async () => {
-    try {
-      const [friendList, profile] = await Promise.all([getFriends(), getMyProfile()]);
-      setFriends(friendList);
-      setMyName(profile?.name?.trim() || 'Me');
-      // Snapshot so a backdrop tap reverts in-flight toggles
-      setFilterSnapshot({
-        includeSelf,
-        selectedFriendIds: new Set(selectedFriendIds),
-      });
-      setFilterOpen(true);
-    } catch (err) {
-      Alert.alert('Could not load profiles', err.message ?? 'Unknown error');
-    }
-  };
-
-  const toggleFriend = (id) => {
-    setSelectedFriendIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  // Done button — commit pending toggles to storage + refresh active allergies.
-  const closeFilter = () => {
-    setFilterOpen(false);
-    setFilterSnapshot(null);
-    if (user?.id) {
-      saveJson(KEYS.homeAllergyFilter(user.id), {
-        includeSelf,
-        friendIds: Array.from(selectedFriendIds),
-      });
-    }
-    refreshActiveAllergies(includeSelf, selectedFriendIds);
-  };
-
-  // Backdrop tap — revert any in-flight toggles, close without saving.
-  const dismissFilter = () => {
-    if (filterSnapshot) {
-      setIncludeSelf(filterSnapshot.includeSelf);
-      setSelectedFriendIds(filterSnapshot.selectedFriendIds);
-    }
-    setFilterSnapshot(null);
-    setFilterOpen(false);
-  };
-
   // --- Misc ---------------------------------------------------------------
   const handleAddRecipe = () => {
     startNewRecipe({ navigation });
   };
-
-  const filterActive = includeSelf || selectedFriendIds.size > 0;
 
   // Sort recipes by the selected field + direction, then apply the search
   // filter. Missing values always sort to the bottom (see lib/sort).
@@ -282,8 +229,8 @@ const Home = ({ navigation }) => {
         onLongPress={() => enterSelect(item.id)}
         delayLongPress={300}
       >
-        <View style={[styles.listItem, isSelected && styles.listItem_selected]}>
-          <Text style={styles.listItemText}>{item.name || 'Untitled'}</Text>
+        <View style={[styles.tile, isSelected && styles.tile_selected]}>
+          <Text style={styles.tileText}>{item.name || 'Untitled'}</Text>
 
           {dots.length > 0 && (
             <View style={styles.allergyDotRow}>
@@ -322,7 +269,7 @@ const Home = ({ navigation }) => {
               disabled={!selectedIds.size}
               style={{ marginRight: 16 }}
             >
-              <FolderIcon color={selectedIds.size ? colors.link : colors.iconDisabled} />
+              <FolderIcon color={selectedIds.size ? colors.primary : colors.iconDisabled} />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleBulkDelete} disabled={!selectedIds.size}>
               <TrashIcon
@@ -335,13 +282,13 @@ const Home = ({ navigation }) => {
       ) : (
         <View style={styles.home_actionBar}>
           <View style={styles.home_actionBar_searchBox}>
-            <SearchIcon size={18} color={colors.textMuted} />
+            <SearchIcon size={18} color={contrast ? colors.text : colors.textMuted} />
             <TextInput
               style={styles.home_actionBar_searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search"
-              placeholderTextColor={colors.iconInactive}
+              placeholderTextColor={contrast ? colors.text : colors.iconInactive}
               autoCorrect={false}
               returnKeyType="search"
               clearButtonMode="while-editing"
@@ -353,16 +300,12 @@ const Home = ({ navigation }) => {
           >
             <SortIcon size={22} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.home_actionBar_iconButton}
-            onPress={openFilter}
-          >
-            <FilterIcon
-              size={22}
-              color={filterActive ? colors.primary : colors.textSecondary}
-            />
-            {filterActive && <View style={styles.home_actionBar_iconDot} />}
-          </TouchableOpacity>
+          <AllergyFilterControl
+            navigation={navigation}
+            route={route}
+            returnTo={{ screen: 'Home' }}
+            onSelectionChange={handleAllergySelectionChange}
+          />
         </View>
       )}
 
@@ -389,47 +332,6 @@ const Home = ({ navigation }) => {
         sort={sort}
         onChange={applySort}
       />
-
-      {/* Filter modal */}
-      <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
-        <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
-          <Pressable style={styles.surface_modal} onPress={() => {}}>
-            <Text style={styles.header_modal}>Allergy warnings for</Text>
-            <ScrollView style={{ maxHeight: 320 }}>
-              <TouchableOpacity
-                style={styles.filter_row}
-                onPress={() => setIncludeSelf((v) => !v)}
-              >
-                <CheckboxIcon checked={includeSelf} />
-                <Text style={styles.filter_rowText}>{myName} (you)</Text>
-              </TouchableOpacity>
-
-              {friends.map((f) => {
-                const checked = selectedFriendIds.has(f.id);
-                const label = f.linkedProfile?.name || f.friendName || 'Unnamed';
-                return (
-                  <TouchableOpacity
-                    key={f.id}
-                    style={styles.filter_row}
-                    onPress={() => toggleFriend(f.id)}
-                  >
-                    <CheckboxIcon checked={checked} />
-                    <Text style={styles.filter_rowText}>{label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-              {friends.length === 0 && (
-                <Text style={styles.emptyText}>No friends added yet.</Text>
-              )}
-            </ScrollView>
-            <TouchableOpacity style={styles.modal_button} onPress={closeFilter}>
-              <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
-                Done
-              </Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {/* Folder picker modal */}
       <Modal
@@ -459,17 +361,23 @@ const Home = ({ navigation }) => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TouchableOpacity
-              style={styles.modal_button}
-              onPress={() => setFolderPickerOpen(false)}
-            >
-              <Text style={styles.modal_buttonText}>Cancel</Text>
-            </TouchableOpacity>
+            <View style={styles.modal_button_right} >
+              <TouchableOpacity
+                style={styles.modal_button}
+                onPress={() => setFolderPickerOpen(false)}
+              >
+                <Text style={styles.modal_buttonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
 
-      <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
+      <NavigationBar
+        navigation={navigation}
+        onAddPress={handleAddRecipe}
+        onHomePress={() => setSearchQuery('')}
+      />
     </View>
   );
 };

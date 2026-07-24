@@ -9,6 +9,7 @@ import Landing from './screens/Landing';
 import Login from './screens/Login';
 import SignUp from './screens/SignUp';
 import PrivacyPolicy from './screens/PrivacyPolicy';
+import ForgotPassword from './screens/ForgotPassword';
 
 import Home from './screens/Home';
 import RecipeCard from './screens/RecipeCard';
@@ -20,6 +21,9 @@ import FolderDetail from './screens/FolderDetail';
 import Friends from './screens/Friends';
 import FriendProfile from './screens/FriendProfile';
 import Profile from './screens/Profile';
+import EditAllergies from './screens/EditAllergies';
+import AllergyOverview from './screens/AllergyOverview';
+import Accessibility from './screens/Accessibility';
 
 const Stack = createStackNavigator();
 
@@ -29,6 +33,7 @@ const AuthStack = () => (
     <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="SignUp" component={SignUp} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
   </Stack.Navigator>
 );
 
@@ -43,7 +48,10 @@ const AppStack = () => (
     <Stack.Screen name="Friends" component={Friends} options={{ animation: 'none' }} />
     <Stack.Screen name="FriendProfile" component={FriendProfile} />
     <Stack.Screen name="Profile" component={Profile} />
+    <Stack.Screen name="EditAllergies" component={EditAllergies} />
+    <Stack.Screen name="AllergyOverview" component={AllergyOverview} />
     <Stack.Screen name="Settings" component={Settings} options={{ animation: 'none' }} />
+    <Stack.Screen name="Accessibility" component={Accessibility} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
   </Stack.Navigator>
 );

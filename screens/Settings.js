@@ -57,8 +57,8 @@ const Settings = ({ navigation }) => {
   };
 
   const Row = ({ label, onPress, danger }) => (
-    <TouchableOpacity style={styles.settings_row} onPress={onPress}>
-      <Text style={[styles.settings_rowText, danger && { color: colors.danger }]}>{label}</Text>
+    <TouchableOpacity style={styles.row} onPress={onPress}>
+      <Text style={[styles.rowText, danger && { color: colors.danger }]}>{label}</Text>
     </TouchableOpacity>
   );
 
@@ -66,14 +66,9 @@ const Settings = ({ navigation }) => {
     <View style={[styles.screen_base, styles.screen_tabPad]}>
       <Text style={styles.header_tab}>Settings</Text>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
-        {user?.user_metadata?.name ? (
-          <Text style={styles.settings_email}>Signed in as {user.user_metadata.name}</Text>
-        ) : (
-          <Text style={styles.settings_email}>Signed in as {user?.email}</Text>
-        )}
-
+      <ScrollView style={[{ flex: 1 }, styles.list_marginless]} contentContainerStyle={{ paddingBottom: 12 }}>
         <Row label="Your Profile" onPress={() => navigation.navigate('Profile')} />
+        <Row label="Accessibility" onPress={() => navigation.navigate('Accessibility')} />
         <Row label="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
         <Row label="Sign Out" onPress={handleSignOut} />
         <Row label="Delete Account" onPress={handleDeleteAccount} danger />

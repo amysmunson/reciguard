@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
-import { BackIcon, ExternalLinkIcon } from '../components/icons';
+import { BackIcon, LinkIcon } from '../components/icons';
+import {colors} from '../styles/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { useAuth } from '../lib/auth-context';
@@ -8,11 +9,14 @@ import { getRecipe } from '../lib/api/recipes';
 import {
   getActiveAllergyDetails,
   ingredientAllergyInfo,
+  normalizeSeverity,
+  severityBackground,
   severityColor,
   severityLabel,
 } from '../lib/api/allergies';
 import { getMyProfile } from '../lib/api/profile';
 import { loadJson, KEYS, recordRecipeOpened } from '../lib/storage';
+import { useCachedResource } from '../lib/cache';
 
 const RecipeCard = ({ route, navigation }) => {
   const { user } = useAuth();
@@ -20,6 +24,13 @@ const RecipeCard = ({ route, navigation }) => {
   const [recipe, setRecipe] = useState(null);
   const [activeAllergies, setActiveAllergies] = useState([]);
   const [expandedIngredient, setExpandedIngredient] = useState(null);
+  const { data: profile } = useCachedResource({
+    resource: 'profile',
+    userId: user?.id,
+    fetcher: getMyProfile,
+  });
+  const contrast = !!profile?.contrast;
+  const myName = profile?.name?.trim() || 'Me';
 
   useFocusEffect(
     useCallback(() => {
@@ -43,15 +54,14 @@ const RecipeCard = ({ route, navigation }) => {
             includeSelf: false,
             friendIds: [],
           });
-          const profile = await getMyProfile();
           const details = await getActiveAllergyDetails({
             includeSelf: !!saved.includeSelf,
             friendshipIds: saved.friendIds ?? [],
-            myName: profile?.name?.trim() || 'Me',
+            myName,
           });
           if (!cancelled) setActiveAllergies(details);
         } catch {
-          // non-fatal — recipe still renders without allergy info
+          // recipe renders without allergy info
         }
       };
 
@@ -60,13 +70,13 @@ const RecipeCard = ({ route, navigation }) => {
       return () => {
         cancelled = true;
       };
-    }, [recipeId, user?.id])
+    }, [recipeId, user?.id, myName])
   );
 
   if (!recipe) {
     return (
       <View style={[styles.screen_base, styles.screen_cardPad]}>
-        <Text style={styles.emptyText}>Loading…</Text>
+        <Text style={[styles.emptyText, { marginTop: 100 }, contrast && { color: colors.text }]}>Loading…</Text>
       </View>
     );
   }
@@ -90,7 +100,7 @@ const RecipeCard = ({ route, navigation }) => {
 
     if (!info) {
       return (
-        <Text key={i} style={styles.ingredientItems}>
+        <Text key={i} style={styles.recipeItem}>
           • {item}
         </Text>
       );
@@ -105,7 +115,7 @@ const RecipeCard = ({ route, navigation }) => {
             { backgroundColor: info.background, borderColor: info.color },
           ]}
         >
-          <Text style={[styles.ingredientItems, { flex: 1, marginVertical: 0 }]}>
+          <Text style={[styles.recipeItem, { flex: 1, marginVertical: 0 }]}>
             • {item}
           </Text>
           <View style={[styles.allergyDot, { backgroundColor: info.color, marginLeft: 8 }]} />
@@ -113,16 +123,34 @@ const RecipeCard = ({ route, navigation }) => {
 
         {isExpanded && (
           <View style={[styles.allergyPopup, { borderLeftColor: info.color }]}>
-            <Text style={styles.allergyPopup_severity}>
+            <Text style={[styles.allergyPopup_severity, contrast && { color: colors.text }]}>
               Worst: {severityLabel(info.severity)}
             </Text>
-            <Text style={styles.allergyPopup_names}>
+            <Text style={[styles.allergyPopup_names, contrast && { color: colors.text }]}>
               {info.people.map((p, idx) => (
-                <Text
-                  key={p.name + idx}
-                  style={{ color: severityColor(p.severity), fontWeight: 'bold' }}
-                >
-                  {p.name}
+                <Text key={p.name + idx}>
+                  <Text
+                    style={[
+                      {
+                        color: contrast ? colors.text : severityColor(p.severity),
+                        fontWeight: 'bold',
+                      },
+                      contrast && normalizeSeverity(p.severity) !== 'unknown'
+                        ? {
+                            backgroundColor: severityBackground(p.severity),
+                            paddingHorizontal: 4,
+                            borderRadius: 4,
+                          }
+                        : !contrast && normalizeSeverity(p.severity) === 'mild' && {
+                            color: '#000000',
+                            textShadowColor: '#ffd000',
+                            textShadowOffset: { width: 0, height: 0 },
+                            textShadowRadius: 6,
+                          },
+                    ]}
+                  >
+                    {p.name}
+                  </Text>
                   {idx < info.people.length - 1 ? ', ' : ''}
                 </Text>
               ))}
@@ -149,34 +177,25 @@ const RecipeCard = ({ route, navigation }) => {
 
       <View style={styles.card_headerRow}>
         <Text style={styles.header_card}>{name || 'Untitled'}</Text>
-        {!!extLink && (
-          <TouchableOpacity
-            onPress={openSource}
-            style={styles.card_sourceLink}
-            accessibilityLabel={source ? `Open original on ${source}` : 'Open original recipe'}
-          >
-            <ExternalLinkIcon />
-          </TouchableOpacity>
-        )}
       </View>
 
       <Text style={styles.header_section}>Ingredients</Text>
       {ingredients.length > 0 ? (
         ingredients.map(renderIngredient)
       ) : (
-        <Text style={styles.emptyText}>No items</Text>
+        <Text style={[styles.emptyText, contrast && { color: colors.text }]}>No items</Text>
       )}
 
       <Text style={styles.spacing} />
       <Text style={styles.header_section}>Instructions</Text>
       {steps.length > 0 ? (
         steps.map((item, i) => (
-          <Text key={i} style={styles.ingredientItems}>
+          <Text key={i} style={styles.recipeItem}>
             {i + 1}. {item}
           </Text>
         ))
       ) : (
-        <Text style={styles.emptyText}>No items</Text>
+        <Text style={[styles.emptyText, contrast && { color: colors.text }]}>No items</Text>
       )}
 
       {authorNotes.length > 0 && (
@@ -184,7 +203,7 @@ const RecipeCard = ({ route, navigation }) => {
           <Text style={styles.spacing} />
           <Text style={styles.header_section}>Author Notes</Text>
           {authorNotes.map((item, i) => (
-            <Text key={i} style={styles.ingredientItems}>
+            <Text key={i} style={styles.recipeItem}>
               • {item}
             </Text>
           ))}
@@ -195,13 +214,26 @@ const RecipeCard = ({ route, navigation }) => {
       <Text style={styles.header_section}>Your Notes</Text>
       {userNotes.length > 0 ? (
         userNotes.map((item, i) => (
-          <Text key={i} style={styles.ingredientItems}>
+          <Text key={i} style={styles.recipeItem}>
             • {item}
           </Text>
         ))
       ) : (
-        <Text style={styles.emptyText}>No items</Text>
+        <Text style={[styles.emptyText, contrast && { color: colors.text }]}>No items</Text>
       )}
+
+      {!!extLink && (
+          <TouchableOpacity
+            onPress={openSource}
+            style={[styles.card_sourceLink]}
+            accessibilityLabel={source ? `Open original on ${source}` : 'Open original recipe'}
+          >
+            <LinkIcon size={18} color={colors.primary} />
+            <Text style={[styles.recipeItem, { color: colors.primary, fontWeight: 'bold' }]}> 
+              Original Recipe
+            </Text>
+          </TouchableOpacity>
+        )}
 
       <Text style={styles.spacing} />
       <Text style={styles.spacing} />

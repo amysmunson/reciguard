@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Recipes",
-    "slug": "Recipes",
+    "name": "RecipeGuard",
+    "slug": "RecipeGuard",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-icon-blue.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
