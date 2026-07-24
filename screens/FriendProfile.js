@@ -426,6 +426,16 @@ const FriendProfile = ({ route, navigation }) => {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <ConfirmModal
+        visible={confirmDiscardVisible}
+        title="Discard changes?"
+        message="Your edits haven't been saved."
+        confirmLabel="Discard"
+        cancelLabel="Keep Editing"
+        onConfirm={handleDiscard}
+        onCancel={() => setConfirmDiscardVisible(false)}
+      />
     </ScrollView>
   );
 };

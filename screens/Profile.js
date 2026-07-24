@@ -224,24 +224,15 @@ const Profile = ({ navigation }) => {
 
       <Text style={styles.spacing} />
 
-      <View style={[styles.surface_lg, { marginVertical: 10, alignItems: 'center' }]}>
-        <Text style={styles.friendCode_label}>Your Friend Code</Text>
-        <Text style={styles.friendCode_value}>
-          {friendCode ? formatCode(friendCode) : '—'}
-        </Text>
-        <Text style={styles.friendCode_hint}>
-          Share this with friends so they can link your profile to theirs.
-        </Text>
-        <TouchableOpacity
-          style={styles.friendCode_shareButton}
-          onPress={handleShareCode}
-          disabled={!friendCode}
-        >
-          <ShareIcon />
-          <Text style={styles.friendCode_shareText}>Share Code</Text>
-        </TouchableOpacity>
-      </View>
-      
+      <ConfirmModal
+        visible={confirmDiscardVisible}
+        title="Discard changes?"
+        message="Your edits haven't been saved."
+        confirmLabel="Discard"
+        cancelLabel="Keep Editing"
+        onConfirm={handleDiscard}
+        onCancel={() => setConfirmDiscardVisible(false)}
+      />
     </ScrollView>
   );
 };
