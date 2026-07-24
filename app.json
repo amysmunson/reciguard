@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.recipeguard.app",
+      "bundleIdentifier": "com.amysmunson.recipeguard",
       "config": {
         "usesNonExemptEncryption": false
       }
