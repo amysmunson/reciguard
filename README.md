@@ -4,15 +4,15 @@
 
 # RecipeGuard
 
-RecipeGuard is a React Native + Expo app with a Supabase backend for storing recipes, organizing them into folders, and tracking food allergies for yourself and friends. The app allows you to filter your recipes based on different profiles and more easily see when a recipe contains someone's allergen (or dietary preference).
+RecipeGuard is a React Native + Expo app with a Supabase backend for storing recipes, organizing them into folders, and tracking food allergies for yourself and friends. The app allows you to filter your recipes based on different profiles and more easily see when a recipe contains someone's allergen (or dietary preference). Friend profiles can be made either by the user or by linking to a friend's existing profile.
 
 
 <p align="center">
-  <img src="./demo/home.webp" width="165" />
-  <img src="./demo/recipe.webp" width="165" />
-  <img src="./demo/linked-friend.webp" width="165" />
-  <img src="./demo/allergy-overview.webp" width="165" />
-  <img src="./demo/profile-filter.webp" width="165" />
+  <img src="./demo/home.webp" width="19%" alt="Home screen showing recipes with allergy warnings on some" />
+  <img src="./demo/recipe.webp" width="19%" alt="Recipe with ingredients highlighted based on allergens" />
+  <img src="./demo/linked-friend.webp" width="19%" alt="Linked friend's profile" />
+  <img src="./demo/allergy-overview.webp" width="19%" alt="Allergy overview screen summarizing allergies for different people" />
+  <img src="./demo/profile-filter.webp" width="19%" alt="Profile allergy filter popup" />
 </p>
 
 
