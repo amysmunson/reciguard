@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   // page-level headers that bundle size + weight + spacing.
 
   // Size atoms.
-  text_display: { fontSize: 48 },
+  text_display: { fontSize: 40 },
   text_h1: { fontSize: 32 },
   text_h2: { fontSize: 28 },
   text_h3: { fontSize: 24 },
@@ -294,12 +294,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 12,
-  },
-  // Large surface — friendCode_card.
-  surface_lg: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
   },
   // Modal card — sits on top of a scrim, fills the modal width.
   surface_modal: {
@@ -726,7 +720,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   modal_button: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
     paddingVertical: 10,
   },
   modal_buttonText: {
@@ -736,7 +730,7 @@ const styles = StyleSheet.create({
 
   modal_button_right: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
   },
 
   //   Selection Mode Styles
@@ -1016,12 +1010,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: 'capitalize',
   },
-  preset_addedHint: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-    marginLeft: 8,
-  },
 
   //   Filter / Folder Picker Modal Rows
   filter_row: {
@@ -1047,43 +1035,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
 
-  //   Friend Code Card (Profile): [surface_lg, { marginVertical: 10, alignItems: 'center' }]
-  friendCode_label: {
-    fontSize: 13,
-    color: colors.textTertiary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
+  //   Friend Code (Profile) — code row: [header_section, readOnly_hint,
+  //   then a row View with [display_fieldValue, friendCode_value] on the
+  //   left and the icon-only friendCode_shareButton on the right.
   friendCode_value: {
-    fontSize: 32,
+    fontSize: 18,
     fontWeight: 'bold',
-    letterSpacing: 4,
     color: colors.primary,
     fontFamily: 'Courier',
-    marginBottom: 8,
-  },
-  friendCode_hint: {
-    fontSize: 13,
-    color: colors.textTertiary,
-    textAlign: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 16,
   },
   friendCode_shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
   },
+  // Icon-only share button has no label anymore; kept only so the icon can
+  // read its tint color from friendCode_shareText.color.
   friendCode_shareText: {
-    color: colors.textOnPrimary,
-    fontWeight: 'bold',
-    fontSize: 15,
-    marginLeft: 8,
+    color: colors.primary,
   },
 
   //   Friend Code Input (for entering someone else's): combine
@@ -1118,6 +1090,17 @@ const styles = StyleSheet.create({
   //   [button_outline, button_outline_link, { marginBottom: 8 }]
   //   + [buttonText_outline, { color: colors.primary }]
 
+  //   Remove-Friend footer (FriendProfile, edit mode) — last item in the
+  //   scrollable content, set off from the link section above it by a
+  //   separating line (borderTop, matching bottomNav's own treatment) with
+  //   enough marginTop that the line doesn't sit flush against it.
+  friendProfile_dangerFooter: {
+    marginTop: 28,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderInput,
+  },
+
   //   Add-Friend Choice Buttons (in Friends modal)
   addChoice_button: {
     flexDirection: 'row',
@@ -1143,7 +1126,7 @@ const styles = StyleSheet.create({
   display_fieldValue: {
     fontSize: 16,
     color: colors.textSecondary,
-    paddingVertical: 10,
+    paddingBottom: 10,
     paddingHorizontal: 4,
     marginBottom: 12,
   },
@@ -1153,21 +1136,15 @@ const styles = StyleSheet.create({
   },
 
   //   Bottom destructive "Remove Friend" button on FriendProfile:
-  //   [button_outline, button_outline_danger, { marginTop: 20 }]
-  //   + [buttonText_outline, { color: colors.danger }]
+  //   wrapped in friendProfile_dangerFooter, composed as
+  //   [button_outline, button_outline_danger] + [buttonText_outline, { color: colors.danger }]
 
-  //   Read-Only Display Blocks (linked friend's public notes):
-  //   [surface_sm, { marginBottom: 4 }]
-  readOnlyText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    lineHeight: 21,
-  },
   readOnly_hint: {
     fontSize: 12,
     color: colors.textMuted,
     fontStyle: 'italic',
-    marginBottom: 8,
+    marginTop: -5,
+    marginBottom: 12,
   },
 
   //   Accessibility Toggle Row and Label (Accessibility screen)

@@ -231,13 +231,13 @@ const FriendProfile = ({ route, navigation }) => {
       )}
 
       {isLinked ? (
-        <View style={[styles.surface_sm, styles.surface_tinted, { flexDirection: 'row', alignItems: 'center', marginBottom: 8 }]}>
+        <View style={[styles.surface_sm, styles.surface_tinted, { flexDirection: 'row', alignItems: 'center', marginVertical: 4 }]}>
           <View style={styles.linkBadge}>
             <LinkIcon />
           </View>
           <Text style={styles.linkStatus_text}>
             {linkedAlive
-              ? 'Linked to a real account'
+              ? 'Linked to another account'
               : 'Linked account no longer exists'}
           </Text>
           {isEditing && (
@@ -249,28 +249,24 @@ const FriendProfile = ({ route, navigation }) => {
       ) : (
         isEditing && (
           <TouchableOpacity
-            style={[styles.button_outline, styles.button_outline_link, { marginBottom: 8 }]}
+            style={[styles.button_outline, styles.button_outline_link, { marginVertical: 4 }]}
             onPress={() => setLinkModalOpen(true)}
           >
             <LinkIcon size={18} color={colors.link} />
-            <Text style={[styles.buttonText_outline, { color: colors.link }]}>Link to Real Account</Text>
+            <Text style={[styles.buttonText_outline, { color: colors.link }]}>Link to Friend&apos;s Account</Text>
           </TouchableOpacity>
         )
       )}
 
       {linkedAlive && (friend.linkedProfile.about ?? '').trim().length > 0 && (
         <>
-          <Text style={styles.spacing} />
-          <Text style={styles.header_section}>About</Text>
+          <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>About</Text>
           <Text style={styles.readOnly_hint}>From their profile.</Text>
-          <View style={[styles.surface_sm, { marginBottom: 4 }]}>
-            <Text style={styles.readOnlyText}>{friend.linkedProfile.about}</Text>
-          </View>
+          <Text style={styles.display_fieldValue}>{friend.linkedProfile.about}</Text>
         </>
       )}
 
-      <Text style={styles.spacing} />
-      <Text style={styles.header_section}>My Notes</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Notes</Text>
       <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
       {isEditing ? (
         <>
@@ -290,8 +286,7 @@ const FriendProfile = ({ route, navigation }) => {
 
       {linkedAlive && (
         <>
-          <Text style={styles.spacing} />
-          <Text style={styles.header_section}>Their Allergies</Text>
+          <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Their Allergies</Text>
           <Text style={styles.readOnly_hint}>From their profile.</Text>
           {theirAllergies.length === 0 ? (
             <Text style={styles.emptyText}>They haven&apos;t added any.</Text>
@@ -388,8 +383,8 @@ const FriendProfile = ({ route, navigation }) => {
             setCodeInput('');
           }}
         >
-          <Pressable style={styles.surface_modal} onPress={() => {}}>
-            <Text style={styles.header_modal}>Link to Real Account</Text>
+          <Pressable style={styles.surface_modal} onPress={() => { }}>
+            <Text style={styles.header_modal}>Link to Existing Account</Text>
             <Text style={[styles.readOnly_hint, { marginBottom: 12 }]}>
               Ask your friend for their friend code (shown on their Profile screen).
             </Text>

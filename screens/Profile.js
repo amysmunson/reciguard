@@ -130,7 +130,7 @@ const Profile = ({ navigation }) => {
   return (
     <ScrollView
       style={[styles.screen_base, styles.screen_cardPad]}
-      contentContainerStyle={{ paddingBottom: 80 }}
+      contentContainerStyle={{ paddingBottom: 40 }}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
@@ -156,10 +156,31 @@ const Profile = ({ navigation }) => {
         <Text style={styles.header_card}>{name || "Your Profile"}</Text>
       )}
 
-      <Text style={styles.header_section}>Email</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Your Friend Code</Text>
+      <Text style={styles.readOnly_hint}>Share this with friends so they can link your profile to theirs.</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, marginBottom: 12 }}>
+        <Text
+          style={[
+            styles.display_fieldValue,
+            styles.friendCode_value,
+            { paddingBottom: 0, marginBottom: 0 },
+          ]}
+        >
+          {friendCode ? formatCode(friendCode) : '—'}
+        </Text>
+        <TouchableOpacity
+          style={styles.friendCode_shareButton}
+          onPress={handleShareCode}
+          disabled={!friendCode}
+        >
+          <ShareIcon color={styles.friendCode_shareText.color} />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Email</Text>
       <Text style={styles.display_fieldValue}>{user?.email}</Text>
 
-      <Text style={styles.header_section}>Phone</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Phone</Text>
       {isEditing ? (
         <TextInput
           style={styles.input_base}
@@ -172,7 +193,8 @@ const Profile = ({ navigation }) => {
         displayValue(phone)
       )}
 
-      <Text style={styles.header_section}>About</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>About</Text>
+      <Text style={styles.readOnly_hint}>Your friends can see this section.</Text>
       {isEditing ? (
         <TextInput
           style={[styles.input_base, { minHeight: 80 }]}
@@ -184,9 +206,9 @@ const Profile = ({ navigation }) => {
       ) : (
         displayValue(about)
       )}
-      <Text style={styles.readOnly_hint}>Friends you link with can see this.</Text>
 
-      <Text style={styles.header_section}>Notes</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Notes</Text>
+      <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
       {isEditing ? (
         <TextInput
           style={[styles.input_base, { minHeight: 80 }]}
@@ -198,7 +220,6 @@ const Profile = ({ navigation }) => {
       ) : (
         displayValue(notes)
       )}
-      <Text style={styles.readOnly_hint}>Only you can see these notes.</Text>
 
       <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Allergies</Text>
       {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
