@@ -112,7 +112,7 @@ const InputSelector = ({ navigation }) => {
         source: hostnameFromUrl(url),
         extLink: url.trim(),
       });
-      navigation.navigate('EditRecipe', { recipeId: recipe.id });
+      navigation.navigate('EditRecipe', { recipeId: recipe.id, fromCreate: true });
     } catch (err) {
       setError(err.message ?? 'Could not create recipe.');
     } finally {
