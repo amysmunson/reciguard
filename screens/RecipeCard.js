@@ -143,9 +143,9 @@ const RecipeCard = ({ route, navigation }) => {
                           }
                         : !contrast && normalizeSeverity(p.severity) === 'mild' && {
                             color: '#000000',
-                            backgroundColor: colors.severityLowBg,
-                            paddingHorizontal: 4,
-                            borderRadius: 4,
+                            textShadowColor: '#ffd000',
+                            textShadowOffset: { width: 0, height: 0 },
+                            textShadowRadius: 6,
                           },
                     ]}
                   >

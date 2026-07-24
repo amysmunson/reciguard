@@ -35,11 +35,14 @@ const palette = {
   severityHigh:    '#a61436',
   severityMedium:  '#e37214',
   severityLow:     '#ffd000',
-  severityNone:    '#465b6d',
+  // severityNone:    '#465b6d',
+  // new one matches primaryBlue 
+  severityNone:    '#004c72',
   severityHighBg: 'rgba(166, 20, 54, 0.16)',
   severityMediumBg: 'rgba(227, 114, 20, 0.18)', 
   severityLowBg:    'rgba(255, 228, 107, 0.24)',
-  severityNoneBg:   'rgba(80, 110, 125, 0.16)',
+  // severityNoneBg:   'rgba(80, 110, 125, 0.16)',
+  severityNoneBg:   'rgba(0, 76, 114, 0.16)',
 
   // Neutrals
   muted:       '#888888',
