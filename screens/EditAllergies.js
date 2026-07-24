@@ -99,7 +99,7 @@ const EditAllergies = ({ navigation, route }) => {
       {items.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
       {items.map((a) => (
         <View key={a.id} style={styles.allergyRow}>
-          <Text style={[styles.ingredientItems, { flex: 1 }]}>• {cap(a.name)}</Text>
+          <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
           <View style={styles.severityChoice_row}>
             {SEVERITY_CHOICES.map((choice) => {
               const isSelected = normalizeSeverity(a.severity) === normalizeSeverity(choice);
