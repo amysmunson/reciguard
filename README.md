@@ -195,6 +195,9 @@ Run on iOS using the Expo Go app.
 
 ## Development Notes
 
+### Visual Mockup
+[See Figma here.](https://www.figma.com/design/QlHZxsvFkBei9S63uUG2R8/Recipes?node-id=0-1&t=VPWSmxftsIhJ5YvY-1)
+
 ### Package Management
 
 Always install Expo-compatible packages using:
