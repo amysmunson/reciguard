@@ -8,6 +8,7 @@ import {
   getFolder,
   getRecipesInFolder,
   deleteFolder,
+  updateFolder,
   removeRecipesFromFolder,
   addRecipesToFolder,
 } from '../lib/api/folders';
@@ -21,6 +22,7 @@ import { getMyProfile } from '../lib/api/profile';
 import {
   BackIcon,
   CheckboxIcon,
+  EditIcon,
   EllipsisIcon,
   PlusIcon,
   RemoveCircleIcon,
@@ -49,8 +51,10 @@ const FolderDetail = ({ route, navigation }) => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // Overflow menu (ellipsis) — currently just the delete-folder action.
+  // Overflow menu (ellipsis) — rename and delete.
   const [menuOpen, setMenuOpen] = useState(false);
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
 
   // Add-recipe picker — lists the user's recipes not already in this folder.
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -243,6 +247,23 @@ const FolderDetail = ({ route, navigation }) => {
     );
   };
 
+  const openRenameModal = () => {
+    setRenameValue(folder?.name ?? '');
+    setRenameModalOpen(true);
+  };
+
+  const handleRename = async () => {
+    const trimmed = renameValue.trim();
+    if (!trimmed) return;
+    try {
+      await updateFolder(folderId, { name: trimmed });
+      setFolder((prev) => ({ ...prev, name: trimmed }));
+      setRenameModalOpen(false);
+    } catch (err) {
+      Alert.alert('Could not rename folder', err.message ?? 'Unknown error');
+    }
+  };
+
   const handleDeleteFolder = () => {
     Alert.alert('Delete folder?', 'Recipes inside are not deleted.', [
       { text: 'Cancel', style: 'cancel' },
@@ -388,6 +409,16 @@ const FolderDetail = ({ route, navigation }) => {
               style={styles.sort_popdown_row}
               onPress={() => {
                 setMenuOpen(false);
+                openRenameModal();
+              }}
+            >
+              <EditIcon size={18} />
+              <Text style={styles.sort_popdown_rowText}>Rename folder</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.sort_popdown_row}
+              onPress={() => {
+                setMenuOpen(false);
                 handleDeleteFolder();
               }}
             >
@@ -396,6 +427,46 @@ const FolderDetail = ({ route, navigation }) => {
                 Delete folder
               </Text>
             </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Rename-folder modal */}
+      <Modal
+        visible={renameModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRenameModalOpen(false)}
+      >
+        <Pressable style={styles.modal_backdrop} onPress={() => setRenameModalOpen(false)}>
+          <Pressable style={styles.surface_modal} onPress={() => {}}>
+            <Text style={styles.header_modal}>Rename Folder</Text>
+            <TextInput
+              style={[styles.input_base, styles.input_spaced]}
+              placeholder="Folder name"
+              value={renameValue}
+              onChangeText={setRenameValue}
+              autoFocus
+            />
+            <View style={styles.modal_button_right}>
+              <TouchableOpacity style={styles.modal_button} onPress={() => setRenameModalOpen(false)}>
+                <Text style={styles.modal_buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modal_button}
+                onPress={handleRename}
+                disabled={!renameValue.trim()}
+              >
+                <Text
+                  style={[
+                    styles.modal_buttonText,
+                    { color: renameValue.trim() ? colors.link : colors.iconDisabled, fontWeight: 'bold' },
+                  ]}
+                >
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
