@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
   },
-  // Landing hero title. Sized so an 11-char product name ("RecipeGuard")
+  // Landing hero title. Sized to product name ("ReciGuard")
   // fits a single line inside a 360-wide LandingCard without wrapping.
   header_landing: {
     fontSize: 40,

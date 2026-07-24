@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="./assets/icon.png" alt="RecipeGuard icon" width="120" />
+  <img src="./assets/icon.png" alt="ReciGuard icon" width="120" />
 </p>
 
-# RecipeGuard
+# ReciGuard
 
-RecipeGuard is a React Native + Expo app with a Supabase backend for storing recipes, organizing them into folders, and tracking food allergies for yourself and friends. The app allows you to filter your recipes based on different profiles and more easily see when a recipe contains someone's allergen (or dietary preference). Friend profiles can be made either by the user or by linking to a friend's existing profile.
+ReciGuard is a React Native + Expo app with a Supabase backend for storing recipes, organizing them into folders, and tracking food allergies for yourself and friends. The app allows you to filter your recipes based on different profiles and more easily see when a recipe contains someone's allergen (or dietary preference). Friend profiles can be made either by the user or by linking to a friend's existing profile.
 
 
 <p align="center">
