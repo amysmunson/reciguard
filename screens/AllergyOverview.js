@@ -60,11 +60,16 @@ const AllergyOverview = ({ navigation, route }) => {
       setMyName(resolvedName);
       setDetails(allDetails);
 
-      // If the caller passed a seeded selection, use that
-      if (seededFriendIds !== undefined) {
+      const seedIncludeSelf = !!route.params?.initialIncludeSelf;
+      const seedIsEmpty = !seedIncludeSelf && (!seededFriendIds || seededFriendIds.length === 0);
+      if (seededFriendIds !== undefined && !seedIsEmpty) {
         const validIds = new Set(allFriendIds);
-        setIncludeSelf(!!route.params?.initialIncludeSelf);
+        setIncludeSelf(seedIncludeSelf);
         setSelectedFriendIds(new Set(seededFriendIds.filter((id) => validIds.has(id))));
+      } else if (seededFriendIds !== undefined) {
+        // Seeded but empty, so default to everyone.
+        setIncludeSelf(true);
+        setSelectedFriendIds(new Set(allFriendIds));
       } else if (saved) {
         // otherwise restore the saved selection, dropping any friend ids that no longer exist
         const validIds = new Set(allFriendIds);
