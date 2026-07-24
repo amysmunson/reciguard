@@ -269,7 +269,7 @@ const Friends = ({ navigation }) => {
               <>
                 <Text style={styles.header_modal}>Add Manually</Text>
                 <TextInput
-                  style={[styles.input_base, styles.input_spaced, {letterSpacing: 1}]}
+                  style={[styles.input_base, {letterSpacing: 0}]}
                   placeholder="Friend's name"
                   value={nameInput}
                   onChangeText={setNameInput}
