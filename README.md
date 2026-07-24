@@ -1,18 +1,33 @@
+<p align="center">
+  <img src="./assets/icon.png" alt="RecipeGuard icon" width="120" />
+</p>
+
 # RecipeGuard
 
-RecipeGuard is a React Native + Expo app with a Supabase backend for storing recipes, organizing them into folders, and tracking food allergies for yourself and friends.
+RecipeGuard is a React Native + Expo app with a Supabase backend for storing recipes, organizing them into folders, and tracking food allergies for yourself and friends. The app allows you to filter your recipes based on different profiles and more easily see when a recipe contains someone's allergen (or dietary preference).
+
+
+<p align="center">
+  <img src="./demo/home.webp" width="200" />
+  <img src="./demo/recipe.webp" width="200" />
+  <img src="./demo/linked-friend.webp" width="200" />
+  <img src="./demo/allergy-overview.webp" width="200" />
+  <img src="./demo/profile-filter.webp" width="200" />
+</p>
 
 
 ## Features
 
 - Create, edit, and delete recipes
-- Organize recipes into folders
-- Search recipes by name
+- Add recipes by pasting a link (auto-parsed) or entering them manually
+- Organize recipes into folders, with multi-select bulk delete
+- Search recipes and friends by name
 - Sort recipes and folders by date added, last edited, recently opened, or alphabetical — ascending or descending, persisted per-user per-screen
-- Track allergies for yourself and friends
-- Filter by allergies for different people and groups
+- Track allergies for yourself and friends, each with its own severity level
+- Filter by allergies for different people and groups, plus a standalone allergy overview summary
 - Severity-aware allergy warnings inside recipes and in list
 - Friend profile linking via unique friend codes
+- High-contrast accessibility mode
 - Persistent per-user filters and preferences
 - Instant list loads with a stale-while-revalidate cache
 - Authentication with Supabase Auth
@@ -31,6 +46,8 @@ This app includes an allergy-aware filtering system.
     - Mild
     - Moderate
     - Severe
+- Dedicated allergy editor (per-allergy severity, add/remove) shared by your own profile and friend profiles
+- Standalone Allergy Overview screen — a read-only summary across any set of people
 - Ingredient-level warnings
 - Recipe-level warning dots
 - Persistent allergy filters
@@ -49,10 +66,16 @@ Users can:
 
 - Add manual friends
 - Link friends to real accounts using friend codes
+- Search their friends list by name
 - Track friend allergies
 - Store private notes per friendship
 
 Linked friendships automatically include the friend's public allergies in allergy filtering.
+
+
+## Accessibility
+
+A per-user high-contrast mode, toggled from the Accessibility screen and stored on the profile. The preference updates instantly (optimistic cache update) and adjusts text-oriented affordances — allergy severity text, search bar icons/placeholders — across the app.
 
 
 ## Tech Stack
@@ -63,6 +86,7 @@ Linked friendships automatically include the friend's public allergies in allerg
 - Expo SDK 54
 - React Navigation
 - react-native-svg
+- react-native-vector-icons
 
 ### Backend
 
@@ -114,22 +138,28 @@ Session     -> AppStack
 - Login
 - SignUp
 - PrivacyPolicy
+- ForgotPassword
 
 ### AppStack
 - Home
 - RecipeCard
 - EditRecipe
+- InputSelector
 - Folders
 - FolderDetail
 - Friends
 - FriendProfile
 - Profile
+- EditAllergies
+- AllergyOverview
 - Settings
+- Accessibility
+- PrivacyPolicy
 
 
 ## Setup
 
-These environment variables are required to connect to the Supabase database. See .env.examples for an example .env file.
+These environment variables are required to connect to the Supabase database. See .env.example for an example .env file.
 
 ```env
 EXPO_PUBLIC_SUPABASE_URL
@@ -188,7 +218,7 @@ for Expo-managed dependencies.
 - Row Level Security (RLS) is enabled on all tables
 - All rows are scoped to the authenticated user
 - Friend-code lookup is handled through a restricted RPC
-- email
+- Friend list reads go through a `get_my_friends` RPC that only returns a linked friend's public profile fields (name, about) — private fields like email are never exposed to other users
 
 
 ### Sorting
@@ -231,12 +261,13 @@ screen or shared component imports `react-native-vector-icons` directly.
 The registry contains three flavors:
 
 - **Custom SVG icons** — `PlusIcon`, `SearchIcon`, `SortIcon`,
-  `FilterIcon`. One file each, rendered via `react-native-svg`.
-- **Static vendor wrappers** — `BackIcon`, `TrashIcon`, `ShareIcon`,
-  `LinkIcon`, `LinkOutlineIcon`, `CameraIcon`, `ExternalLinkIcon`,
-  `KeyIcon`, `PersonAddIcon`, `RemoveCircleIcon`, `FolderIcon`. Each
-  pins a semantic name to one Ionicons/FontAwesome glyph and exposes
-  optional `size`, `color`, and `style` props.
+  `FilterIcon`, `EditIcon`. One file each, rendered via `react-native-svg`.
+- **Vector-icon wrappers** — `BackIcon`, `TrashIcon`, `EllipsisIcon`,
+  `CheckIcon`, `RemoveCircleIcon`, `ShareIcon`, `LinkIcon`,
+  `LinkOutlineIcon`, `ImageIcon`, `KeyIcon`, `PersonAddIcon`,
+  `AllergyListIcon`, `ExternalLinkIcon`, `FolderIcon`. Each pins a
+  semantic name to one Ionicons/FontAwesome glyph and exposes optional
+  `size`, `color`, and `style` props.
 - **Stateful wrappers** — `CheckboxIcon` (`checked` / `partial`),
   `SelectCircleIcon` (`selected`), `RadioIcon` (`selected`),
   `SortArrowIcon` (`direction: 'asc' | 'desc'`), and `TabIcon` (matches
