@@ -12,7 +12,13 @@ import {
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import { KeyIcon, PersonAddIcon, PlusIcon } from '../components/icons';
+import {
+  AllergyListIcon,
+  KeyIcon,
+  PersonAddIcon,
+  PlusIcon,
+  SearchIcon,
+} from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import {
   getFriends,
@@ -41,6 +47,14 @@ const Friends = ({ navigation }) => {
   });
   const friends = data?.list ?? [];
   const myName = data?.myName || fallbackName;
+
+  // Search state — filters the friends list below by display name.
+  const [searchQuery, setSearchQuery] = useState('');
+  const displayedFriends = searchQuery.trim()
+    ? friends.filter((f) =>
+        friendDisplayName(f).toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : friends;
 
   // Modal state. Step "choose" picks path; "code" enters friend code;
   // "manual" enters a name for an off-platform friend.
@@ -99,9 +113,37 @@ const Friends = ({ navigation }) => {
 
       <Text style={styles.header_tab}>Friends</Text>
 
+      <View style={styles.home_actionBar}>
+        <View style={styles.home_actionBar_searchBox}>
+          <SearchIcon size={18} color={colors.textMuted} />
+          <TextInput
+            style={styles.home_actionBar_searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search"
+            placeholderTextColor={colors.iconInactive}
+            autoCorrect={false}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+        </View>
+        <TouchableOpacity
+          style={styles.home_actionBar_iconButton}
+          onPress={() => navigation.navigate('AllergyOverview')}
+        >
+          <AllergyListIcon size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.home_actionBar_iconButton}
+          onPress={openAddFriend}
+        >
+          <PlusIcon size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         style={styles.list_marginless}
-        data={friends}
+        data={displayedFriends}
         ListHeaderComponent={
           <TouchableOpacity
             style={[styles.row, styles.friends_meRow]}
@@ -133,7 +175,11 @@ const Friends = ({ navigation }) => {
         }}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No friends yet. Tap + to add one.</Text>
+          <Text style={styles.emptyText}>
+            {searchQuery.trim()
+              ? `No friends match "${searchQuery}".`
+              : 'No friends yet. Tap + to add one.'}
+          </Text>
         }
       />
 

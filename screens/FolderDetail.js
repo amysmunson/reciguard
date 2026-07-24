@@ -12,7 +12,6 @@ import {
   addRecipesToFolder,
 } from '../lib/api/folders';
 import { getRecipes } from '../lib/api/recipes';
-import { getFriends } from '../lib/api/friends';
 import {
   getActiveAllergyDetails,
   dotsForRecipe,
@@ -23,7 +22,6 @@ import {
   BackIcon,
   CheckboxIcon,
   EllipsisIcon,
-  FilterIcon,
   PlusIcon,
   RemoveCircleIcon,
   SearchIcon,
@@ -32,6 +30,8 @@ import {
   TrashIcon,
 } from '../components/icons';
 import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
+import { useCachedResource } from '../lib/cache';
+import AllergyFilterControl from '../components/AllergyFilterControl';
 import SortMenu from '../components/SortMenu';
 import {
   RECIPE_SORT_OPTIONS,
@@ -57,18 +57,16 @@ const FolderDetail = ({ route, navigation }) => {
   const [pickerRecipes, setPickerRecipes] = useState([]);
   const [pickerSelected, setPickerSelected] = useState(new Set());
 
-  // Allergy filter — shares Home's persisted selection (KEYS.homeAllergyFilter)
-  // so toggling here and on Home stay consistent.
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [friends, setFriends] = useState([]);
-  const [myName, setMyName] = useState('Me');
-  const [includeSelf, setIncludeSelf] = useState(false);
-  const [selectedFriendIds, setSelectedFriendIds] = useState(new Set());
-  const [filterHydrated, setFilterHydrated] = useState(false);
-  // Snapshot of filter state when the modal opens, so backdrop-tap reverts.
-  const [filterSnapshot, setFilterSnapshot] = useState(null);
+  // Allergy filter — selection itself lives in AllergyFilterControl (shared
+  // with Home, same persisted key); it reports the selection here via
+  // onSelectionChange so tile dots can be computed.
+  const [allergySelection, setAllergySelection] = useState({
+    includeSelf: false,
+    selectedFriendIds: new Set(),
+  });
+  const [allergySelectionReady, setAllergySelectionReady] = useState(false);
   const [activeAllergies, setActiveAllergies] = useState([]);
-  const filterActive = includeSelf || selectedFriendIds.size > 0;
+  const filterActive = allergySelection.includeSelf || allergySelection.selectedFriendIds.size > 0;
 
   // Search state — query string only; the input lives in the action bar.
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,13 +99,18 @@ const FolderDetail = ({ route, navigation }) => {
       const details = await getActiveAllergyDetails({
         includeSelf: self,
         friendshipIds: Array.from(friendIds),
-        myName: myName || 'Me',
+        myName: 'Me',
       });
       setActiveAllergies(details);
     } catch (err) {
       Alert.alert('Could not load allergies', err.message ?? 'Unknown error');
     }
-  }, [myName]);
+  }, []);
+
+  const handleAllergySelectionChange = useCallback((self, friendIds) => {
+    setAllergySelection({ includeSelf: self, selectedFriendIds: friendIds });
+    setAllergySelectionReady(true);
+  }, []);
 
   // Hydrate the saved sort selection (shared across all folders).
   useEffect(() => {
@@ -116,25 +119,6 @@ const FolderDetail = ({ route, navigation }) => {
     (async () => {
       const saved = await loadJson(KEYS.folderRecipesSort(user.id), null);
       if (!cancelled) setSort(normalizeSort(saved, DEFAULT_RECIPE_SORT));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
-
-  // Hydrate the allergy filter from the same key Home persists to.
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-    (async () => {
-      const saved = await loadJson(KEYS.homeAllergyFilter(user.id), {
-        includeSelf: false,
-        friendIds: [],
-      });
-      if (cancelled) return;
-      setIncludeSelf(!!saved.includeSelf);
-      setSelectedFriendIds(new Set(saved.friendIds ?? []));
-      setFilterHydrated(true);
     })();
     return () => {
       cancelled = true;
@@ -151,65 +135,17 @@ const FolderDetail = ({ route, navigation }) => {
     useCallback(() => {
       loadRecipes();
       refreshOpenedMap();
-      if (filterHydrated) refreshActiveAllergies(includeSelf, selectedFriendIds);
+      if (allergySelectionReady) {
+        refreshActiveAllergies(allergySelection.includeSelf, allergySelection.selectedFriendIds);
+      }
     }, [
       loadRecipes,
       refreshOpenedMap,
       refreshActiveAllergies,
-      includeSelf,
-      selectedFriendIds,
-      filterHydrated,
+      allergySelection,
+      allergySelectionReady,
     ])
   );
-
-  // --- Allergy filter helpers ---------------------------------------------
-  const openFilter = async () => {
-    try {
-      const [friendList, profile] = await Promise.all([getFriends(), getMyProfile()]);
-      setFriends(friendList);
-      setMyName(profile?.name?.trim() || 'Me');
-      // Snapshot so a backdrop tap reverts in-flight toggles.
-      setFilterSnapshot({
-        includeSelf,
-        selectedFriendIds: new Set(selectedFriendIds),
-      });
-      setFilterOpen(true);
-    } catch (err) {
-      Alert.alert('Could not load profiles', err.message ?? 'Unknown error');
-    }
-  };
-
-  const toggleFriend = (id) => {
-    setSelectedFriendIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  // Done button — persist to the shared key + refresh active allergies.
-  const closeFilter = () => {
-    setFilterOpen(false);
-    setFilterSnapshot(null);
-    if (user?.id) {
-      saveJson(KEYS.homeAllergyFilter(user.id), {
-        includeSelf,
-        friendIds: Array.from(selectedFriendIds),
-      });
-    }
-    refreshActiveAllergies(includeSelf, selectedFriendIds);
-  };
-
-  // Backdrop tap — revert any in-flight toggles, close without saving.
-  const dismissFilter = () => {
-    if (filterSnapshot) {
-      setIncludeSelf(filterSnapshot.includeSelf);
-      setSelectedFriendIds(filterSnapshot.selectedFriendIds);
-    }
-    setFilterSnapshot(null);
-    setFilterOpen(false);
-  };
 
   const applySort = (next) => {
     setSort(next);
@@ -374,13 +310,15 @@ const FolderDetail = ({ route, navigation }) => {
           >
             <SortIcon size={22} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.home_actionBar_iconButton} onPress={openFilter}>
-            <FilterIcon
-              size={22}
-              color={filterActive ? colors.primary : colors.textSecondary}
-            />
-            {filterActive && <View style={styles.home_actionBar_iconDot} />}
-          </TouchableOpacity>
+          <AllergyFilterControl
+            navigation={navigation}
+            route={route}
+            returnTo={{
+              screen: 'FolderDetail',
+              params: { folderId, folderName: folder?.name ?? initialName },
+            }}
+            onSelectionChange={handleAllergySelectionChange}
+          />
           <TouchableOpacity style={styles.home_actionBar_iconButton} onPress={openRecipePicker}>
             <PlusIcon size={22} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -458,49 +396,6 @@ const FolderDetail = ({ route, navigation }) => {
                 Delete folder
               </Text>
             </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Allergy filter modal — same selection Home persists/reads */}
-      <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
-        <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
-          <Pressable style={styles.surface_modal} onPress={() => {}}>
-            <Text style={styles.header_modal}>Allergy warnings for</Text>
-            <ScrollView style={{ maxHeight: 320 }}>
-              <TouchableOpacity
-                style={styles.filter_row}
-                onPress={() => setIncludeSelf((v) => !v)}
-              >
-                <CheckboxIcon checked={includeSelf} />
-                <Text style={styles.filter_rowText}>{myName} (you)</Text>
-              </TouchableOpacity>
-
-              {friends.map((f) => {
-                const checked = selectedFriendIds.has(f.id);
-                const label = f.linkedProfile?.name || f.friendName || 'Unnamed';
-                return (
-                  <TouchableOpacity
-                    key={f.id}
-                    style={styles.filter_row}
-                    onPress={() => toggleFriend(f.id)}
-                  >
-                    <CheckboxIcon checked={checked} />
-                    <Text style={styles.filter_rowText}>{label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-              {friends.length === 0 && (
-                <Text style={styles.emptyText}>No friends added yet.</Text>
-              )}
-            </ScrollView>
-            <View style={styles.modal_button_right} >
-            <TouchableOpacity style={styles.modal_button} onPress={closeFilter}>
-              <Text style={[styles.modal_buttonText, { color: colors.primary, fontWeight: 'bold' }]}>
-                Done
-              </Text>
-            </TouchableOpacity>
-            </View>
           </Pressable>
         </Pressable>
       </Modal>

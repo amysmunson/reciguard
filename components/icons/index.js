@@ -93,6 +93,11 @@ export const PersonAddIcon = ({ size = 22, color = colors.primary, style, ...res
   <Ionicons name="person-add-outline" size={size} color={color} style={style} {...rest} />
 );
 
+// Allergy-overview entry point (Home action bar).
+export const AllergyListIcon = ({ size = 22, color = colors.textSecondary, style, ...rest }) => (
+  <Ionicons name="list-outline" size={size} color={color} style={style} {...rest} />
+);
+
 // --- Folder (bulk action in Home select bar + folder-picker rows) --------
 export const FolderIcon = ({ size = 22, color = colors.primary, style, ...rest }) => (
   <FAIcon name="folder" size={size} color={color} style={style} {...rest} />

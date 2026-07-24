@@ -430,15 +430,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     // textOnPrimary if you change background to primary later
   },
-  home_search: {
-    position: 'absolute',
-    top: 45, // leave space for status bar
-    right: 10,
-    backgroundColor: colors.background,
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
   // Folders screen: sort + add buttons, aligned top-right.
   bottomNav: {
     flexDirection: 'row',

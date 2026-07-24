@@ -22,6 +22,7 @@ import Friends from './screens/Friends';
 import FriendProfile from './screens/FriendProfile';
 import Profile from './screens/Profile';
 import EditAllergies from './screens/EditAllergies';
+import AllergyOverview from './screens/AllergyOverview';
 import Accessibility from './screens/Accessibility';
 
 const Stack = createStackNavigator();
@@ -48,6 +49,7 @@ const AppStack = () => (
     <Stack.Screen name="FriendProfile" component={FriendProfile} />
     <Stack.Screen name="Profile" component={Profile} />
     <Stack.Screen name="EditAllergies" component={EditAllergies} />
+    <Stack.Screen name="AllergyOverview" component={AllergyOverview} />
     <Stack.Screen name="Settings" component={Settings} options={{ animation: 'none' }} />
     <Stack.Screen name="Accessibility" component={Accessibility} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
