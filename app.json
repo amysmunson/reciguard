@@ -8,7 +8,11 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.recipeguard.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +28,6 @@
       "expo-sqlite",
       "expo-web-browser",
       "expo-font",
-      "expo-router",
       [
         "expo-splash-screen",
         {

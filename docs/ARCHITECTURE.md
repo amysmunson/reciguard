@@ -129,7 +129,7 @@ be safely removed if/when you confirm nothing pulls it in.
 | `@react-native-async-storage/async-storage` | Storage adapter for Supabase auth session and the per-user filter persistence in [lib/storage.js](lib/storage.js). |
 | `react-native-url-polyfill` | Side-effect import in [lib/supabase.js](lib/supabase.js) — Supabase needs URL globals that RN doesn't ship. |
 | `react-native-svg` | Used by `components/LandingCard*.js` for the decorative title shapes and by `components/icons/*.js` for the custom Heroicons-style glyphs (Plus / Search / Sort). |
-| `@expo/vector-icons` | Provides the `react-native-vector-icons/Ionicons` and `/FontAwesome` font sets. Direct imports are confined to [components/icons/index.js](components/icons/index.js); every screen consumes semantic wrappers (e.g. `<TrashIcon>`, `<BackIcon>`) from the registry instead. |
+| `react-native-vector-icons` | Provides the `Ionicons` and `FontAwesome` font sets consumed via `react-native-vector-icons/Ionicons` and `/FontAwesome`. Direct imports are confined to [components/icons/index.js](components/icons/index.js); every screen consumes semantic wrappers (e.g. `<TrashIcon>`, `<BackIcon>`) from the registry instead. It was only a *transitive* dependency (pulled in by `expo-router`) until `expo-router`'s removal surfaced that gap — it's now declared explicitly in `package.json`. |
 
 ### Runtime — peer / framework requirements (not directly imported)
 
@@ -152,7 +152,6 @@ one (grep) before deleting.
 
 | Package | Replaced by / status |
 |---|---|
-| `expo-router` | We use `@react-navigation/stack` directly. Unused. |
 | `expo-sqlite` | Legacy from the local-SQLite version of the app before Supabase. Unused now. |
 | `expo-image` | We use `ImageBackground` from `react-native`. Unused. |
 | `expo-haptics` | No haptic feedback wired up. Unused. |
@@ -161,6 +160,7 @@ one (grep) before deleting.
 | `expo-web-browser` | No in-app browser use. Unused. |
 | `@react-navigation/bottom-tabs` | We use a custom `NavigationBar` component. Unused. |
 | `@react-navigation/elements` | Pulled in transitively by `@react-navigation/native`. May be removable but low priority. |
+| `@expo/vector-icons` | Not imported anywhere — the icon registry imports `react-native-vector-icons` directly instead (see above). Candidate for removal. |
 
 ### Dev tooling
 
@@ -657,6 +657,23 @@ selection mode:
 
 The selection state is local to each screen; backing out exits the mode.
 
+### FolderDetail overflow menu (rename + delete)
+
+The ellipsis button (top-right, hidden while in select mode) opens a
+popdown menu (`sort_popdown` styling, same as `SortMenu`) with two
+actions on the folder currently being viewed:
+
+- **Rename folder** — opens a `surface_modal` prompt (same shape as
+  Folders' "New Folder" modal) pre-filled with the current name. Save
+  calls `updateFolder(folderId, { name })` from
+  [lib/api/folders.js](lib/api/folders.js) and updates local `folder`
+  state immediately so the header reflects the new name without waiting
+  on a refetch. Disabled while the trimmed input is empty.
+- **Delete folder** — confirm-and-delete via `deleteFolder`, then
+  `navigation.goBack()`. Recipes inside are not deleted, only the folder
+  and its recipe-folder mappings (same caveat as the bulk-delete path in
+  Selection mode above).
+
 ### Allergy filter + severity-aware warnings
 
 **The filter** — "Me" + any combination of friends, selecting whose
@@ -896,7 +913,13 @@ edit-mode pattern:
 - Both screens refetch on every focus (`useFocusEffect`, not a one-time
   mount effect) so allergy edits made on EditAllergies — which save
   straight to the database themselves — are reflected here as soon as you
-  navigate back.
+  navigate back. That refetch takes a `{ preserveEdits }` flag (passed as
+  `isEditing`): while actively editing, only the allergy list (and, on
+  FriendProfile, the `friend` record) is refreshed — the name/phone/
+  about/notes fields and their `baseline` are left alone so navigating to
+  EditAllergies and back doesn't clobber whatever's still unsaved in
+  those fields. `handleDiscard` always calls `load()` with the default
+  (`preserveEdits: false`) to fully revert, regardless of this flag.
 
 `ConfirmModal` is generic (`visible`, `title`, `message`, `confirmLabel`,
 `cancelLabel`, `onConfirm`, `onCancel`) — same visual language as the

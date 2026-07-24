@@ -20,7 +20,7 @@ RecipeGuard is a React Native + Expo app with a Supabase backend for storing rec
 
 - Create, edit, and delete recipes
 - Add recipes by pasting a link (auto-parsed) or entering them manually
-- Organize recipes into folders, with multi-select bulk delete
+- Organize recipes into folders, with rename and multi-select bulk delete
 - Search recipes and friends by name
 - Sort recipes and folders by date added, last edited, recently opened, or alphabetical — ascending or descending, persisted per-user per-screen
 - Track allergies for yourself and friends, each with its own severity level
