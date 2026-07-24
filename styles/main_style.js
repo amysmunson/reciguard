@@ -720,6 +720,7 @@ const styles = StyleSheet.create({
   },
 
   modal_button_right: {
+    marginTop: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
