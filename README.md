@@ -8,11 +8,11 @@ RecipeGuard is a React Native + Expo app with a Supabase backend for storing rec
 
 
 <p align="center">
-  <img src="./demo/home.webp" width="200" />
-  <img src="./demo/recipe.webp" width="200" />
-  <img src="./demo/linked-friend.webp" width="200" />
-  <img src="./demo/allergy-overview.webp" width="200" />
-  <img src="./demo/profile-filter.webp" width="200" />
+  <img src="./demo/home.webp" width="165" />
+  <img src="./demo/recipe.webp" width="165" />
+  <img src="./demo/linked-friend.webp" width="165" />
+  <img src="./demo/allergy-overview.webp" width="165" />
+  <img src="./demo/profile-filter.webp" width="165" />
 </p>
 
 
