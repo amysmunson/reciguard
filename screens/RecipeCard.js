@@ -76,7 +76,7 @@ const RecipeCard = ({ route, navigation }) => {
   if (!recipe) {
     return (
       <View style={[styles.screen_base, styles.screen_cardPad]}>
-        <Text style={[styles.emptyText, contrast && { color: colors.text }]}>Loading…</Text>
+        <Text style={[styles.emptyText, { marginTop: 100 }, contrast && { color: colors.text }]}>Loading…</Text>
       </View>
     );
   }
