@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon, LinkIcon, TrashIcon } from '../components/icons';
@@ -22,14 +23,10 @@ import {
 import {
   getFriendAllergies,
   getLinkedUserAllergies,
-  addAllergy,
-  deleteAllergy,
-  updateAllergySeverity,
   severityColor,
   severityLabel,
-  normalizeSeverity,
 } from '../lib/api/allergies';
-import AllergyChecklist from '../components/AllergyChecklist';
+import ConfirmModal from '../components/ConfirmModal';
 
 const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 
@@ -49,6 +46,8 @@ const FriendProfile = ({ route, navigation }) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [codeInput, setCodeInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [baseline, setBaseline] = useState({ name: '', notes: '' });
+  const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -56,6 +55,7 @@ const FriendProfile = ({ route, navigation }) => {
       setFriend(f);
       setName(f.friendName ?? '');
       setNotes(f.friendNotes ?? '');
+      setBaseline({ name: f.friendName ?? '', notes: f.friendNotes ?? '' });
       const mine = await getFriendAllergies(friendshipId);
       setAllergies(mine);
       if (f.linkedProfile?.id) {
@@ -73,9 +73,16 @@ const FriendProfile = ({ route, navigation }) => {
     }
   }, [friendshipId]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const isDirty = name !== baseline.name || notes !== baseline.notes;
+
+  // Refreshes on every focus (not just mount) so allergy edits made on
+  // EditAllergies — which saves straight to the database itself — show up
+  // here as soon as you navigate back.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const handleSave = async () => {
     try {
@@ -85,15 +92,28 @@ const FriendProfile = ({ route, navigation }) => {
       });
       setFriend(updated);
       setIsEditing(false);
-      Alert.alert('Saved');
+      setBaseline({ name, notes });
     } catch (err) {
       Alert.alert('Could not save', err.message ?? 'Unknown error');
     }
   };
 
-  const handleCancel = () => {
+  const handleDiscard = () => {
+    setConfirmDiscardVisible(false);
     setIsEditing(false);
     load(); // revert any in-flight edits
+  };
+
+  const handleBackPress = () => {
+    if (!isEditing) {
+      navigation.goBack();
+      return;
+    }
+    if (isDirty) {
+      setConfirmDiscardVisible(true);
+      return;
+    }
+    handleDiscard();
   };
 
   const handleLink = async () => {
@@ -140,50 +160,6 @@ const FriendProfile = ({ route, navigation }) => {
     );
   };
 
-  const handleAddBatch = async ({ items, severity }) => {
-    if (!items?.length) return;
-    try {
-      await Promise.all(
-        items.map(({ name, userCustom }) =>
-          addAllergy({
-            name,
-            severity,
-            friendId: friendshipId,
-            userCustom,
-          })
-        )
-      );
-      const updated = await getFriendAllergies(friendshipId);
-      setAllergies(updated);
-    } catch (err) {
-      Alert.alert('Could not add allergies', err.message ?? 'Unknown error');
-    }
-  };
-
-  const handleCycleSeverity = async (allergy) => {
-    const order = ['unknown', 'mild', 'moderate', 'severe'];
-    const current = normalizeSeverity(allergy.severity);
-    const next = order[(order.indexOf(current) + 1) % order.length];
-    const dbValue = next === 'unknown' ? null : next;
-    try {
-      await updateAllergySeverity(allergy.id, dbValue);
-      setAllergies((prev) =>
-        prev.map((a) => (a.id === allergy.id ? { ...a, severity: dbValue } : a))
-      );
-    } catch (err) {
-      Alert.alert('Could not update severity', err.message ?? 'Unknown error');
-    }
-  };
-
-  const handleRemoveAllergy = async (id) => {
-    try {
-      await deleteAllergy(id);
-      setAllergies((prev) => prev.filter((a) => a.id !== id));
-    } catch (err) {
-      Alert.alert('Could not remove allergy', err.message ?? 'Unknown error');
-    }
-  };
-
   const handleDeleteFriend = () => {
     Alert.alert('Remove friend?', 'This deletes your notes and allergies for them.', [
       { text: 'Cancel', style: 'cancel' },
@@ -225,20 +201,20 @@ const FriendProfile = ({ route, navigation }) => {
 
   return (
     <ScrollView
-      style={[styles.screen_base, styles.screen_cardPad]}
-      contentContainerStyle={{ paddingBottom: 80 }}
+      style={[styles.screen_base, styles.screen_cardPad, { paddingBottom: 0 }]}
+      contentContainerStyle={[styles.screen_baseScroll, { paddingBottom: 40 }]}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={() => navigation.goBack()}>
+      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
         <BackIcon style={styles.overlayIcon_sm} />
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.overlay_base, styles.overlay_topRight_card]}
-        onPress={isEditing ? handleCancel : () => setIsEditing(true)}
+        onPress={isEditing ? handleSave : () => setIsEditing(true)}
       >
-        <Text style={styles.overlayText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
+        <Text style={styles.overlayText}>{isEditing ? 'Save' : 'Edit'}</Text>
       </TouchableOpacity>
 
       {friendSetOwnName ? (
@@ -312,17 +288,6 @@ const FriendProfile = ({ route, navigation }) => {
         </>
       )}
 
-      {isEditing && (
-        <TouchableOpacity
-          style={[styles.button_base, styles.button_fullWidth, styles.button_primary, { marginTop: 10 }]}
-          onPress={handleSave}
-        >
-          <Text style={[styles.buttonText_base, styles.buttonText_onPrimary]}>
-            Save
-          </Text>
-        </TouchableOpacity>
-      )}
-
       {linkedAlive && (
         <>
           <Text style={styles.spacing} />
@@ -333,7 +298,7 @@ const FriendProfile = ({ route, navigation }) => {
           ) : (
             theirAllergies.map((a) => (
               <View key={a.id} style={styles.allergyRow}>
-                <Text style={[styles.ingredientItems, { flex: 1 }]}>• {cap(a.name)}</Text>
+                <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
                 <View style={styles.severityChip}>
                   <View
                     style={[
@@ -349,20 +314,22 @@ const FriendProfile = ({ route, navigation }) => {
         </>
       )}
 
-      <Text style={styles.spacing} />
-      <Text style={styles.header_section}>My Allergy Notes</Text>
-      <Text style={styles.readOnly_hint}>
-        Extra allergies you want to track for this friend.
-      </Text>
-      {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Allergy Notes</Text>
+      {linkedAlive ? (
+        <Text style={styles.readOnly_hint}>
+          Allergies you want to track for this friend.
+        </Text>
+      ) : (
+        <Text style={styles.readOnly_hint}>
+          Extra allergies you want to track for this friend. Only visible to you.
+        </Text>
+      )}
+
+      {allergies.length === 0 && !isEditing && <Text style={[styles.display_fieldValue, styles.display_fieldEmpty]}>None</Text>}
       {allergies.map((a) => (
         <View key={a.id} style={styles.allergyRow}>
-          <Text style={[styles.ingredientItems, { flex: 1 }]}>• {cap(a.name)}</Text>
-          <TouchableOpacity
-            onPress={() => isEditing && handleCycleSeverity(a)}
-            disabled={!isEditing}
-            style={styles.severityChip}
-          >
+          <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
+          <View style={styles.severityChip}>
             <View
               style={[
                 styles.severityDot,
@@ -370,32 +337,38 @@ const FriendProfile = ({ route, navigation }) => {
               ]}
             />
             <Text style={styles.severityChipLabel}>{severityLabel(a.severity)}</Text>
-          </TouchableOpacity>
-          {isEditing && (
-            <TouchableOpacity onPress={() => handleRemoveAllergy(a.id)} style={styles.deleteButton}>
-              <TrashIcon />
-            </TouchableOpacity>
-          )}
+          </View>
         </View>
       ))}
       {isEditing && (
-        <AllergyChecklist
-          existingNames={allergies.map((a) => a.name)}
-          onConfirm={handleAddBatch}
-        />
+        <TouchableOpacity
+          style={[styles.button_outline, styles.button_outline_link, { marginVertical: 4 }]}
+          onPress={() =>
+            navigation.navigate('EditAllergies', { allergies, friendId: friendshipId })
+          }
+        >
+          <Text style={[styles.buttonText_outline, { color: colors.primary }]}>
+            Edit Allergies
+          </Text>
+        </TouchableOpacity>
       )}
 
-      <Text style={styles.spacing} />
-      <Text style={styles.spacing} />
-
       {isEditing && (
-        <TouchableOpacity
-          style={[styles.button_outline, styles.button_outline_danger, { marginTop: 20 }]}
-          onPress={handleDeleteFriend}
-        >
-          <TrashIcon size={18} />
-          <Text style={[styles.buttonText_outline, { color: colors.danger }]}>Remove Friend</Text>
-        </TouchableOpacity>
+        <>
+          {/* Expands to fill any leftover height so short content still
+              pins the footer to the bottom of the screen; collapses to
+              nothing once content is tall enough to need scrolling. */}
+          <View style={{ flex: 1 }} />
+          <View style={styles.friendProfile_dangerFooter}>
+            <TouchableOpacity
+              style={[styles.button_outline, styles.button_outline_danger]}
+              onPress={handleDeleteFriend}
+            >
+              <TrashIcon size={18} />
+              <Text style={[styles.buttonText_outline, { color: colors.danger }]}>Remove Friend</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
 
       {/* Link-by-code modal */}
