@@ -35,22 +35,27 @@ const Profile = ({ navigation }) => {
   const [baseline, setBaseline] = useState({ name: '', phone: '', about: '', notes: '' });
   const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ preserveEdits = false } = {}) => {
     try {
       const [profile, list] = await Promise.all([getMyProfile(), getMyAllergies()]);
-      const loaded = {
-        name: profile?.name ?? '',
-        phone: profile?.phone ?? '',
-        about: profile?.about ?? '',
-        notes: profile?.notes ?? '',
-      };
-      setName(loaded.name);
-      setPhone(loaded.phone);
-      setAbout(loaded.about);
-      setNotes(loaded.notes);
-      setBaseline(loaded);
       setFriendCode(profile?.friend_code ?? '');
       setAllergies(list);
+      // While actively editing, a focus-triggered reload (e.g. returning
+      // from EditAllergies) should only refresh the allergy list, not
+      // clobber whatever's currently typed into the profile fields.
+      if (!preserveEdits) {
+        const loaded = {
+          name: profile?.name ?? '',
+          phone: profile?.phone ?? '',
+          about: profile?.about ?? '',
+          notes: profile?.notes ?? '',
+        };
+        setName(loaded.name);
+        setPhone(loaded.phone);
+        setAbout(loaded.about);
+        setNotes(loaded.notes);
+        setBaseline(loaded);
+      }
     } catch (err) {
       Alert.alert('Could not load profile', err.message ?? 'Unknown error');
     } finally {
@@ -69,8 +74,8 @@ const Profile = ({ navigation }) => {
   // here as soon as you navigate back.
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      load({ preserveEdits: isEditing });
+    }, [load, isEditing])
   );
 
   const handleShareCode = async () => {

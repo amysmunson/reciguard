@@ -49,13 +49,18 @@ const FriendProfile = ({ route, navigation }) => {
   const [baseline, setBaseline] = useState({ name: '', notes: '' });
   const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ preserveEdits = false } = {}) => {
     try {
       const f = await getFriend(friendshipId);
       setFriend(f);
-      setName(f.friendName ?? '');
-      setNotes(f.friendNotes ?? '');
-      setBaseline({ name: f.friendName ?? '', notes: f.friendNotes ?? '' });
+      // While actively editing, a focus-triggered reload (e.g. returning
+      // from EditAllergies) should only refresh the allergy lists, not
+      // clobber whatever's currently typed into the name/notes fields.
+      if (!preserveEdits) {
+        setName(f.friendName ?? '');
+        setNotes(f.friendNotes ?? '');
+        setBaseline({ name: f.friendName ?? '', notes: f.friendNotes ?? '' });
+      }
       const mine = await getFriendAllergies(friendshipId);
       setAllergies(mine);
       if (f.linkedProfile?.id) {
@@ -80,8 +85,8 @@ const FriendProfile = ({ route, navigation }) => {
   // here as soon as you navigate back.
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      load({ preserveEdits: isEditing });
+    }, [load, isEditing])
   );
 
   const handleSave = async () => {
