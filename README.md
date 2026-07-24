@@ -189,8 +189,8 @@ Run on iOS using the Expo Go app.
 - [ ] Apple app store deployment
 - [ ] Recipe sharing
 - [ ] Collaborative folders
-- [ ] Re-enable Supabase email authentication on sign up
-- [ ] AI-assisted recipe import
+<!-- - [ ] Re-enable Supabase email authentication on sign up
+- [ ] AI-assisted recipe import -->
 - [ ] Image-based recipe parsing
 
 
