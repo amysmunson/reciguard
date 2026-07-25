@@ -446,6 +446,30 @@ export const ALLERGEN_GROUPS = [
     ],
   },
   {
+    id: 'meat',
+    name: 'Meat',
+    description: 'Beef, pork, chicken, turkey, duck, lamb, goat, veal, venison, bison, rabbit, bacon, ham, sausage, prosciutto, salami',
+    memberIds: [
+      'beef', 'pork', 'chicken', 'turkey', 'duck', 'lamb', 'goat', 'veal',
+      'venison', 'bison', 'rabbit', 'bacon', 'ham', 'sausage', 'prosciutto', 'salami',
+    ],
+  },
+  {
+    id: 'poultry',
+    name: 'Poultry',
+    description: 'Chicken, turkey, duck',
+    memberIds: ['chicken', 'turkey', 'duck'],
+  },
+  {
+    id: 'red-meat',
+    name: 'Red meat',
+    description: 'Beef, pork, lamb, goat, veal, venison, bison, rabbit, bacon, ham, sausage, prosciutto, salami',
+    memberIds: [
+      'beef', 'pork', 'lamb', 'goat', 'veal', 'venison', 'bison', 'rabbit',
+      'bacon', 'ham', 'sausage', 'prosciutto', 'salami',
+    ],
+  },
+  {
     id: 'gluten-grains',
     name: 'Gluten grains',
     description: 'Wheat, rye, barley, gluten',
