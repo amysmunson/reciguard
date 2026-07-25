@@ -4,7 +4,7 @@
 
 # ReciGuard
 
-ReciGuard is a React Native + Expo app with a Supabase backend for storing recipes, organizing them into folders, and tracking food allergies for yourself and friends. The app allows you to filter your recipes based on different profiles and more easily see when a recipe contains someone's allergen (or dietary preference). Friend profiles can be made either by the user or by linking to a friend's existing profile.
+ReciGuard is a React Native + Expo app with a Supabase backend for storing recipes, organizing them into folders, and tracking dietary needs for yourself and friends. The app allows you to filter your recipes based on different profiles and more easily see when a recipe contains someone's allergen or dietary preference. Friend profiles can be made either by the user or by linking to a friend's existing profile.
 
 
 <p align="center">
@@ -23,34 +23,35 @@ ReciGuard is a React Native + Expo app with a Supabase backend for storing recip
 - Organize recipes into folders, with rename and multi-select bulk delete
 - Search recipes and friends by name
 - Sort recipes and folders by date added, last edited, recently opened, or alphabetical — ascending or descending, persisted per-user per-screen
-- Track allergies for yourself and friends, each with its own severity level
-- Filter by allergies for different people and groups, plus a standalone allergy overview summary
-- Severity-aware allergy warnings inside recipes and in list
+- Track dietary needs for yourself and friends, each with its own severity level
+- Filter by dietary needs for different people and groups, plus a standalone dietary needs overview summary
+- Severity-aware dietary needs warnings inside recipes and in list
 - Friend profile linking via unique friend codes
 - High-contrast accessibility mode
 - Persistent per-user filters and preferences
 - Instant list loads with a stale-while-revalidate cache
 - Authentication with Supabase Auth
+- In-app feedback form (suggestions/questions submitted straight to the database)
 
 
-## Allergy System
+## Dietary Needs System
 
-This app includes an allergy-aware filtering system.
+This app includes a filtering system based in users' dietary needs.
 
 ### Features
 
-- Personal allergies
-- Friend allergies
+- Personal dietary needs
+- Friend dietary needs
 - Severity levels
     - Unknown 
     - Mild
     - Moderate
     - Severe
-- Dedicated allergy editor (per-allergy severity, add/remove) shared by your own profile and friend profiles
-- Standalone Allergy Overview screen — a read-only summary across any set of people
+- Dedicated dietary needs editor (per-ingredient severity, add/remove) shared by your own profile and friend profiles
+- Standalone Dietary Needs Overview screen — a read-only summary across any set of people
 - Ingredient-level warnings
 - Recipe-level warning dots
-- Persistent allergy filters
+- Persistent dietary needs filters
 
 ### Severity Colors
 
@@ -65,17 +66,20 @@ This app includes an allergy-aware filtering system.
 Users can:
 
 - Add manual friends
-- Link friends to real accounts using friend codes
+- Link friends to real accounts using friend codes (hold your own code on Profile to copy it)
 - Search their friends list by name
-- Track friend allergies
+- Track friend dietary needs
 - Store private notes per friendship
+- See who has linked to them, and remove or block that access to control who can see their info
+- View and unblock previously blocked users from a submenu of the same screen
+- Block someone by their friend code directly, before ever sharing with or adding them
 
-Linked friendships automatically include the friend's public allergies in allergy filtering.
+Linked friendships automatically include the friend's public dietary needs in filtering.
 
 
 ## Accessibility
 
-A per-user high-contrast mode, toggled from the Accessibility screen and stored on the profile. The preference updates instantly (optimistic cache update) and adjusts text-oriented affordances — allergy severity text, search bar icons/placeholders — across the app.
+A per-user high-contrast mode, toggled from the Accessibility screen and stored on the profile. The preference updates instantly (optimistic cache update) and adjusts text-oriented affordances — dietary needs severity text, search bar icons/placeholders — across the app.
 
 
 ## Tech Stack
@@ -87,6 +91,7 @@ A per-user high-contrast mode, toggled from the Accessibility screen and stored 
 - React Navigation
 - react-native-svg
 - react-native-vector-icons
+- expo-clipboard
 
 ### Backend
 
@@ -138,6 +143,7 @@ Session     -> AppStack
 - Login
 - SignUp
 - PrivacyPolicy
+- TermsOfService
 - ForgotPassword
 
 ### AppStack
@@ -152,9 +158,13 @@ Session     -> AppStack
 - Profile
 - EditAllergies
 - AllergyOverview
+- SharingWith
+- BlockedUsers
 - Settings
 - Accessibility
 - PrivacyPolicy
+- TermsOfService
+- Feedback
 
 
 ## Setup
@@ -221,6 +231,8 @@ for Expo-managed dependencies.
 - All rows are scoped to the authenticated user
 - Friend-code lookup is handled through a restricted RPC
 - Friend list reads go through a `get_my_friends` RPC that only returns a linked friend's public profile fields (name, about) — private fields like email are never exposed to other users
+- Removing or blocking shared access goes through `SECURITY DEFINER` RPCs (`revoke_my_access`, `block_user`) since the caller doesn't own the friendship row being modified; a DB trigger on `friendships` enforces blocks so they can't be bypassed client-side
+- Feedback submissions are insert-only — there is no `SELECT` policy for the `authenticated` role, so nobody can read submissions back through the app
 
 
 ### Sorting
@@ -267,7 +279,7 @@ The registry contains three flavors:
 - **Vector-icon wrappers** — `BackIcon`, `TrashIcon`, `EllipsisIcon`,
   `CheckIcon`, `RemoveCircleIcon`, `ShareIcon`, `LinkIcon`,
   `LinkOutlineIcon`, `ImageIcon`, `KeyIcon`, `PersonAddIcon`,
-  `AllergyListIcon`, `ExternalLinkIcon`, `FolderIcon`. Each pins a
+  `AllergyListIcon`, `SharingWithIcon`, `ExternalLinkIcon`, `FolderIcon`. Each pins a
   semantic name to one Ionicons/FontAwesome glyph and exposes optional
   `size`, `color`, and `style` props.
 - **Stateful wrappers** — `CheckboxIcon` (`checked` / `partial`),

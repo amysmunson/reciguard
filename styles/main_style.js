@@ -468,6 +468,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.textMuted,
     marginTop: 20,
+    marginBottom: 20,
     fontStyle: 'italic',
   },
 

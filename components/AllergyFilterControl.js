@@ -137,6 +137,11 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
         <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Filter on Profiles</Text>
+            <Text style={[styles.readOnly_hint, { marginBottom: 8 }]}>
+              Warning dots are a best-effort ingredient match. Some restrictions are harder to
+              catch automatically (like corn in the corn syrup of marshmallows). Always check the 
+              specific ingredients yourself.
+            </Text>
             <ScrollView style={{ maxHeight: 320 }}>
               <TouchableOpacity
                 style={styles.filter_row}

@@ -83,7 +83,7 @@ const EditAllergies = ({ navigation, route }) => {
         <Text style={styles.overlayText}>{saving ? 'Saving…' : 'Save'}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.header_card}>Edit Allergies</Text>
+      <Text style={styles.header_card}>Edit Dietary Needs</Text>
 
       {/* Legend to explain severity colors */}
       <View style={styles.severityLegend_row}>
@@ -123,6 +123,12 @@ const EditAllergies = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
       ))}
+
+      <Text style={[styles.readOnly_hint, { marginBottom: 8 }]}>
+        Some allergies and restrictions are harder to catch automatically (like corn in the corn syrup of marshmallows).
+        Be sure to check for hidden or alternate ingredient names, cross-contamination, and ingredients within other ingredients. 
+        Always check the specific ingredients in a recipe yourself.
+      </Text>
 
       {/* Checklist for adding */}
       <AllergyChecklist

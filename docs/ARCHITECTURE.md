@@ -5,6 +5,15 @@ The app stores per-user recipes, organizes them into folders, tracks friends and
 their allergies, and is built to expand into sharing and allergy-aware recipe
 filtering.
 
+**Terminology note:** user-facing text says "dietary needs" (screen titles,
+hints, alerts), but this is a UI-copy-only rename — every identifier in the
+codebase still says "allergy": the `allergies` table/columns, `lib/api/allergies.js`,
+`AllergyChecklist`/`AllergyFilterControl`/`AllergyOverview`/`EditAllergies`
+file, component, and route names, `KEYS.homeAllergyFilter`, etc. Don't infer
+from the code's naming that a rename is pending — it isn't; keep new
+identifiers consistent with the existing "allergy" naming and only adjust
+user-visible strings.
+
 The codebase is organized in three layers:
 
 1. **Screens** (`screens/`) — what the user sees. Stateless about data
@@ -17,9 +26,9 @@ The codebase is organized in three layers:
 4. **Styles** (`styles/`) — the single shared `StyleSheet` for the whole app.
 
 Authentication is gated at the navigator level: when there is no session, the
-app renders the `AuthStack` (Landing / Login / SignUp / PrivacyPolicy). When a
-session exists, the app renders the `AppStack` (Home, Folders, Friends,
-Settings, and their detail screens).
+app renders the `AuthStack` (Landing / Login / SignUp / PrivacyPolicy /
+TermsOfService / ForgotPassword). When a session exists, the app renders the
+`AppStack` (Home, Folders, Friends, Settings, and their detail screens).
 
 ---
 
@@ -43,16 +52,17 @@ recipes/
 │       ├── auth.js                 # signUp, signIn, signOut, deleteAccount
 │       ├── recipes.js              # getRecipes, getRecipe, create/update/deleteRecipe
 │       ├── folders.js              # folders CRUD + recipe-folder mapping
-│       ├── friends.js              # friendships CRUD
+│       ├── friends.js              # friendships CRUD + block/revoke shared access
 │       ├── profile.js              # profile read/update
-│       └── allergies.js            # per-user and per-friend allergy CRUD
+│       ├── allergies.js            # per-user and per-friend allergy CRUD
+│       └── feedback.js             # submitFeedback (submit-only)
 │
 ├── screens/                        # Stack screens — one file per route
 │   │
 │   │  ── AuthStack (no session) ──
 │   ├── Landing.js                  # Marketing / entry point
 │   ├── Login.js                    # Email + password sign-in
-│   ├── SignUp.js                   # Email + password + name sign-up
+│   ├── SignUp.js                   # Email + password + name sign-up; links to Privacy Policy and Terms of Service
 │   ├── PrivacyPolicy.js            # Static text screen
 │   │
 │   │  ── AppStack (session present) ──
@@ -67,7 +77,11 @@ recipes/
 │   ├── Profile.js                  # Edit your own profile; allergies edited via EditAllergies
 │   ├── EditAllergies.js            # Shared allergy editor for Profile & FriendProfile (see Feature notes)
 │   ├── AllergyOverview.js          # Read-only summary of allergies for a chosen set of people
-│   ├── Settings.js                 # Sign out + delete account + privacy policy link
+│   ├── SharingWith.js              # Who has linked to you — remove or block their access
+│   ├── BlockedUsers.js             # Submenu of SharingWith — people you've blocked, with Unblock
+│   ├── Settings.js                 # Sign out, delete account, Privacy Policy / Terms of Service / feedback links
+│   ├── TermsOfService.js           # Static text screen, same shape as PrivacyPolicy.js
+│   ├── Feedback.js                 # Submit-only suggestion/question form
 │   └── Accessibility.js            # High-contrast mode toggle tied to profile settings
 │
 ├── components/                     # Shared UI + utilities (NOT screens)
@@ -95,7 +109,7 @@ recipes/
 │   └── main_style.js               # Single shared StyleSheet for the whole app
 │
 ├── constants/
-│   └── allergens.js                # Static catalog: ALLERGEN_PRESETS + ALLERGEN_GROUPS
+│   └── allergens.js                # Static catalog: ALLERGEN_PRESETS (268) + ALLERGEN_GROUPS (35)
 │
 ├── assets/                         # Icons, splash, images
 │   └── images/
@@ -130,6 +144,7 @@ be safely removed if/when you confirm nothing pulls it in.
 | `react-native-url-polyfill` | Side-effect import in [lib/supabase.js](lib/supabase.js) — Supabase needs URL globals that RN doesn't ship. |
 | `react-native-svg` | Used by `components/LandingCard*.js` for the decorative title shapes and by `components/icons/*.js` for the custom Heroicons-style glyphs (Plus / Search / Sort). |
 | `react-native-vector-icons` | Provides the `Ionicons` and `FontAwesome` font sets consumed via `react-native-vector-icons/Ionicons` and `/FontAwesome`. Direct imports are confined to [components/icons/index.js](components/icons/index.js); every screen consumes semantic wrappers (e.g. `<TrashIcon>`, `<BackIcon>`) from the registry instead. It was only a *transitive* dependency (pulled in by `expo-router`) until `expo-router`'s removal surfaced that gap — it's now declared explicitly in `package.json`. |
+| `expo-clipboard` | `setStringAsync` — long-press-to-copy on the friend code in `Profile.js`. |
 
 ### Runtime — peer / framework requirements (not directly imported)
 
@@ -224,11 +239,23 @@ Each file is a flat set of async functions. They:
   [lib/api/allergies.js](lib/api/allergies.js)'s `syncAllergies({ original,
   updated, friendId })`. The EditAllergies screen (see Feature notes) edits
   a local, unsaved copy of the allergy list; `syncAllergies` diffs that
-  local copy against what was originally loaded and issues the matching
-  `addAllergy` / `deleteAllergy` / `updateAllergySeverity` calls in one
-  batch when the user hits Save. Local-only rows (not yet persisted) carry
-  an id prefixed with `LOCAL_ID_PREFIX`, generated by `makeLocalAllergyId()`,
-  so the diff can tell "new" from "existing" without a round trip.
+  local copy against what was originally loaded and, when the user hits
+  Save, issues at most 3 requests total — one bulk `.delete().in(...)`, one
+  bulk `.insert([...])`, one bulk `.upsert([...])` — regardless of how many
+  rows changed. (It used to call `addAllergy`/`deleteAllergy`/
+  `updateAllergySeverity` once per changed row; on a large edit — e.g.
+  checking dozens of presets in `AllergyChecklist` at once — that meant
+  dozens of concurrent requests, plus a redundant `requireUser()` auth
+  round trip on every single add, so it was rewritten to batch.) The
+  per-row functions `addAllergy`/`deleteAllergy`/`updateAllergySeverity`
+  are still exported as the single-item API but are no longer used inside
+  this file. Local-only rows (not yet persisted) carry an id prefixed with
+  `LOCAL_ID_PREFIX`, generated by `makeLocalAllergyId()`, so the diff can
+  tell "new" from "existing" without a round trip. The bulk upsert sends
+  full rows, not just `{id, severity}` — Postgres validates NOT NULL
+  columns against the row an upsert *would* insert before it discovers the
+  conflict and takes the update path, so a partial-column payload can fail
+  that check even though the row already exists.
 
 When you need a new piece of data, add a function to the appropriate file (or
 a new file under `lib/api/`). Don't query Supabase from a screen.
@@ -318,11 +345,11 @@ The registry has three kinds of icons:
    Today: `BackIcon`, `ExternalLinkIcon`, `TrashIcon`, `EllipsisIcon`,
    `CheckIcon`, `RemoveCircleIcon`, `ShareIcon`, `LinkIcon`,
    `LinkOutlineIcon`, `ImageIcon`, `KeyIcon`, `PersonAddIcon`,
-   `AllergyListIcon`, `FolderIcon`.
+   `AllergyListIcon`, `SharingWithIcon`, `FolderIcon`.
 
 3. **Stateful wrappers** — take a state prop and pick the right glyph +
    default color internally so callers don't have to keep two icon names
-   in sync. `CheckboxIcon` (`checked` / `partial`), `SelectCircleIcon`
+   in sync. `CheckboxIcon` (`checked`), `SelectCircleIcon`
    (`selected`), `RadioIcon` (`selected`), `SortArrowIcon`
    (`direction: 'asc' | 'desc'`).
 
@@ -514,7 +541,11 @@ profiles (id FK → auth.users, name, email, notes, phone, friend_code unique,
    │     │
    │     └──▶ allergies (friend_id → friendships)
    │
-   └──▶ allergies (user_id, name, severity, user_custom)
+   ├──▶ allergies (user_id, name, severity, user_custom)
+   │
+   ├──▶ blocked_users (blocker_id → profiles, blocked_id → profiles)
+   │
+   └──▶ feedback_submissions (user_id → profiles, type, message, open boolean default true)
 ```
 
 Key relationships:
@@ -533,6 +564,18 @@ Key relationships:
   an off-platform contact (`friend_name` set, `existing_friend_id` null).
 - Allergies belong to *either* the user themselves OR a specific friendship
   (enforced by the `allergies_owner_check` constraint).
+- `blocked_users` stores one row per direction (the blocker's row only), but
+  a `BEFORE INSERT OR UPDATE` trigger on `friendships` checks both directions,
+  so the effect is mutual even though storage isn't. See "Blocking & revoking
+  shared access" in Feature notes.
+- `feedback_submissions` is submit-only — there is no SELECT policy for the
+  `authenticated` role at all, so nobody (not even the submitter) can read
+  rows back through the app. Reviewed via the Supabase dashboard. Its `open`
+  column (added in a follow-up migration,
+  [supabase/feedback_submissions_add_open_column.sql](../supabase/feedback_submissions_add_open_column.sql))
+  defaults to `true` and is meant to be flipped to `false` by hand in the
+  dashboard once a submission's been read/addressed — bookkeeping only, no
+  app code reads or writes it.
 
 Row Level Security is enabled on every table and scopes each row to the
 owning user via `auth.uid()`.
@@ -750,6 +793,19 @@ Matching ingredients render with a translucent severity-tinted background
 and a colored border; tapping toggles an inline popup below them with
 the "Worst: SEVERITY" label and the comma-separated, color-coded names.
 
+**Matching-limitation disclaimer.** Substring matching can't reliably catch
+every case (hidden/alternate ingredient names, cross-contamination, less
+common restrictions), so a short warning hint repeats this at every point a
+user acts on a match: [screens/EditAllergies.js](screens/EditAllergies.js)
+(below the header, while adding restrictions),
+[components/AllergyFilterControl.js](components/AllergyFilterControl.js)
+(inside the "Filter on Profiles" popup, shared by Home and FolderDetail —
+moved here from a Home-only banner so it covers both), and
+[screens/AllergyOverview.js](screens/AllergyOverview.js) (below its header).
+[screens/TermsOfService.js](screens/TermsOfService.js)'s "Not Medical
+Advice" section states the same thing as a matter of terms, not just UI
+copy.
+
 ### Allergy Overview screen
 
 [screens/AllergyOverview.js](screens/AllergyOverview.js) is a read-only,
@@ -850,28 +906,55 @@ sourced from `constants/allergens.js`:
 
 1. **"Enter your own"** — a text row at the top; press return (or the
    checkbox) to add/remove it.
-2. **Groups** — composite entries (*Tree nuts*, *Dairy*, etc.). Tapping a
-   group adds/removes every member preset at once; half-checked groups
-   render a half-circle icon.
-3. **Common allergens** — flat list of individual presets.
+2. **Groups** — composite entries (*Tree nuts*, *Dairy*, etc., 35 total).
+   Tapping a group adds/removes every member preset at once.
+3. **Common dietary needs** — flat list of individual presets (268 total,
+   organized top-to-bottom by category — nuts, dairy, fish, meat, produce,
+   grains, sauces, fats, seasonings, etc.; see the section comments in
+   `constants/allergens.js` itself for the exact ordering).
 
 A live filter input narrows both sections (group descriptions are
 searched too — typing "shrimp" surfaces "Crustacean shellfish"). Two
 behaviors worth knowing if you touch this component:
 
-- **Group checkboxes track which group was tapped, not raw preset
-  overlap.** Several groups share members — "All shellfish" is a superset
-  of "Crustacean shellfish" and "Molluscs". Checking "Molluscs" doesn't
-  touch "All shellfish"'s own checked/partial state, because that state
-  comes from a separate `selectedGroupIds` set (which group was
-  *explicitly* tapped), not from re-deriving it off however many of its
-  member presets happen to already be selected via a different group.
+- **A group's checked state is derived from membership, not tracked.**
+  `groupState(group)` (a plain boolean, not a three-way state) is true
+  whenever every member preset is present in `existingNames` — so it
+  survives leaving and re-entering EditAllergies the same way individual
+  presets do. There's no separate partial/half-checked visual — an
+  incompletely-selected group just renders as a plain unchecked box, same
+  as any other unselected item. Several groups share members — "All
+  shellfish" is a superset of "Crustacean shellfish" and "Molluscs" — so
+  checking every item in both of those also makes "All shellfish" show
+  checked; that's intentional, not overlap leaking across groups.
+  `toggleGroup` mirrors the same membership check (`isFullySelected`) to
+  decide whether tapping should add or remove, so the tap always does what
+  the checkbox is currently showing.
 - **Already-added allergens stay selectable**, they're not disabled. Since
   `EditAllergies`'s `handleAdd` matches by name against what's already
   staged, re-picking one there updates its severity in place rather than
   creating a duplicate — an additional path to adjust an existing entry,
   alongside the trash-can icon in the row list above (which still removes
   outright).
+
+**Performance.** At 268 presets + 35 groups, a naive re-render of every row
+on every keystroke/tap is visibly slow. Each row is a separate `PresetRow` /
+`GroupRow`, defined at module scope and wrapped in `React.memo`, so a single
+toggle only re-renders the row(s) whose own props actually changed. That only
+works because `togglePreset`/`toggleGroup` are stabilized with `useCallback`
+reading through a ref (`latestRef`, same pattern as `onSelectionChangeRef` in
+`AllergyFilterControl.js`) — otherwise `AllergyChecklist` would hand each row
+a brand-new callback identity every render and `React.memo`'s prop comparison
+would never bail out. Keep new row-level UI inside `PresetRow`/`GroupRow`
+(not inlined back into the parent's `.map()`) to preserve this.
+
+**Synonyms/near-duplicates** (e.g. chickpea vs. garbanzo bean, or chili vs.
+chili powder vs. chili oil) are handled via the group-binding convention
+documented at the top of `constants/allergens.js`: add each variant as its
+own preset (so recipe-card substring matching still works against whatever
+word the recipe actually uses), then bind them with a group
+(`chickpea-all`, `chili-all`) so picking one visually surfaces as related to
+the others. Don't try to solve this by adding aliases to a single preset.
 
 **Display vs storage**: allergen names are stored lowercase (presets are
 already lowercase in `constants/allergens.js`; freeform entries are
@@ -933,9 +1016,11 @@ The action bar (below the header, same `home_actionBar` styling as Home/
 Folders) has a search box that live-filters the friends list by display
 name (`friendDisplayName`, case-insensitive substring), an allergy-overview
 icon button (`navigation.navigate('AllergyOverview')`, no params — defaults
-to everyone selected), and the "+" button that opens the Add Friend modal.
-The "+" used to be a floating absolute-positioned overlay button; it's now
-just the last icon in that action bar row, same as Folders' "+".
+to everyone selected), a "Sharing With" icon button (`navigation.navigate
+('SharingWith')` — see "Blocking & revoking shared access" above), and the
+"+" button that opens the Add Friend modal. The "+" used to be a floating
+absolute-positioned overlay button; it's now just the last icon in that
+action bar row, same as Folders' "+".
 
 **The Add Friend modal's visibility is intentionally decoupled from its
 step content.** `modalVisible` (boolean, drives the `Modal`'s `visible`)
@@ -954,7 +1039,18 @@ fade, so nothing visibly flashes.
 
 Each profile has a unique 8-character `friend_code` (auto-generated by a DB
 trigger, no `I/L/O/0/1` to avoid confusion). Users see and share their own
-code from the Profile screen. They link to others two ways:
+code from the Profile screen — displayed and entered as a plain 8-character
+string with no dash grouping. (A dash-formatted display used to exist and
+caused a real bug: the code-entry `TextInput`s had `maxLength={8}`, so
+pasting a 9-character dash-formatted code truncated the last character
+*before* `normalizeCode()` ever got a chance to strip the dash. Fixed by
+removing the dash entirely and dropping `maxLength` from those inputs —
+`normalizeCode()`'s own `.slice(0, 8)` is what actually caps the length now,
+robust to any stray punctuation.) Holding down the code on Profile copies it
+to the clipboard via `expo-clipboard`'s `setStringAsync`, with a transient
+"Copied!" label swapped in for 1.5s.
+
+Users link to others two ways:
 
 - **At creation** — Friends → "+" → "By friend code" enters the code,
   resolves to a real profile, and creates a linked friendship.
@@ -984,6 +1080,103 @@ When the friend deletes their account, `existing_friend_id` is set to
 `NULL` (via `ON DELETE SET NULL`) but the friendship row survives. The UI
 falls back to the snapshotted name and hides the "About them" and "Their
 allergies" sections.
+
+### Blocking & revoking shared access
+
+Linking is one-directional by construction: adding someone by friend code
+creates *your own* `friendships` row (`user_id = you`, `existing_friend_id =
+them`) — that row is what grants *you* visibility into *their* public
+profile and allergies (`getLinkedUserAllergies`/`getActiveAllergyDetails`
+read `allergies` filtered on that `existing_friend_id`). Historically there
+was no way for the person being watched to do anything about it:
+`unlinkFriend`/`deleteFriend` only ever touch the caller's own row, and RLS
+(`user_id = auth.uid()`) prevents anyone from touching a row they don't own.
+`SharingWith.js` and three new RPCs close that gap — see
+[supabase/blocking_and_shared_access.sql](../supabase/blocking_and_shared_access.sql)
+for the exact SQL (this repo has no migration tooling; schema changes are
+pasted into the Supabase SQL editor by hand).
+
+- **`get_sharing_with()`** — a `SECURITY DEFINER` RPC (same class of
+  exception as `lookup_friend_code` above) returning every other user's
+  friendship row that points at the caller, i.e. "who has linked to me."
+  Exposes only the sharer's `name`, nothing else.
+- **Remove** (`revoke_my_access(friendship_id)`) — one-directional. The
+  caller (who must be the `existing_friend_id` on the target row) nulls
+  *that* row's link. Mirrors `unlinkFriend`'s own update, except it checks
+  `existing_friend_id = auth.uid()` instead of relying on RLS's
+  `user_id = auth.uid()`, since the caller isn't the row's owner. The other
+  person can add the caller again later — nothing is blocked.
+- **Block** (`block_user(target_user_id)`) — inserts a row into
+  `blocked_users`, then severs the link in *both* directions (nulls
+  `existing_friend_id` on the target's row pointing at the caller, and on
+  the caller's own row pointing at the target, if one exists). Only nulls
+  the link — neither friendship row is deleted, so notes/allergies on both
+  sides are left intact, the same depth as Unlink rather than the deeper,
+  cascading delete Remove Friend does.
+- **Enforcement against re-adding** — a `BEFORE INSERT OR UPDATE` trigger on
+  `friendships` (`check_not_blocked`) rejects any attempt to set
+  `existing_friend_id` between two people where a `blocked_users` row exists
+  in either direction. This covers both `addFriendByCode`'s insert and
+  `linkFriendByCode`'s update, including any future code path — the DB is
+  the actual enforcement boundary, not the client. `is_blocked(user_id)` is
+  a cheap client-side pre-check so `addFriendByCode`/`linkFriendByCode` can
+  surface a clean error before ever attempting the write; the trigger is
+  what actually can't be bypassed.
+
+`SharingWith.js` lists everyone `get_sharing_with()` returns, with
+Remove/Block confirm dialogs built on [components/ConfirmModal.js](components/ConfirmModal.js)
+rather than a native `Alert.alert` — a single `confirmTarget` state
+(`{ person, action: 'remove' | 'block' }`) drives one shared modal instance,
+with title/message/confirm-label computed from which action was tapped.
+`Alert.alert` is still used, but only for surfacing an error if the
+underlying RPC call fails after confirming — that's error reporting, not a
+confirmation, so it stays consistent with how errors are shown elsewhere in
+the app. Reachable from a new icon in `Friends.js`'s action bar, between the
+allergy-overview icon and "+".
+
+**Unblocking.** `SharingWith.js` has a "Blocked Users" link (top-right
+overlay text, same slot other screens use for a secondary action) to
+`BlockedUsers.js` — a submenu listing everyone the caller has blocked
+(`get_my_blocks()`, another `SECURITY DEFINER` RPC, needed because a blocked
+person's `profiles` row usually isn't readable to the caller anymore —
+blocking is exactly what severs the friendship link that would otherwise
+permit it) with an Unblock action per row, also confirmed via `ConfirmModal`
+rather than `Alert.alert`. Unlike every other write in this feature,
+**unblocking needs no RPC**: it's a plain `DELETE` against the caller's own
+`blocked_users` row, already permitted directly by the
+`blocked_users_delete_own` RLS policy, since (unlike Remove/Block) the row
+being modified is one the caller actually owns. Unblocking only lifts the
+restriction on re-adding each other — it does not restore any previous
+friendship link.
+
+**Preemptive blocking.** `block_user(p_target_user_id)` only ever needed a
+target user id, not an existing friendship row — the two `UPDATE`s inside it
+are simply no-ops if no matching `friendships` rows exist yet. So blocking
+someone you've never shared with was already possible at the DB layer; the
+only missing piece was a client-side way to resolve a friend code to a user
+id without going through an existing friendship first. `BlockedUsers.js`'s
+"Block by Code" button opens a modal (same shape as `Friends.js`'s
+add-by-code step) and calls a new `blockUserByCode(code)` in
+[lib/api/friends.js](lib/api/friends.js), which resolves the code via the
+same `lookupProfileByFriendCode`/`lookup_friend_code` RPC `addFriendByCode`
+uses, then calls `blockUser(profile.id)` directly — no friendship, no prior
+sharing, no `SharedWith`/`SharingWith` entry required first.
+
+### Feedback form
+
+[screens/Feedback.js](screens/Feedback.js) is a simple submit-only form
+(Suggestion/Question toggle + a message box) backed by
+[lib/api/feedback.js](lib/api/feedback.js)'s `submitFeedback({ type,
+message })`, a plain authenticated insert into `feedback_submissions` (no
+RPC needed — same pattern as `addFriend`'s direct table insert). There is
+no corresponding read function anywhere in the app: the table's RLS only
+grants `INSERT`, not `SELECT`, to the `authenticated` role, so submissions
+are reviewed directly in the Supabase dashboard, not surfaced back through
+the UI. Every row also carries an `open` boolean (default `true`) for the
+developer to mark a submission handled directly in the dashboard — purely
+bookkeeping, no app code touches it. See
+[supabase/feedback_submissions.sql](../supabase/feedback_submissions.sql)
+and [supabase/feedback_submissions_add_open_column.sql](../supabase/feedback_submissions_add_open_column.sql).
 
 ### Adding a recipe (InputSelector → EditRecipe)
 
