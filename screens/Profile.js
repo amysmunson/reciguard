@@ -84,7 +84,7 @@ const Profile = ({ navigation }) => {
     if (!friendCode) return;
     try {
       await Share.share({
-        message: `Add me on Recipes — my friend code is ${friendCode}`,
+        message: `Add me on ReciGuard — my friend code is ${friendCode}`,
       });
     } catch {
       // user cancelled
