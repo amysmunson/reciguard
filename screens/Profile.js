@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   Share,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
@@ -16,9 +17,6 @@ import { useAuth } from '../lib/auth-context';
 import { getMyProfile, updateMyProfile } from '../lib/api/profile';
 import { getMyAllergies, severityColor, severityLabel } from '../lib/api/allergies';
 import ConfirmModal from '../components/ConfirmModal';
-
-const formatCode = (code) =>
-  code ? code.slice(0, 4) + '-' + code.slice(4, 8) : '';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -34,6 +32,10 @@ const Profile = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [baseline, setBaseline] = useState({ name: '', phone: '', about: '', notes: '' });
   const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const copyTimeoutRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(copyTimeoutRef.current), []);
 
   const load = useCallback(async ({ preserveEdits = false } = {}) => {
     try {
@@ -82,11 +84,19 @@ const Profile = ({ navigation }) => {
     if (!friendCode) return;
     try {
       await Share.share({
-        message: `Add me on Recipes — my friend code is ${formatCode(friendCode)}`,
+        message: `Add me on Recipes — my friend code is ${friendCode}`,
       });
     } catch {
       // user cancelled
     }
+  };
+
+  const handleCopyCode = async () => {
+    if (!friendCode) return;
+    await Clipboard.setStringAsync(friendCode);
+    setCodeCopied(true);
+    clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCodeCopied(false), 1500);
   };
 
   const handleSave = async () => {
@@ -120,7 +130,7 @@ const Profile = ({ navigation }) => {
   if (loading) {
     return (
       <View style={[styles.screen_base, styles.screen_cardPad]}>
-        <Text style={styles.emptyText}>Loading…</Text>
+        <Text style={[styles.emptyText, { marginTop: 100 }]}>Loading…</Text>
       </View>
     );
   }
@@ -162,17 +172,19 @@ const Profile = ({ navigation }) => {
       )}
 
       <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Your Friend Code</Text>
-      <Text style={styles.readOnly_hint}>Share this with friends so they can link your profile to theirs.</Text>
+      <Text style={styles.readOnly_hint}>Share this with friends so they can link your profile to theirs. Tap the code to copy it.</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, marginBottom: 12 }}>
-        <Text
-          style={[
-            styles.display_fieldValue,
-            styles.friendCode_value,
-            { paddingBottom: 0, marginBottom: 0 },
-          ]}
-        >
-          {friendCode ? formatCode(friendCode) : '—'}
-        </Text>
+        <TouchableOpacity onPress={handleCopyCode} disabled={!friendCode}>
+          <Text
+            style={[
+              styles.display_fieldValue,
+              styles.friendCode_value,
+              { paddingBottom: 0, marginBottom: 0 },
+            ]}
+          >
+            {codeCopied ? 'Copied!' : friendCode || '—'}
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.friendCode_shareButton}
           onPress={handleShareCode}

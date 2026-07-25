@@ -186,7 +186,7 @@ const FriendProfile = ({ route, navigation }) => {
   if (!friend) {
     return (
       <View style={[styles.screen_base, styles.screen_cardPad]}>
-        <Text style={styles.emptyText}>Loading…</Text>
+        <Text style={[styles.emptyText, { marginTop: 100 }]}>Loading…</Text>
       </View>
     );
   }
@@ -395,13 +395,12 @@ const FriendProfile = ({ route, navigation }) => {
             </Text>
             <TextInput
               style={[styles.input_base, styles.input_spaced, styles.input_code]}
-              placeholder="ABCD-EFGH"
+              placeholder="ABCDEFGH"
               value={codeInput}
               onChangeText={(t) => setCodeInput(normalizeCode(t))}
               autoCapitalize="characters"
               autoCorrect={false}
               autoFocus
-              maxLength={8}
             />
             <View style={styles.modal_button_right}>
               <TouchableOpacity
