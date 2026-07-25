@@ -105,19 +105,10 @@ export const FolderIcon = ({ size = 22, color = colors.primary, style, ...rest }
 
 // --- Stateful toggles ----------------------------------------------------
 
-// Square checkbox: unchecked / partial / checked. Use in filter rows,
-// AllergyChecklist presets, etc. `partial` only renders if the box isn't
-// fully checked.
-export const CheckboxIcon = ({
-  checked = false,
-  partial = false,
-  size = 22,
-  color,
-  style,
-  ...rest
-}) => {
-  const name = checked ? 'checkbox' : partial ? 'remove-circle' : 'square-outline';
-  const resolvedColor = color ?? (checked || partial ? colors.primary : colors.textMuted);
+// Square checkbox: unchecked / checked. 
+export const CheckboxIcon = ({ checked = false, size = 22, color, style, ...rest }) => {
+  const name = checked ? 'checkbox' : 'square-outline';
+  const resolvedColor = color ?? (checked ? colors.primary : colors.textMuted);
   return <Ionicons name={name} size={size} color={resolvedColor} style={style} {...rest} />;
 };
 
