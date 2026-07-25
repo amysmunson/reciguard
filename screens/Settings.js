@@ -59,16 +59,29 @@ const Settings = ({ navigation }) => {
     </TouchableOpacity>
   );
 
+  const SectionHeader = ({ label }) => (
+    <View style={styles.settings_sectionHeader}>
+      <Text style={styles.settings_sectionHeaderText}>{label}</Text>
+    </View>
+  );
+
   return (
     <View style={[styles.screen_base, styles.screen_tabPad]}>
       <Text style={styles.header_tab}>Settings</Text>
 
       <ScrollView style={[{ flex: 1 }, styles.list_marginless]} contentContainerStyle={{ paddingBottom: 12 }}>
-        <Row label="Your Profile" onPress={() => navigation.navigate('Profile')} />
+        <SectionHeader label="Social" />
+        <Row label="Sharing With" onPress={() => navigation.navigate('SharingWith')} />
+        <Row label="Blocked" onPress={() => navigation.navigate('BlockedUsers')} />
+
+        <SectionHeader label="Settings" />
         <Row label="Accessibility" onPress={() => navigation.navigate('Accessibility')} />
         <Row label="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
         <Row label="Terms of Service" onPress={() => navigation.navigate('TermsOfService')} />
         <Row label="Send Feedback" onPress={() => navigation.navigate('Feedback')} />
+
+        <SectionHeader label="Account" />
+        <Row label="Your Profile" onPress={() => navigation.navigate('Profile')} />
         <Row label="Sign Out" onPress={handleSignOut} />
         <Row label="Delete Account" onPress={handleDeleteAccount} danger />
       </ScrollView>

@@ -686,6 +686,23 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: colors.textTertiary,
   },
+  // Section header row — divides the Settings list into categories
+  settings_sectionHeader: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderTopColor: colors.border,
+    borderBottomColor: colors.border,
+  },
+  settings_sectionHeaderText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: colors.textTertiary,
+  },
 
   //   List Row Styles — shared by Settings and Friends.
   row: {
