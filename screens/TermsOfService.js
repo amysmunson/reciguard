@@ -36,7 +36,7 @@ const TermsOfService = ({ navigation }) => (
 
       <Text style={styles.header_policySection}>Your Content</Text>
       <Text style={styles.policy_body}>
-        You retain full ownership of the recipes, notes, allergy information, and other content you
+        You retain full ownership of the recipes, notes, dietary needs information, and other content you
         add to the app and your account. You are solely responsible for what you enter, including its
         accuracy. We are not liable for any statements, representaitons, or inacurrate information entered by you or any user.
         This also applies to food restriction information that other people may rely on.
@@ -75,7 +75,7 @@ const TermsOfService = ({ navigation }) => (
       <Text style={styles.policy_body}>
         The app is provided &quot;as is,&quot; without warranties of any kind. We don&apos;t
         guarantee the app will be uninterrupted, error-free, or that any content, including
-        allergy or ingredient information, is accurate or complete. To the fullest extent
+        dietary needs or ingredient information, is accurate or complete. To the fullest extent
         permitted by law, we aren&apos;t liable for any harm arising from your use of the app
         or reliance on content within it, including allergy-related information.
       </Text>

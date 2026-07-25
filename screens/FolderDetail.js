@@ -107,7 +107,7 @@ const FolderDetail = ({ route, navigation }) => {
       });
       setActiveAllergies(details);
     } catch (err) {
-      Alert.alert('Could not load allergies', err.message ?? 'Unknown error');
+      Alert.alert('Could not load dietary needs', err.message ?? 'Unknown error');
     }
   }, []);
 

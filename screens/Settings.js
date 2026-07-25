@@ -30,7 +30,7 @@ const Settings = ({ navigation }) => {
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete account?',
-      'This permanently removes your profile, recipes, folders, and allergies. This cannot be undone.',
+      'This permanently removes your profile, recipes, folders, and dietary needs. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

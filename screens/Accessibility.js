@@ -56,7 +56,7 @@ const Accessibility = ({ navigation }) => {
           />
         </View>
         <Text style={styles.policy_body}>
-          Turn this mode on if you want text to be higher contrast and more visually prominent. This especially impacts the dietary restriction and allergy warnings
+          Turn this mode on if you want text to be higher contrast and more visually prominent. This especially impacts the dietary restriction warnings
           within recipes, where the names of affected individuals will appear in a bold, high-contrast color with
           a highlight that reflects the severity of the dietary restriction.
         </Text>

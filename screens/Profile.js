@@ -238,7 +238,7 @@ const Profile = ({ navigation }) => {
         displayValue(notes)
       )}
 
-      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Allergies</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Dietary Needs</Text>
       {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
       {allergies.map((a) => (
         <View key={a.id} style={styles.allergyRow}>
@@ -255,7 +255,7 @@ const Profile = ({ navigation }) => {
           onPress={() => navigation.navigate('EditAllergies', { allergies })}
         >
           <Text style={[styles.buttonText_outline, { color: colors.primary }]}>
-            Edit Allergies
+            Edit Dietary Needs
           </Text>
         </TouchableOpacity>
       )}

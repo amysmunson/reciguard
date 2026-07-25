@@ -127,6 +127,7 @@ const RecipeCard = ({ route, navigation }) => {
               Worst: {severityLabel(info.severity)}
             </Text>
             <Text style={[styles.allergyPopup_names, contrast && { color: colors.text }]}>
+              {'Dietary Restriction for: '}
               {info.people.map((p, idx) => (
                 <Text key={p.name + idx}>
                   <Text
@@ -154,7 +155,6 @@ const RecipeCard = ({ route, navigation }) => {
                   {idx < info.people.length - 1 ? ', ' : ''}
                 </Text>
               ))}
-              {info.people.length === 1 ? ' is allergic.' : ' are allergic.'}
             </Text>
           </View>
         )}

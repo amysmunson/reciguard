@@ -83,7 +83,7 @@ const EditAllergies = ({ navigation, route }) => {
         <Text style={styles.overlayText}>{saving ? 'Saving…' : 'Save'}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.header_card}>Edit Allergies</Text>
+      <Text style={styles.header_card}>Edit Dietary Needs</Text>
 
       {/* Legend to explain severity colors */}
       <View style={styles.severityLegend_row}>

@@ -84,7 +84,7 @@ const SharingWith = ({ navigation }) => {
 
       <Text style={styles.header_card}>Sharing With</Text>
       <Text style={[styles.readOnly_hint, { marginBottom: 12 }]}>
-        You&apos;re sharing your name, bio, and allergies with these people because they&apos;ve linked a friend profile to yours. You can remove their access
+        You&apos;re sharing your name, bio, and dietary needs with these people because they&apos;ve linked a friend profile to yours. You can remove their access
         to your profile or block them here.
       </Text>
 
@@ -126,7 +126,7 @@ const SharingWith = ({ navigation }) => {
         }
         message={
           confirmTarget?.action === 'remove'
-            ? `${confirmTarget.person.sharerName} will no longer be able to see your profile info or allergies. They can add you again later.`
+            ? `${confirmTarget.person.sharerName} will no longer be able to see your profile info or dietary needs. They can add you again later.`
             : confirmTarget
             ? `This removes ${confirmTarget.person.sharerName} from both of your friend lists and stops either of you from adding each other again.`
             : ''

@@ -81,7 +81,7 @@ const AllergyOverview = ({ navigation, route }) => {
         setSelectedFriendIds(new Set(allFriendIds));
       }
     } catch (err) {
-      Alert.alert('Could not load allergy overview', err.message ?? 'Unknown error');
+      Alert.alert('Could not load Dietary Needs Overview', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -187,7 +187,7 @@ const AllergyOverview = ({ navigation, route }) => {
         <FilterIcon size={20} color={colors.textSecondary} />
       </TouchableOpacity>
 
-      <Text style={styles.header_card}>Allergy Overview</Text>
+      <Text style={styles.header_card}>Dietary Needs Overview</Text>
 
       {loading ? (
         <Text style={styles.emptyText}>Loading…</Text>
@@ -204,7 +204,7 @@ const AllergyOverview = ({ navigation, route }) => {
                   {g.profileName}
                 </Text>
                 {g.allergies.length === 0 ? (
-                  <Text style={styles.emptyText}>No known allergies.</Text>
+                  <Text style={styles.emptyText}>No known dietary needs.</Text>
                 ) : (
                   g.allergies.map((a, idx) => (
                     <View key={a.name + idx} style={styles.allergyRow}>
@@ -230,7 +230,7 @@ const AllergyOverview = ({ navigation, route }) => {
       <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
         <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
-            <Text style={styles.header_modal}>Show allergies for</Text>
+            <Text style={styles.header_modal}>Show dietary needs for</Text>
             <ScrollView style={{ maxHeight: 320 }}>
               <TouchableOpacity
                 style={styles.filter_row}

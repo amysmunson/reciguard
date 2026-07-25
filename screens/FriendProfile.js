@@ -145,7 +145,7 @@ const FriendProfile = ({ route, navigation }) => {
   const handleUnlink = () => {
     Alert.alert(
       'Unlink this friend?',
-      "Their profile data won't update for you anymore, but your notes and allergies stay.",
+      "Their profile data won't update for you anymore, but your notes and dietary needs stay.",
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -166,7 +166,7 @@ const FriendProfile = ({ route, navigation }) => {
   };
 
   const handleDeleteFriend = () => {
-    Alert.alert('Remove friend?', 'This deletes your notes and allergies for them.', [
+    Alert.alert('Remove friend?', 'This deletes your notes and dietary needs for them.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
@@ -291,7 +291,7 @@ const FriendProfile = ({ route, navigation }) => {
 
       {linkedAlive && (
         <>
-          <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Their Allergies</Text>
+          <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Their Dietary Needs</Text>
           <Text style={styles.readOnly_hint}>From their profile.</Text>
           {theirAllergies.length === 0 ? (
             <Text style={styles.emptyText}>They haven&apos;t added any.</Text>
@@ -314,14 +314,14 @@ const FriendProfile = ({ route, navigation }) => {
         </>
       )}
 
-      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Allergy Notes</Text>
+      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Dietary Need Notes</Text>
       {linkedAlive ? (
         <Text style={styles.readOnly_hint}>
-          Allergies you want to track for this friend.
+          Dietary needs you want to track for this friend.
         </Text>
       ) : (
         <Text style={styles.readOnly_hint}>
-          Extra allergies you want to track for this friend. Only visible to you.
+          Extra dietary needs you want to track for this friend. Only visible to you.
         </Text>
       )}
 
@@ -348,7 +348,7 @@ const FriendProfile = ({ route, navigation }) => {
           }
         >
           <Text style={[styles.buttonText_outline, { color: colors.primary }]}>
-            Edit Allergies
+            Edit Dietary Needs
           </Text>
         </TouchableOpacity>
       )}
