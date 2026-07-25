@@ -43,7 +43,8 @@ recipes/
 ├── .env.example                    # EXPO_PUBLIC_SUPABASE_URL / _PUBLISHABLE_KEY
 │
 ├── lib/                            # Data layer — the ONLY place Supabase is used
-│   ├── supabase.js                 # Single createClient() instance (AsyncStorage + URL polyfill)
+│   ├── supabase.js                 # Single createClient() instance (SecureStore session storage + URL polyfill)
+│   ├── secureStoreAdapter.js       # Chunked expo-secure-store adapter used as the auth session storage above
 │   ├── auth-context.js             # AuthProvider + useAuth() hook (session, user, loading)
 │   ├── storage.js                  # AsyncStorage helpers (loadJson, saveJson) + KEYS registry
 │   ├── cache.js                    # Stale-while-revalidate cache: useCachedResource() + mutateCachedResource() + invalidate()
@@ -140,7 +141,8 @@ be safely removed if/when you confirm nothing pulls it in.
 | `@react-navigation/native` | Navigator root + hooks (`useFocusEffect`, etc.) in [App.js](App.js) and screens. |
 | `@react-navigation/stack` | Auth stack and app stack in [App.js](App.js). |
 | `@supabase/supabase-js` | The Postgres + Auth client — initialized once in [lib/supabase.js](lib/supabase.js). |
-| `@react-native-async-storage/async-storage` | Storage adapter for Supabase auth session and the per-user filter persistence in [lib/storage.js](lib/storage.js). |
+| `@react-native-async-storage/async-storage` | Storage for the non-sensitive per-user filter/sort persistence in [lib/storage.js](lib/storage.js) (recipe caches, sort order, allergy-filter selections) — not the auth session, see `expo-secure-store` below. |
+| `expo-secure-store` | Backs [lib/secureStoreAdapter.js](lib/secureStoreAdapter.js), the Supabase auth session storage adapter — puts the access/refresh token in the OS Keychain (iOS) / encrypted storage (Android) instead of plain AsyncStorage. Values are chunked across multiple SecureStore items since a single item is capped around 2048 bytes and a full session (tokens + user metadata) can exceed that. |
 | `react-native-url-polyfill` | Side-effect import in [lib/supabase.js](lib/supabase.js) — Supabase needs URL globals that RN doesn't ship. |
 | `react-native-svg` | Used by `components/LandingCard*.js` for the decorative title shapes and by `components/icons/*.js` for the custom Heroicons-style glyphs (Plus / Search / Sort). |
 | `react-native-vector-icons` | Provides the `Ionicons` and `FontAwesome` font sets consumed via `react-native-vector-icons/Ionicons` and `/FontAwesome`. Direct imports are confined to [components/icons/index.js](components/icons/index.js); every screen consumes semantic wrappers (e.g. `<TrashIcon>`, `<BackIcon>`) from the registry instead. It was only a *transitive* dependency (pulled in by `expo-router`) until `expo-router`'s removal surfaced that gap — it's now declared explicitly in `package.json`. |
@@ -199,7 +201,7 @@ one (grep) before deleting.
 
 One file, one `createClient()` call, configured for React Native:
 
-- Uses `AsyncStorage` to persist the session across app restarts.
+- Uses [lib/secureStoreAdapter.js](lib/secureStoreAdapter.js) (backed by `expo-secure-store`, not `AsyncStorage`) to persist the session across app restarts, so the access/refresh token sit in the OS Keychain/encrypted storage rather than a plain on-disk file.
 - Imports `react-native-url-polyfill/auto` (required for Supabase in RN).
 - Reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
   from `.env.local`.
