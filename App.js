@@ -58,6 +58,7 @@ const AppStack = () => (
     <Stack.Screen name="Settings" component={Settings} options={{ animation: 'none' }} />
     <Stack.Screen name="Accessibility" component={Accessibility} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+    <Stack.Screen name="Feedback" component={Feedback} />
   </Stack.Navigator>
 );
 
