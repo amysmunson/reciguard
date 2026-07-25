@@ -16,7 +16,7 @@ import NavigationBar from '../components/NavigationBar';
 import AllergyFilterControl from '../components/AllergyFilterControl';
 import { startNewRecipe } from '../components/utils/addRecipe';
 import { getRecipes, deleteRecipes } from '../lib/api/recipes';
-import { getFolders, addRecipesToFolder } from '../lib/api/folders';
+import { getFolders, createFolder, addRecipesToFolder } from '../lib/api/folders';
 import { getMyProfile } from '../lib/api/profile';
 import {
   getActiveAllergyDetails,
@@ -29,6 +29,7 @@ import { useAuth } from '../lib/auth-context';
 import { colors } from '../styles/theme';
 import {
   FolderIcon,
+  PlusIcon,
   SearchIcon,
   SelectCircleIcon,
   SortIcon,
@@ -75,6 +76,8 @@ const Home = ({ navigation, route }) => {
   // Add-to-folder picker
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [folders, setFolders] = useState([]);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   // Search state — query string only; the input is always visible in the action bar
   const [searchQuery, setSearchQuery] = useState('');
@@ -181,21 +184,40 @@ const Home = ({ navigation, route }) => {
     try {
       const list = await getFolders();
       setFolders(list);
+      setCreatingFolder(false);
+      setNewFolderName('');
       setFolderPickerOpen(true);
     } catch (err) {
       Alert.alert('Could not load folders', err.message ?? 'Unknown error');
     }
   };
 
+  const closeFolderPicker = () => {
+    setFolderPickerOpen(false);
+    setCreatingFolder(false);
+    setNewFolderName('');
+  };
+
   const handleAddToFolder = async (folderId) => {
     const ids = Array.from(selectedIds);
     try {
       await addRecipesToFolder({ recipeIds: ids, folderId });
-      setFolderPickerOpen(false);
+      closeFolderPicker();
       exitSelect();
       Alert.alert('Added', `${ids.length} recipe(s) added to folder.`);
     } catch (err) {
       Alert.alert('Could not add to folder', err.message ?? 'Unknown error');
+    }
+  };
+
+  const handleCreateFolderAndAdd = async () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    try {
+      const folder = await createFolder({ name });
+      await handleAddToFolder(folder.id);
+    } catch (err) {
+      Alert.alert('Could not create folder', err.message ?? 'Unknown error');
     }
   };
 
@@ -338,37 +360,69 @@ const Home = ({ navigation, route }) => {
         visible={folderPickerOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setFolderPickerOpen(false)}
+        onRequestClose={closeFolderPicker}
       >
-        <Pressable
-          style={styles.modal_backdrop}
-          onPress={() => setFolderPickerOpen(false)}
-        >
+        <Pressable style={styles.modal_backdrop} onPress={closeFolderPicker}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Add to folder</Text>
-            <ScrollView style={{ maxHeight: 320 }}>
-              {folders.length === 0 && (
-                <Text style={styles.emptyText}>No folders yet. Create one first.</Text>
-              )}
-              {folders.map((f) => (
+
+            {creatingFolder ? (
+              <>
+                <TextInput
+                  style={[styles.input_base, styles.input_spaced]}
+                  placeholder="Folder name"
+                  value={newFolderName}
+                  onChangeText={setNewFolderName}
+                  autoFocus
+                />
+                <View style={styles.modal_button_right}>
+                  <TouchableOpacity
+                    style={styles.modal_button}
+                    onPress={() => {
+                      setCreatingFolder(false);
+                      setNewFolderName('');
+                    }}
+                  >
+                    <Text style={styles.modal_buttonText}>Back</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modal_button} onPress={handleCreateFolderAndAdd}>
+                    <Text style={[styles.modal_buttonText, { color: colors.link, fontWeight: 'bold' }]}>
+                      Create & Add
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
                 <TouchableOpacity
-                  key={f.id}
                   style={styles.filter_row}
-                  onPress={() => handleAddToFolder(f.id)}
+                  onPress={() => setCreatingFolder(true)}
                 >
-                  <FolderIcon size={20} />
-                  <Text style={styles.filter_rowText}>{f.name || 'Untitled'}</Text>
+                  <PlusIcon size={20} color={colors.link} />
+                  <Text style={[styles.filter_rowText, { color: colors.link }]}>New folder</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <View style={styles.modal_button_right} >
-              <TouchableOpacity
-                style={styles.modal_button}
-                onPress={() => setFolderPickerOpen(false)}
-              >
-                <Text style={styles.modal_buttonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
+                <ScrollView style={{ maxHeight: 320 }}>
+                  {folders.length === 0 && (
+                    <Text style={styles.emptyText}>No folders yet. Create one above.</Text>
+                  )}
+                  {folders.map((f) => (
+                    <TouchableOpacity
+                      key={f.id}
+                      style={styles.filter_row}
+                      onPress={() => handleAddToFolder(f.id)}
+                    >
+                      <FolderIcon size={20} />
+                      <Text style={styles.filter_rowText}>{f.name || 'Untitled'}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <View style={styles.modal_button_right}>
+                  <TouchableOpacity style={styles.modal_button} onPress={closeFolderPicker}>
+                    <Text style={styles.modal_buttonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
