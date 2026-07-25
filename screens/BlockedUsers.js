@@ -152,7 +152,7 @@ const BlockedUsers = ({ navigation }) => {
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Block by Friend Code</Text>
             <Text style={[styles.readOnly_hint, { marginBottom: 12 }]}>
-              Enter their friend code to block them right away — you don&apos;t need to have added or linked with them first.
+              Enter another user&apos;s friend code to block them right away. You do not need to have added or linked with them first.
             </Text>
             <TextInput
               style={[styles.input_base, styles.input_spaced, styles.input_code]}

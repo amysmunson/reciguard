@@ -67,9 +67,13 @@ const AllergyChecklist = ({ existingNames = [], onAdd, onRemove }) => {
     [existingNames]
   );
 
-  // checks if text matches the query
-  const matchesQuery = (text) =>
-    !query.trim() || text.toLowerCase().includes(query.trim().toLowerCase());
+  // checks if text matches the query. Wrapped in useCallback (stable
+  // whenever query is unchanged) so it can be listed as a dependency below
+  // instead of triggering an exhaustive-deps warning.
+  const matchesQuery = useCallback(
+    (text) => !query.trim() || text.toLowerCase().includes(query.trim().toLowerCase()),
+    [query]
+  );
 
   // Rows are memoized (PresetRow/GroupRow above) so a single toggle doesn't
   // re-render the whole ~300-row list, but that only helps if the onPress
@@ -87,13 +91,13 @@ const AllergyChecklist = ({ existingNames = [], onAdd, onRemove }) => {
       ALLERGEN_GROUPS.filter(
         (g) => matchesQuery(g.name) || matchesQuery(g.description ?? '')
       ),
-    [query]
+    [matchesQuery]
   );
 
   // Filter presets based on the query
   const visiblePresets = useMemo(
     () => ALLERGEN_PRESETS.filter((p) => matchesQuery(p.name)),
-    [query]
+    [matchesQuery]
   );
 
   // Per-tap toggle for an individual preset. If it's already in the caller's list, remove it; otherwise add it

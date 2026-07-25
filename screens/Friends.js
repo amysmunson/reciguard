@@ -174,7 +174,6 @@ const Friends = ({ navigation }) => {
           </TouchableOpacity>
         }
         renderItem={({ item }) => {
-          const linked = !!item.existingFriendId;
           return (
             <TouchableOpacity
               style={styles.row}

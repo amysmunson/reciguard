@@ -3,13 +3,10 @@ import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import { useAuth } from '../lib/auth-context';
 import { signOut, deleteAccount } from '../lib/api/auth';
 import { startNewRecipe } from '../components/utils/addRecipe';
 
 const Settings = ({ navigation }) => {
-  const { user } = useAuth();
-
   const handleSignOut = () => {
     Alert.alert('Sign out?', '', [
       { text: 'Cancel', style: 'cancel' },

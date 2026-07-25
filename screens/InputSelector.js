@@ -13,7 +13,7 @@ import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { fetchRecipeFromUrl } from '../lib/recipeUrlParser';
 import { createRecipe } from '../lib/api/recipes';
-import { BackIcon, EditIcon, ImageIcon, LinkOutlineIcon } from '../components/icons';
+import { BackIcon, EditIcon, LinkOutlineIcon } from '../components/icons';
 
 // Error messages the parser throws when the page loaded fine but no
 // usable recipe data could be extracted. These trigger the "create
