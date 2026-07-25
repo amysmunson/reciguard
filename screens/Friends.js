@@ -18,6 +18,7 @@ import {
   PersonAddIcon,
   PlusIcon,
   SearchIcon,
+  LinkOutlineIcon,
 } from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import {
@@ -141,6 +142,12 @@ const Friends = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.home_actionBar_iconButton}
+          onPress={() => navigation.navigate('SharingWith')}
+        >
+          <LinkOutlineIcon size={22} color={colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.home_actionBar_iconButton}
           onPress={openAddFriend}
         >
           <PlusIcon size={22} color={colors.textSecondary} />
@@ -237,13 +244,12 @@ const Friends = ({ navigation }) => {
                 <Text style={styles.header_modal}>Enter Friend Code</Text>
                 <TextInput
                   style={[styles.input_base, styles.input_spaced, styles.input_code]}
-                  placeholder="ABCD-EFGH"
+                  placeholder="ABCDEFGH"
                   value={codeInput}
                   onChangeText={(t) => setCodeInput(normalizeCode(t))}
                   autoCapitalize="characters"
                   autoCorrect={false}
                   autoFocus
-                  maxLength={8}
                 />
                 <View style={styles.modal_button_right}>
                   <TouchableOpacity
