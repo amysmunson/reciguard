@@ -124,6 +124,12 @@ const EditAllergies = ({ navigation, route }) => {
         </View>
       ))}
 
+      <Text style={[styles.readOnly_hint, { marginBottom: 8 }]}>
+        Some allergies and restrictions are harder to catch automatically (like corn in the corn syrup of marshmallows).
+        Be sure to check for hidden or alternate ingredient names, cross-contamination, and ingredients within other ingredients. 
+        Always check the specific ingredients in a recipe yourself.
+      </Text>
+
       {/* Checklist for adding */}
       <AllergyChecklist
         existingNames={items.map((a) => a.name)}

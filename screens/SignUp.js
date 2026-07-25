@@ -87,13 +87,21 @@ const SignUp = ({ navigation }) => {
           {'- Special characters\n'}
           {'- Numbers\n'}
         </Text>
-        {/* Privacy Policy */}
-        <TouchableOpacity
-          style={[styles.button_link, { alignSelf: 'flex-start' }]}
-          onPress={() => navigation.navigate('PrivacyPolicy')}
-        >
-          <Text style={[styles.buttonText_link, { color: colors.text, fontSize: 16 }]}>Privacy Policy</Text>
-        </TouchableOpacity>
+        {/* Privacy Policy / Terms of Service */}
+        <View style={{ alignSelf: 'flex-start' }}>
+          <TouchableOpacity
+            style={[styles.button_link, { alignSelf: 'flex-start' }]}
+            onPress={() => navigation.navigate('PrivacyPolicy')}
+          >
+            <Text style={[styles.buttonText_link, { color: colors.text, fontSize: 16 }]}>Privacy Policy</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button_link, { alignSelf: 'flex-start' }]}
+            onPress={() => navigation.navigate('TermsOfService')}
+          >
+            <Text style={[styles.buttonText_link, { color: colors.text, fontSize: 16 }]}>Terms of Service</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={[{ flex: 1 }]} />

@@ -70,6 +70,7 @@ const Settings = ({ navigation }) => {
         <Row label="Your Profile" onPress={() => navigation.navigate('Profile')} />
         <Row label="Accessibility" onPress={() => navigation.navigate('Accessibility')} />
         <Row label="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
+        <Row label="Terms of Service" onPress={() => navigation.navigate('TermsOfService')} />
         <Row label="Send Feedback" onPress={() => navigation.navigate('Feedback')} />
         <Row label="Sign Out" onPress={handleSignOut} />
         <Row label="Delete Account" onPress={handleDeleteAccount} danger />
