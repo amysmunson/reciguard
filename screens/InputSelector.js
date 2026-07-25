@@ -146,7 +146,7 @@ const InputSelector = ({ navigation }) => {
             style={styles.linkEntry_input}
             value={url}
             onChangeText={handleUrlChange}
-            placeholder="https://www.allrecipes.com/recipe/..."
+            placeholder="https://www.website.com/recipe/..."
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
