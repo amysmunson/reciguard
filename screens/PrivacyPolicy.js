@@ -12,7 +12,7 @@ const PrivacyPolicy = ({ navigation }) => (
 
     <ScrollView contentContainerStyle={styles.screen_policyPad}>
       <Text style={styles.header_policyMain}>Privacy Policy</Text>
-      <Text style={styles.policy_updated}>Last updated: July 23, 2026</Text>
+      <Text style={styles.policy_updated}>Last updated: July 25, 2026</Text>
 
       <Text style={styles.policy_body}>
         This policy explains what information the app collects, how it is used, and the
@@ -24,8 +24,8 @@ const PrivacyPolicy = ({ navigation }) => (
         {'• Account info: the email address and password you use to sign in, any name, phone number, or profile notes you choose to add, your friend code (used to let others connect with you), and your accessibility display preference.\n'}
         {'• Content you create: your recipes (including titles, ingredients, steps, notes, and any source links or image URLs you add), folders, and dietary need information.\n'}
         {'• Friends you add: their names, the private notes you write about them, and any dietary need information you record for them.\n'}
-        {'• On-device data: your sign-in session, small preference settings (such as your sort and filter choices), and a timestamp of when you last opened each recipe (used to sort “recently opened”) are stored locally on your device.\n'}
-        {'• Offline cache: to make the app load instantly and work without a connection, a copy of your recipes, folders, friends, and profile is also cached on your device. This mirrors what is already stored on our servers — it isn’t collected separately, but it does mean a local copy can remain on a device even after you sign out, until you sign in again or the app’s local storage is cleared.'}
+        {'• On-device data: your sign-in session (stored securely on your device), small preference settings (such as your sort and filter choices), and a timestamp of when you last opened each recipe (used to sort “recently opened”) are stored locally on your device.\n'}
+        {'• Offline cache: to make the app load instantly and work without a connection, a copy of your recipes, folders, friends, and profile is also cached on your device. This mirrors what is already stored on our servers — it isn’t collected separately, and it is cleared from your device automatically when you sign out or delete your account.'}
       </Text>
       <Text style={styles.policy_body}>
         The app does not collect your location, contacts, photo library, device
@@ -63,9 +63,8 @@ const PrivacyPolicy = ({ navigation }) => (
       <Text style={styles.policy_body}>
         We keep your information for as long as your account exists. When you delete
         content, or delete your account, the corresponding data is removed from our servers.
-        A cached copy may remain on a device you signed in on until you reinstall the app
-        or clear its storage; once your account is deleted this local copy can no longer be
-        reached through the app.
+        The on-device cache described above is cleared automatically when you sign out or
+        delete your account, so it does not linger on a device after you leave the account.
       </Text>
       <Text style={styles.policy_body}>
         If someone you connected with deletes their account, the friendship stays in your
