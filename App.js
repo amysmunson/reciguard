@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 import { AuthProvider, useAuth } from './lib/auth-context';
+import { useCacheWarmup } from './lib/useCacheWarmup';
 
 import Landing from './screens/Landing';
 import Login from './screens/Login';
@@ -42,28 +43,34 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-const AppStack = () => (
-  <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Home" component={Home} options={{ animation: 'none' }} />
-    <Stack.Screen name="RecipeCard" component={RecipeCard} />
-    <Stack.Screen name="EditRecipe" component={EditRecipe} />
-    <Stack.Screen name="InputSelector" component={InputSelector} />
-    <Stack.Screen name="Folders" component={Folders} options={{ animation: 'none' }} />
-    <Stack.Screen name="FolderDetail" component={FolderDetail} />
-    <Stack.Screen name="Friends" component={Friends} options={{ animation: 'none' }} />
-    <Stack.Screen name="FriendProfile" component={FriendProfile} />
-    <Stack.Screen name="Profile" component={Profile} />
-    <Stack.Screen name="EditAllergies" component={EditAllergies} />
-    <Stack.Screen name="AllergyOverview" component={AllergyOverview} />
-    <Stack.Screen name="SharingWith" component={SharingWith} />
-    <Stack.Screen name="BlockedUsers" component={BlockedUsers} />
-    <Stack.Screen name="Settings" component={Settings} options={{ animation: 'none' }} />
-    <Stack.Screen name="Accessibility" component={Accessibility} />
-    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
-    <Stack.Screen name="TermsOfService" component={TermsOfService} />
-    <Stack.Screen name="Feedback" component={Feedback} />
-  </Stack.Navigator>
-);
+const AppStack = () => {
+  // Quietly refresh other screens' caches in the background on launch/sign-in.
+  const { user } = useAuth();
+  useCacheWarmup(user);
+
+  return (
+    <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Home" component={Home} options={{ animation: 'none' }} />
+      <Stack.Screen name="RecipeCard" component={RecipeCard} />
+      <Stack.Screen name="EditRecipe" component={EditRecipe} />
+      <Stack.Screen name="InputSelector" component={InputSelector} />
+      <Stack.Screen name="Folders" component={Folders} options={{ animation: 'none' }} />
+      <Stack.Screen name="FolderDetail" component={FolderDetail} />
+      <Stack.Screen name="Friends" component={Friends} options={{ animation: 'none' }} />
+      <Stack.Screen name="FriendProfile" component={FriendProfile} />
+      <Stack.Screen name="Profile" component={Profile} />
+      <Stack.Screen name="EditAllergies" component={EditAllergies} />
+      <Stack.Screen name="AllergyOverview" component={AllergyOverview} />
+      <Stack.Screen name="SharingWith" component={SharingWith} />
+      <Stack.Screen name="BlockedUsers" component={BlockedUsers} />
+      <Stack.Screen name="Settings" component={Settings} options={{ animation: 'none' }} />
+      <Stack.Screen name="Accessibility" component={Accessibility} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+      <Stack.Screen name="TermsOfService" component={TermsOfService} />
+      <Stack.Screen name="Feedback" component={Feedback} />
+    </Stack.Navigator>
+  );
+};
 
 const RootNavigator = () => {
   const { session, loading } = useAuth();
