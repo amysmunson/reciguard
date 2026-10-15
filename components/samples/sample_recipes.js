@@ -14,7 +14,6 @@ export const sampleRecipes = [{
     "0.25 cup freshly grated Parmesan cheese, or more to taste"],
   steps: ["Combine corn, heavy cream, sugar, butter, salt, and black pepper in a skillet over medium heat. Cook, stirring occasionally, until butter has melted, 3 to 5 minutes.", "Meanwhile, whisk milk and flour together in a small bowl until smooth."
 , "Add milk mixture to the skillet and continue to cook, stirring constantly, until sauce is thickened and corn is cooked through, about 4 minutes.","Remove from heat, and stir in Parmesan cheese until melted. Serve hot."],
-  authorNotes: [],
   userNotes: ["..."],
 },
 { userId: '1234', id: '2', name: 'Omelette', ingredients: ['Eggs', 'Salt'] },
