@@ -15,8 +15,11 @@ import NavigationBar from '../components/NavigationBar';
 import { getFolders, createFolder, deleteFolders } from '../lib/api/folders';
 import { getMyProfile } from '../lib/api/profile';
 import { useCachedResource } from '../lib/cache';
+import { usePullToRefresh } from '../lib/usePullToRefresh';
 import { useAuth } from '../lib/auth-context';
 import { startNewRecipe } from '../components/utils/addRecipe';
+import { confirmDiscard } from '../lib/unsavedChanges';
+import { alertSaveFailed } from '../lib/connectivity';
 import { PlusIcon, SearchIcon, SelectCircleIcon, SortIcon, TrashIcon } from '../components/icons';
 import SortMenu from '../components/SortMenu';
 import { loadJson, saveJson, KEYS } from '../lib/storage';
@@ -29,7 +32,7 @@ import {
 
 const Folders = ({ navigation }) => {
   const { user } = useAuth();
-  const { data: foldersData } = useCachedResource({
+  const { data: foldersData, refresh: refreshFolders } = useCachedResource({
     resource: 'folders',
     userId: user?.id,
     fetcher: getFolders,
@@ -40,6 +43,7 @@ const Folders = ({ navigation }) => {
     fetcher: getMyProfile,
   });
   const contrast = !!profile?.contrast;
+  const refreshControl = usePullToRefresh(refreshFolders);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -85,9 +89,18 @@ const Folders = ({ navigation }) => {
       setNewName('');
       setCreating(false);
     } catch (err) {
-      Alert.alert('Could not create folder', err.message ?? 'Unknown error');
+      alertSaveFailed(err, 'Could not create folder');
     }
   };
+
+  const closeCreate = () => {
+    setCreating(false);
+    setNewName('');
+  };
+
+  // Backdrop tap / Android back — easy to hit by accident, so ask first if
+  // a name has been typed. The Cancel button discards straight away.
+  const dismissCreate = () => confirmDiscard(!!newName.trim(), closeCreate);
 
   const handleAddRecipe = () => {
     startNewRecipe({ navigation });
@@ -192,6 +205,7 @@ const Folders = ({ navigation }) => {
       <FlatList
         data={displayedFolders}
         numColumns={2}
+        refreshControl={refreshControl}
         renderItem={({ item }) => {
           const isSelected = selectedIds.has(item.id);
           return (
@@ -226,18 +240,9 @@ const Folders = ({ navigation }) => {
         visible={creating}
         transparent
         animationType="fade"
-        onRequestClose={() => {
-          setCreating(false);
-          setNewName('');
-        }}
+        onRequestClose={dismissCreate}
       >
-        <Pressable
-          style={styles.modal_backdrop}
-          onPress={() => {
-            setCreating(false);
-            setNewName('');
-          }}
-        >
+        <Pressable style={styles.modal_backdrop} onPress={dismissCreate}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>New Folder</Text>
             <TextInput
@@ -248,13 +253,7 @@ const Folders = ({ navigation }) => {
               autoFocus
             />
             <View style={styles.modal_button_right}>
-              <TouchableOpacity
-                style={styles.modal_button}
-                onPress={() => {
-                  setCreating(false);
-                  setNewName('');
-                }}
-              >
+              <TouchableOpacity style={styles.modal_button} onPress={closeCreate}>
                 <Text style={styles.modal_buttonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modal_button} onPress={handleCreate}>

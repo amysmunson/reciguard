@@ -15,8 +15,12 @@ import { colors } from '../styles/theme';
 import { BackIcon, ShareIcon } from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import { getMyProfile, updateMyProfile } from '../lib/api/profile';
+import { readCachedResource } from '../lib/cache';
 import { getMyAllergies, severityColor, severityLabel } from '../lib/api/allergies';
 import ConfirmModal from '../components/ConfirmModal';
+import OfflineBanner from '../components/OfflineBanner';
+import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
+import { alertSaveFailed } from '../lib/connectivity';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -28,7 +32,14 @@ const Profile = ({ navigation }) => {
   const [notes, setNotes] = useState('');
   const [friendCode, setFriendCode] = useState('');
   const [loading, setLoading] = useState(true);
-  const [allergies, setAllergies] = useState([]);
+  // null until the server responds — dietary needs aren't cached, so the
+  // section stays blank rather than flashing "None added."
+  const [allergies, setAllergies] = useState(null);
+  // The cached first paint is read-only: Edit appears once server data is in,
+  // so edits never start from (or save over) a stale copy.
+  const [serverLoaded, setServerLoaded] = useState(false);
+  const serverLoadedRef = useRef(false);
+  const cachedShownRef = useRef(false);
   const [isEditing, setIsEditing] = useState(false);
   const [baseline, setBaseline] = useState({ name: '', phone: '', about: '', notes: '' });
   const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
@@ -36,6 +47,26 @@ const Profile = ({ navigation }) => {
   const copyTimeoutRef = useRef(null);
 
   useEffect(() => () => clearTimeout(copyTimeoutRef.current), []);
+
+  // First paint from the cached profile (shared with Home/Settings) while
+  // load() below fetches from the server.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await readCachedResource('profile', user?.id);
+      if (cancelled || !cached || serverLoadedRef.current) return;
+      cachedShownRef.current = true;
+      setFriendCode(cached.friend_code ?? '');
+      setName(cached.name ?? '');
+      setPhone(cached.phone ?? '');
+      setAbout(cached.about ?? '');
+      setNotes(cached.notes ?? '');
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const load = useCallback(async ({ preserveEdits = false } = {}) => {
     try {
@@ -58,8 +89,13 @@ const Profile = ({ navigation }) => {
         setNotes(loaded.notes);
         setBaseline(loaded);
       }
+      serverLoadedRef.current = true;
+      setServerLoaded(true);
     } catch (err) {
-      Alert.alert('Could not load profile', err.message ?? 'Unknown error');
+      // Stay quiet if the cached copy is already on screen (e.g. offline).
+      if (!cachedShownRef.current) {
+        Alert.alert('Could not load profile', err.message ?? 'Unknown error');
+      }
     } finally {
       setLoading(false);
     }
@@ -70,6 +106,14 @@ const Profile = ({ navigation }) => {
     phone !== baseline.phone ||
     about !== baseline.about ||
     notes !== baseline.notes;
+
+  // The in-screen back button only leaves edit mode (handleBackPress below);
+  // this covers actually leaving the screen mid-edit — swipe back, Android
+  // back, or popping the stack from elsewhere.
+  const { discardModalProps } = useUnsavedChangesGuard({
+    navigation,
+    isDirty: isEditing && isDirty,
+  });
 
   // Refreshes on every focus (not just mount) so allergy edits made on
   // EditAllergies — which saves straight to the database itself — show up
@@ -105,7 +149,7 @@ const Profile = ({ navigation }) => {
       setIsEditing(false);
       setBaseline({ name, phone, about, notes });
     } catch (err) {
-      Alert.alert('Could not save', err.message ?? 'Unknown error');
+      alertSaveFailed(err);
     }
   };
 
@@ -156,8 +200,11 @@ const Profile = ({ navigation }) => {
       <TouchableOpacity
         style={[styles.overlay_base, styles.overlay_topRight_card]}
         onPress={isEditing ? handleSave : () => setIsEditing(true)}
+        disabled={!serverLoaded && !isEditing}
       >
-        <Text style={styles.overlayText}>{isEditing ? 'Save' : 'Edit'}</Text>
+        <Text style={[styles.overlayText, !serverLoaded && !isEditing && { opacity: 0.4 }]}>
+          {isEditing ? 'Save' : 'Edit'}
+        </Text>
       </TouchableOpacity>
 
       {isEditing ? (
@@ -170,6 +217,7 @@ const Profile = ({ navigation }) => {
       ) : (
         <Text style={styles.header_card}>{name || "Your Profile"}</Text>
       )}
+      <OfflineBanner />
 
       <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Your Friend Code</Text>
       <Text style={styles.readOnly_hint}>Share this with friends so they can link your profile to theirs. Tap the code to copy it.</Text>
@@ -239,8 +287,8 @@ const Profile = ({ navigation }) => {
       )}
 
       <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Dietary Needs</Text>
-      {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
-      {allergies.map((a) => (
+      {allergies?.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
+      {(allergies ?? []).map((a) => (
         <View key={a.id} style={styles.allergyRow}>
           <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
           <View style={styles.severityChip}>
@@ -249,7 +297,7 @@ const Profile = ({ navigation }) => {
           </View>
         </View>
       ))}
-      {isEditing && (
+      {isEditing && allergies && (
         <TouchableOpacity
           style={[styles.button_outline, styles.button_outline_link, { marginTop: 8 }]}
           onPress={() => navigation.navigate('EditAllergies', { allergies })}
@@ -271,6 +319,7 @@ const Profile = ({ navigation }) => {
         onConfirm={handleDiscard}
         onCancel={() => setConfirmDiscardVisible(false)}
       />
+      <ConfirmModal {...discardModalProps} />
     </ScrollView>
   );
 };

@@ -22,13 +22,14 @@ import {
 } from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import {
-  getFriends,
+  getFriendsWithMyName,
   addFriend,
   addFriendByCode,
   friendDisplayName,
 } from '../lib/api/friends';
-import { getMyProfile } from '../lib/api/profile';
 import { useCachedResource } from '../lib/cache';
+import { usePullToRefresh } from '../lib/usePullToRefresh';
+import { confirmDiscard } from '../lib/unsavedChanges';
 import { startNewRecipe } from '../components/utils/addRecipe';
 
 // Strip non-alphanumeric, uppercase, max 8 chars.
@@ -38,14 +39,12 @@ const Friends = ({ navigation }) => {
   const { user } = useAuth();
   const fallbackName = user?.email || 'you';
 
-  const { data } = useCachedResource({
+  const { data, refresh: refreshFriends } = useCachedResource({
     resource: 'friends',
     userId: user?.id,
-    fetcher: async () => {
-      const [list, profile] = await Promise.all([getFriends(), getMyProfile()]);
-      return { list, myName: profile?.name?.trim() || fallbackName };
-    },
+    fetcher: () => getFriendsWithMyName(fallbackName),
   });
+  const refreshControl = usePullToRefresh(refreshFriends);
   const friends = data?.list ?? [];
   const myName = data?.myName || fallbackName;
 
@@ -80,6 +79,13 @@ const Friends = ({ navigation }) => {
   const closeModal = () => {
     setModalVisible(false);
   };
+
+  // Backdrop tap / Android back — ask first if a name or code has been typed.
+  const dismissModal = () =>
+    confirmDiscard(
+      (modalStep === 'manual' && !!nameInput.trim()) || (modalStep === 'code' && !!codeInput),
+      closeModal
+    );
 
   const handleAddByCode = async () => {
     const code = normalizeCode(codeInput);
@@ -157,6 +163,7 @@ const Friends = ({ navigation }) => {
       <FlatList
         style={styles.list_marginless}
         data={displayedFriends}
+        refreshControl={refreshControl}
         ListHeaderComponent={
           <TouchableOpacity
             style={[styles.row, styles.friends_meRow]}
@@ -199,9 +206,9 @@ const Friends = ({ navigation }) => {
         visible={modalVisible}
         transparent
         animationType="fade"
-        onRequestClose={closeModal}
+        onRequestClose={dismissModal}
       >
-        <Pressable style={styles.modal_backdrop} onPress={closeModal}>
+        <Pressable style={styles.modal_backdrop} onPress={dismissModal}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             {modalStep === 'choose' && (
               <>

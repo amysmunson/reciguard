@@ -1168,6 +1168,75 @@ const styles = StyleSheet.create({
   toggle_label: {
     flex: 1,
   },
+
+  //   Servings — EditRecipe's "Makes [ # ] servings" row, and the
+  //   read-only "Makes N servings" line on RecipeCard.
+  servings_row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  servings_label: {
+    color: colors.textSecondary,
+  },
+  servings_input: {
+    width: 64,
+    marginHorizontal: 8,
+    textAlign: 'center',
+  },
+  servings_display: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+
+  //   Amount Multiplier (RecipeCard) — Ingredients header on the left,
+  //   ½× / 1× / 2× / 3× chips on the right.
+  multiplier_headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  multiplier_row: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  multiplier_chip: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  multiplier_chipSelected: {
+    backgroundColor: colors.primary,
+  },
+  multiplier_chipText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  multiplier_chipTextSelected: {
+    color: colors.textOnPrimary,
+  },
+
+  //   Offline Banner (components/OfflineBanner.js) — inline under a screen's
+  //   title, or above the bottom nav on tab screens.
+  offlineBanner: {
+    backgroundColor: colors.warning,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginVertical: 8,
+  },
+  offlineBanner_text: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });
 
 export default styles;

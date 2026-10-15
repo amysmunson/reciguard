@@ -15,9 +15,34 @@ import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { createRecipe, getRecipe, updateRecipe, deleteRecipe } from '../lib/api/recipes';
 import { BackIcon, CheckIcon, PlusIcon, TrashIcon } from '../components/icons';
+import ConfirmModal from '../components/ConfirmModal';
+import OfflineBanner from '../components/OfflineBanner';
+import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
+import { alertSaveFailed } from '../lib/connectivity';
 
 // nativeID linking the multiline inputs to the iOS "Done" accessory bar.
 const DONE_ACCESSORY_ID = 'editRecipeDone';
+
+// Comparable form of the editable fields. Blank rows are ignored (they're
+// dropped on save anyway), so adding then abandoning an empty row isn't
+// treated as an unsaved change.
+const snapshot = ({ name, servings, ingredients, steps, userNotes }) => {
+  const clean = (list) => list.filter((s) => s.trim().length > 0);
+  return JSON.stringify([
+    name,
+    String(servings ?? ''),
+    clean(ingredients),
+    clean(steps),
+    clean(userNotes),
+  ]);
+};
+const EMPTY_SNAPSHOT = snapshot({ name: '', servings: '', ingredients: [], steps: [], userNotes: [] });
+
+// Servings input text -> positive integer, or null when blank/zero.
+const parseServingsInput = (text) => {
+  const n = parseInt(text, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
 
 const EditRecipe = ({ route, navigation }) => {
   const recipeId = route.params?.recipeId ?? null;
@@ -28,10 +53,21 @@ const EditRecipe = ({ route, navigation }) => {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
+  // Kept as the raw input text; parsed to an integer (or null) on save.
+  const [servings, setServings] = useState('');
   const [ingredients, setIngredients] = useState([]);
   const [steps, setSteps] = useState([]);
-  const [authorNotes, setAuthorNotes] = useState([]);
   const [userNotes, setUserNotes] = useState([]);
+  // Snapshot of the last-loaded values; null while an existing recipe loads.
+  const [baseline, setBaseline] = useState(isNew ? EMPTY_SNAPSHOT : null);
+
+  const isDirty =
+    baseline !== null &&
+    snapshot({ name, servings, ingredients, steps, userNotes }) !== baseline;
+  const { discardModalProps, leaveWithoutPrompt } = useUnsavedChangesGuard({
+    navigation,
+    isDirty,
+  });
 
   useEffect(() => {
     if (isNew) return;
@@ -39,10 +75,11 @@ const EditRecipe = ({ route, navigation }) => {
       try {
         const r = await getRecipe(recipeId);
         setName(r.name);
+        setServings(r.servings ? String(r.servings) : '');
         setIngredients(r.ingredients);
         setSteps(r.steps);
-        setAuthorNotes(r.authorNotes);
         setUserNotes(r.userNotes);
+        setBaseline(snapshot(r));
       } catch (err) {
         Alert.alert('Could not load recipe', err.message ?? 'Unknown error');
       } finally {
@@ -66,9 +103,9 @@ const EditRecipe = ({ route, navigation }) => {
     if (saving) return;
     const payload = {
       name,
+      servings: parseServingsInput(servings),
       ingredients: ingredients.filter((s) => s.trim().length > 0),
       steps: steps.filter((s) => s.trim().length > 0),
-      authorNotes: authorNotes.filter((s) => s.trim().length > 0),
       userNotes: userNotes.filter((s) => s.trim().length > 0),
     };
 
@@ -81,14 +118,13 @@ const EditRecipe = ({ route, navigation }) => {
       setSaving(true);
       if (isNew) {
         await createRecipe(payload);
-        navigation.popToTop();
+        leaveWithoutPrompt(() => navigation.popToTop());
       } else {
         await updateRecipe(recipeId, payload);
-        if (fromCreate) navigation.popToTop();
-        else navigation.goBack();
+        leaveWithoutPrompt(() => (fromCreate ? navigation.popToTop() : navigation.goBack()));
       }
     } catch (err) {
-      Alert.alert('Could not save', err.message ?? 'Unknown error');
+      alertSaveFailed(err);
     } finally {
       setSaving(false);
     }
@@ -103,7 +139,7 @@ const EditRecipe = ({ route, navigation }) => {
         onPress: async () => {
           try {
             await deleteRecipe(recipeId);
-            navigation.popToTop();
+            leaveWithoutPrompt(() => navigation.popToTop());
           } catch (err) {
             Alert.alert('Could not delete', err.message ?? 'Unknown error');
           }
@@ -177,10 +213,25 @@ const EditRecipe = ({ route, navigation }) => {
           onChangeText={setName}
           placeholder={isNew ? 'New recipe name' : 'Recipe name'}
         />
+        <OfflineBanner />
+
+        <View style={styles.servings_row}>
+          <Text style={[styles.text_body, styles.servings_label]}>Makes</Text>
+          <TextInput
+            style={[styles.input_base, styles.servings_input, styles.text_body]}
+            value={servings}
+            onChangeText={(t) => setServings(t.replace(/[^0-9]/g, '').slice(0, 3))}
+            placeholder="#"
+            keyboardType="number-pad"
+            maxLength={3}
+            accessibilityLabel="Number of servings"
+            inputAccessoryViewID={Platform.OS === 'ios' ? DONE_ACCESSORY_ID : undefined}
+          />
+          <Text style={[styles.text_body, styles.servings_label]}>servings</Text>
+        </View>
 
         {renderList('Ingredients', ingredients, setIngredients, 'Ingredient')}
         {renderList('Instructions', steps, setSteps, 'Step', true)}
-        {renderList('Author Notes', authorNotes, setAuthorNotes, 'Note')}
         {renderList('Your Notes', userNotes, setUserNotes, 'Note')}
 
         <TouchableOpacity
@@ -205,6 +256,8 @@ const EditRecipe = ({ route, navigation }) => {
           </View>
         </InputAccessoryView>
       )}
+
+      <ConfirmModal {...discardModalProps} />
     </KeyboardAvoidingView>
   );
 };

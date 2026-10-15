@@ -25,7 +25,10 @@ import {
 } from '../lib/api/allergies';
 import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
 import { useCachedResource } from '../lib/cache';
+import { usePullToRefresh } from '../lib/usePullToRefresh';
 import { useAuth } from '../lib/auth-context';
+import { confirmDiscard } from '../lib/unsavedChanges';
+import { alertSaveFailed } from '../lib/connectivity';
 import { colors } from '../styles/theme';
 import {
   FolderIcon,
@@ -45,7 +48,7 @@ import {
 
 const Home = ({ navigation, route }) => {
   const { user } = useAuth();
-  const { data: recipesData } = useCachedResource({
+  const { data: recipesData, refresh: refreshRecipes } = useCachedResource({
     resource: 'recipes',
     userId: user?.id,
     fetcher: getRecipes,
@@ -135,6 +138,16 @@ const Home = ({ navigation, route }) => {
     }, [refreshOpenedMap, refreshActiveAllergies, allergySelection, allergySelectionReady])
   );
 
+  // Pull down to refetch the list, opened times, and allergy dots.
+  const refreshControl = usePullToRefresh(() =>
+    Promise.all([
+      refreshRecipes(),
+      refreshOpenedMap(),
+      allergySelectionReady &&
+        refreshActiveAllergies(allergySelection.includeSelf, allergySelection.selectedFriendIds),
+    ])
+  );
+
   // --- Selection helpers --------------------------------------------------
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -198,6 +211,10 @@ const Home = ({ navigation, route }) => {
     setNewFolderName('');
   };
 
+  // Backdrop tap / Android back — ask first if a new folder name is typed.
+  const dismissFolderPicker = () =>
+    confirmDiscard(creatingFolder && !!newFolderName.trim(), closeFolderPicker);
+
   const handleAddToFolder = async (folderId) => {
     const ids = Array.from(selectedIds);
     try {
@@ -206,7 +223,7 @@ const Home = ({ navigation, route }) => {
       exitSelect();
       Alert.alert('Added', `${ids.length} recipe(s) added to folder.`);
     } catch (err) {
-      Alert.alert('Could not add to folder', err.message ?? 'Unknown error');
+      alertSaveFailed(err, 'Could not add to folder');
     }
   };
 
@@ -217,7 +234,7 @@ const Home = ({ navigation, route }) => {
       const folder = await createFolder({ name });
       await handleAddToFolder(folder.id);
     } catch (err) {
-      Alert.alert('Could not create folder', err.message ?? 'Unknown error');
+      alertSaveFailed(err, 'Could not create folder');
     }
   };
 
@@ -336,6 +353,7 @@ const Home = ({ navigation, route }) => {
         numColumns={2}
         renderItem={renderTile}
         keyExtractor={(item) => item.id}
+        refreshControl={refreshControl}
         extraData={{ selectedIds, selectMode, activeAllergies, searchQuery, sort, openedMap }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
@@ -360,9 +378,9 @@ const Home = ({ navigation, route }) => {
         visible={folderPickerOpen}
         transparent
         animationType="fade"
-        onRequestClose={closeFolderPicker}
+        onRequestClose={dismissFolderPicker}
       >
-        <Pressable style={styles.modal_backdrop} onPress={closeFolderPicker}>
+        <Pressable style={styles.modal_backdrop} onPress={dismissFolderPicker}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Add to folder</Text>
 

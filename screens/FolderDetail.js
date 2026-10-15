@@ -32,9 +32,13 @@ import {
   TrashIcon,
 } from '../components/icons';
 import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
-import { useCachedResource } from '../lib/cache';
+import { readCachedResource, useCachedResource } from '../lib/cache';
+import { usePullToRefresh } from '../lib/usePullToRefresh';
 import AllergyFilterControl from '../components/AllergyFilterControl';
 import SortMenu from '../components/SortMenu';
+import OfflineBanner from '../components/OfflineBanner';
+import { confirmDiscard } from '../lib/unsavedChanges';
+import { alertSaveFailed } from '../lib/connectivity';
 import {
   RECIPE_SORT_OPTIONS,
   DEFAULT_RECIPE_SORT,
@@ -42,11 +46,16 @@ import {
   sortRecipes,
 } from '../lib/sort';
 
+const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
 const FolderDetail = ({ route, navigation }) => {
   const { user } = useAuth();
   const { folderId, folderName: initialName } = route.params;
   const [folder, setFolder] = useState({ id: folderId, name: initialName });
-  const [recipes, setRecipes] = useState([]);
+  // null until something has loaded (cache or server), so the empty-folder
+  // message doesn't flash before data arrives.
+  const [loadedRecipes, setLoadedRecipes] = useState(null);
+  const recipes = loadedRecipes ?? [];
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -90,12 +99,33 @@ const FolderDetail = ({ route, navigation }) => {
   const loadRecipes = useCallback(async () => {
     try {
       const [f, list] = await Promise.all([getFolder(folderId), getRecipesInFolder(folderId)]);
-      setFolder(f);
-      setRecipes(list);
+      // Only update what changed, so a background refresh is invisible
+      // when the cached first paint was already current.
+      setFolder((prev) => (sameJson(prev, f) ? prev : f));
+      setLoadedRecipes((prev) => (sameJson(prev, list) ? prev : list));
     } catch (err) {
       Alert.alert('Could not load folder', err.message ?? 'Unknown error');
     }
   }, [folderId]);
+
+  // First paint from cache — Home's cached recipe list joined with the cached
+  // folder memberships — while loadRecipes fetches from the server.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const [list, members] = await Promise.all([
+        readCachedResource('recipes', user.id),
+        readCachedResource('folderMembers', user.id),
+      ]);
+      if (cancelled || !list || !members) return;
+      const ids = new Set(members[folderId] ?? []);
+      setLoadedRecipes((prev) => prev ?? list.filter((r) => ids.has(r.id)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, folderId]);
 
   // Recompute the active-allergy details for the current filter selection.
   const refreshActiveAllergies = useCallback(async (self, friendIds) => {
@@ -148,6 +178,16 @@ const FolderDetail = ({ route, navigation }) => {
       refreshActiveAllergies,
       allergySelection,
       allergySelectionReady,
+    ])
+  );
+
+  // Pull down to refetch the folder, opened times, and allergy dots.
+  const refreshControl = usePullToRefresh(() =>
+    Promise.all([
+      loadRecipes(),
+      refreshOpenedMap(),
+      allergySelectionReady &&
+        refreshActiveAllergies(allergySelection.includeSelf, allergySelection.selectedFriendIds),
     ])
   );
 
@@ -218,7 +258,7 @@ const FolderDetail = ({ route, navigation }) => {
       loadRecipes();
       Alert.alert('Added', `${ids.length} recipe(s) added to this folder.`);
     } catch (err) {
-      Alert.alert('Could not add to folder', err.message ?? 'Unknown error');
+      alertSaveFailed(err, 'Could not add to folder');
     }
   };
 
@@ -252,6 +292,15 @@ const FolderDetail = ({ route, navigation }) => {
     setRenameModalOpen(true);
   };
 
+  // Backdrop tap / Android back ask before throwing away a changed name or a
+  // picker selection; the Cancel buttons discard straight away.
+  const dismissRename = () =>
+    confirmDiscard(renameValue.trim() !== (folder?.name ?? '').trim(), () =>
+      setRenameModalOpen(false)
+    );
+  const dismissPicker = () =>
+    confirmDiscard(pickerSelected.size > 0, () => setPickerOpen(false));
+
   const handleRename = async () => {
     const trimmed = renameValue.trim();
     if (!trimmed) return;
@@ -260,7 +309,7 @@ const FolderDetail = ({ route, navigation }) => {
       setFolder((prev) => ({ ...prev, name: trimmed }));
       setRenameModalOpen(false);
     } catch (err) {
-      Alert.alert('Could not rename folder', err.message ?? 'Unknown error');
+      alertSaveFailed(err, 'Could not rename folder');
     }
   };
 
@@ -297,6 +346,7 @@ const FolderDetail = ({ route, navigation }) => {
       )}
 
       <Text style={styles.header_tab}>{folder?.name || 'Folder'}</Text>
+      <OfflineBanner />
 
       {selectMode ? (
         <View style={styles.selectBar}>
@@ -349,6 +399,7 @@ const FolderDetail = ({ route, navigation }) => {
       <FlatList
         data={displayedRecipes}
         numColumns={2}
+        refreshControl={refreshControl}
         renderItem={({ item }) => {
           const isSelected = selectedIds.has(item.id);
           const dots = filterActive ? dotsForRecipe(item, activeAllergies) : [];
@@ -385,11 +436,13 @@ const FolderDetail = ({ route, navigation }) => {
         extraData={{ selectedIds, selectMode, activeAllergies, searchQuery, sort, openedMap }}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {searchQuery.trim()
-              ? `No recipes match "${searchQuery}".`
-              : 'No recipes in this folder.'}
-          </Text>
+          loadedRecipes === null ? null : (
+            <Text style={styles.emptyText}>
+              {searchQuery.trim()
+                ? `No recipes match "${searchQuery}".`
+                : 'No recipes in this folder.'}
+            </Text>
+          )
         }
       />
 
@@ -436,9 +489,9 @@ const FolderDetail = ({ route, navigation }) => {
         visible={renameModalOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setRenameModalOpen(false)}
+        onRequestClose={dismissRename}
       >
-        <Pressable style={styles.modal_backdrop} onPress={() => setRenameModalOpen(false)}>
+        <Pressable style={styles.modal_backdrop} onPress={dismissRename}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Rename Folder</Text>
             <TextInput
@@ -476,9 +529,9 @@ const FolderDetail = ({ route, navigation }) => {
         visible={pickerOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setPickerOpen(false)}
+        onRequestClose={dismissPicker}
       >
-        <Pressable style={styles.modal_backdrop} onPress={() => setPickerOpen(false)}>
+        <Pressable style={styles.modal_backdrop} onPress={dismissPicker}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Add recipes</Text>
             <ScrollView style={{ maxHeight: 320 }}>

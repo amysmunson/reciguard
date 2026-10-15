@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,9 @@ import { colors } from '../styles/theme';
 import { BackIcon, LinkIcon, TrashIcon } from '../components/icons';
 import {
   getFriend,
+  getCachedFriendProfile,
+  cacheFriendProfile,
+  uncacheFriendProfile,
   updateFriend,
   deleteFriend,
   linkFriendByCode,
@@ -27,20 +30,35 @@ import {
   severityLabel,
 } from '../lib/api/allergies';
 import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../lib/auth-context';
+import OfflineBanner from '../components/OfflineBanner';
+import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
+import { alertSaveFailed } from '../lib/connectivity';
 
 const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
+// How long to wait on the server before showing the cached profile instead.
+const CACHE_FALLBACK_MS = 2000;
+
 const FriendProfile = ({ route, navigation }) => {
   const { friendshipId } = route.params;
+  const { user } = useAuth();
+  const userId = user?.id;
   const [friend, setFriend] = useState(null);
+  // Edit is enabled only once server data is in, so edits never start from
+  // (or save over) the cached copy.
+  const [serverLoaded, setServerLoaded] = useState(false);
+  const serverLoadedRef = useRef(false);
+  const cachedShownRef = useRef(false);
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
 
-  const [allergies, setAllergies] = useState([]);
-
-  const [theirAllergies, setTheirAllergies] = useState([]);
+  // Your dietary-need notes for this friend, and their own public ones.
+  // null until loaded, so the sections stay blank rather than flashing "None".
+  const [allergies, setAllergies] = useState(null);
+  const [theirAllergies, setTheirAllergies] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
@@ -49,36 +67,71 @@ const FriendProfile = ({ route, navigation }) => {
   const [baseline, setBaseline] = useState({ name: '', notes: '' });
   const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
 
+  // Shows a full profile snapshot ({ friend, allergies, theirAllergies }) in
+  // one go, so the screen never fills in piece by piece.
+  const applyProfile = useCallback(({ friend: f, allergies: mine, theirAllergies: theirs }, preserveEdits) => {
+    setFriend(f);
+    // While actively editing, a focus-triggered reload (e.g. returning
+    // from EditAllergies) should only refresh the allergy lists, not
+    // clobber whatever's currently typed into the name/notes fields.
+    if (!preserveEdits) {
+      setName(f.friendName ?? '');
+      setNotes(f.friendNotes ?? '');
+      setBaseline({ name: f.friendName ?? '', notes: f.friendNotes ?? '' });
+    }
+    setAllergies(mine);
+    setTheirAllergies(theirs);
+  }, []);
+
+  // Falls back to the cached copy (read-only) when the server is slow or
+  // unreachable. Returns whether one was shown.
+  const showCached = useCallback(async () => {
+    if (serverLoadedRef.current || cachedShownRef.current) return cachedShownRef.current;
+    const cached = await getCachedFriendProfile(userId, friendshipId);
+    if (!cached || serverLoadedRef.current) return false;
+    cachedShownRef.current = true;
+    applyProfile(cached, false);
+    return true;
+  }, [userId, friendshipId, applyProfile]);
+
+  // Server first. On the first load, if the server hasn't answered within
+  // CACHE_FALLBACK_MS the cached copy is shown meanwhile, and it's replaced
+  // when the server responds. A failure shows the cached copy right away
+  // (e.g. offline), or an alert if there isn't one.
   const load = useCallback(async ({ preserveEdits = false } = {}) => {
+    const nothingShown = !serverLoadedRef.current && !cachedShownRef.current;
+    const fallback = nothingShown ? setTimeout(showCached, CACHE_FALLBACK_MS) : null;
     try {
       const f = await getFriend(friendshipId);
-      setFriend(f);
-      // While actively editing, a focus-triggered reload (e.g. returning
-      // from EditAllergies) should only refresh the allergy lists, not
-      // clobber whatever's currently typed into the name/notes fields.
-      if (!preserveEdits) {
-        setName(f.friendName ?? '');
-        setNotes(f.friendNotes ?? '');
-        setBaseline({ name: f.friendName ?? '', notes: f.friendNotes ?? '' });
-      }
-      const mine = await getFriendAllergies(friendshipId);
-      setAllergies(mine);
-      if (f.linkedProfile?.id) {
-        try {
-          const theirs = await getLinkedUserAllergies(f.linkedProfile.id);
-          setTheirAllergies(theirs);
-        } catch {
-          setTheirAllergies([]);
-        }
-      } else {
-        setTheirAllergies([]);
-      }
+      const [mine, theirs] = await Promise.all([
+        getFriendAllergies(friendshipId),
+        f.linkedProfile?.id ? getLinkedUserAllergies(f.linkedProfile.id).catch(() => []) : [],
+      ]);
+      const profile = { friend: f, allergies: mine, theirAllergies: theirs };
+      serverLoadedRef.current = true;
+      applyProfile(profile, preserveEdits);
+      setServerLoaded(true);
+      cacheFriendProfile(userId, friendshipId, profile);
     } catch (err) {
-      Alert.alert('Could not load friend', err.message ?? 'Unknown error');
+      if (err?.message === 'Friend not found') uncacheFriendProfile(userId, friendshipId);
+      else if (await showCached()) return;
+      if (!cachedShownRef.current) {
+        Alert.alert('Could not load friend', err.message ?? 'Unknown error');
+      }
+    } finally {
+      clearTimeout(fallback);
     }
-  }, [friendshipId]);
+  }, [friendshipId, userId, applyProfile, showCached]);
 
   const isDirty = name !== baseline.name || notes !== baseline.notes;
+
+  // The in-screen back button only leaves edit mode (handleBackPress below);
+  // this covers actually leaving the screen mid-edit — swipe back, Android
+  // back, or popping the stack from elsewhere.
+  const { discardModalProps, leaveWithoutPrompt } = useUnsavedChangesGuard({
+    navigation,
+    isDirty: isEditing && isDirty,
+  });
 
   // Refreshes on every focus (not just mount) so allergy edits made on
   // EditAllergies — which saves straight to the database itself — show up
@@ -99,7 +152,7 @@ const FriendProfile = ({ route, navigation }) => {
       setIsEditing(false);
       setBaseline({ name, notes });
     } catch (err) {
-      Alert.alert('Could not save', err.message ?? 'Unknown error');
+      alertSaveFailed(err);
     }
   };
 
@@ -174,7 +227,7 @@ const FriendProfile = ({ route, navigation }) => {
         onPress: async () => {
           try {
             await deleteFriend(friendshipId);
-            navigation.goBack();
+            leaveWithoutPrompt(() => navigation.goBack());
           } catch (err) {
             Alert.alert('Could not remove friend', err.message ?? 'Unknown error');
           }
@@ -218,8 +271,11 @@ const FriendProfile = ({ route, navigation }) => {
       <TouchableOpacity
         style={[styles.overlay_base, styles.overlay_topRight_card]}
         onPress={isEditing ? handleSave : () => setIsEditing(true)}
+        disabled={!serverLoaded && !isEditing}
       >
-        <Text style={styles.overlayText}>{isEditing ? 'Save' : 'Edit'}</Text>
+        <Text style={[styles.overlayText, !serverLoaded && !isEditing && { opacity: 0.4 }]}>
+          {isEditing ? 'Save' : 'Edit'}
+        </Text>
       </TouchableOpacity>
 
       {friendSetOwnName ? (
@@ -234,6 +290,7 @@ const FriendProfile = ({ route, navigation }) => {
       ) : (
         <Text style={styles.header_card}>{name || 'Unnamed Friend'}</Text>
       )}
+      <OfflineBanner />
 
       {isLinked ? (
         <View style={[styles.surface_sm, styles.surface_tinted, { flexDirection: 'row', alignItems: 'center', marginVertical: 4 }]}>
@@ -293,7 +350,7 @@ const FriendProfile = ({ route, navigation }) => {
         <>
           <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Their Dietary Needs</Text>
           <Text style={styles.readOnly_hint}>From their profile.</Text>
-          {theirAllergies.length === 0 ? (
+          {theirAllergies === null ? null : theirAllergies.length === 0 ? (
             <Text style={styles.emptyText}>They haven&apos;t added any.</Text>
           ) : (
             theirAllergies.map((a) => (
@@ -325,8 +382,8 @@ const FriendProfile = ({ route, navigation }) => {
         </Text>
       )}
 
-      {allergies.length === 0 && !isEditing && <Text style={[styles.display_fieldValue, styles.display_fieldEmpty]}>None</Text>}
-      {allergies.map((a) => (
+      {allergies?.length === 0 && !isEditing && <Text style={[styles.display_fieldValue, styles.display_fieldEmpty]}>None</Text>}
+      {(allergies ?? []).map((a) => (
         <View key={a.id} style={styles.allergyRow}>
           <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
           <View style={styles.severityChip}>
@@ -340,7 +397,7 @@ const FriendProfile = ({ route, navigation }) => {
           </View>
         </View>
       ))}
-      {isEditing && (
+      {isEditing && allergies && (
         <TouchableOpacity
           style={[styles.button_outline, styles.button_outline_link, { marginVertical: 4 }]}
           onPress={() =>
@@ -435,6 +492,7 @@ const FriendProfile = ({ route, navigation }) => {
         onConfirm={handleDiscard}
         onCancel={() => setConfirmDiscardVisible(false)}
       />
+      <ConfirmModal {...discardModalProps} />
     </ScrollView>
   );
 };

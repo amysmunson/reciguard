@@ -16,7 +16,13 @@ import {
 } from '../lib/api/allergies';
 import { getMyProfile } from '../lib/api/profile';
 import { loadJson, KEYS, recordRecipeOpened } from '../lib/storage';
+import { cacheRecentRecipe, getCachedRecipe } from '../lib/recipeCache';
 import { useCachedResource } from '../lib/cache';
+import { usePullToRefresh } from '../lib/usePullToRefresh';
+import OfflineBanner from '../components/OfflineBanner';
+import { MULTIPLIERS, formatAmount, scaleIngredient } from '../lib/scaleIngredient';
+
+const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const RecipeCard = ({ route, navigation }) => {
   const { user } = useAuth();
@@ -24,6 +30,9 @@ const RecipeCard = ({ route, navigation }) => {
   const [recipe, setRecipe] = useState(null);
   const [activeAllergies, setActiveAllergies] = useState([]);
   const [expandedIngredient, setExpandedIngredient] = useState(null);
+  // Amount multiplier for ingredient quantities (½×, 1×, 2×, 3×). Display
+  // only — resets to 1× each time the recipe is opened.
+  const [multiplier, setMultiplier] = useState(1);
   const { data: profile } = useCachedResource({
     resource: 'profile',
     userId: user?.id,
@@ -36,14 +45,24 @@ const RecipeCard = ({ route, navigation }) => {
     useCallback(() => {
       let cancelled = false;
 
+      // Paint the cached copy (one of the last few opened) immediately, then
+      // revalidate from the server. If that fails — e.g. offline — keep
+      // showing the cached copy rather than an error.
       const loadRecipe = async () => {
+        const cached = await getCachedRecipe(user?.id, recipeId);
+        if (cached && !cancelled) setRecipe((prev) => prev ?? cached);
+        // Record this open so Home's "Recently opened" sort can use it, and
+        // so the recent-recipe cache keeps this one.
+        if (user?.id) await recordRecipeOpened(user.id, recipeId);
         try {
           const r = await getRecipe(recipeId);
-          if (!cancelled) setRecipe(r);
-          // Record this open so Home's "Recently opened" sort can use it.
-          if (user?.id) recordRecipeOpened(user.id, recipeId);
+          // Quiet background refresh: only re-render if something changed.
+          if (!cancelled) setRecipe((prev) => (sameJson(prev, r) ? prev : r));
+          if (user?.id) cacheRecentRecipe(user.id, r);
         } catch (err) {
-          if (!cancelled) Alert.alert('Could not load recipe', err.message ?? 'Unknown error');
+          if (!cancelled && !cached) {
+            Alert.alert('Could not load recipe', err.message ?? 'Unknown error');
+          }
         }
       };
 
@@ -73,6 +92,14 @@ const RecipeCard = ({ route, navigation }) => {
     }, [recipeId, user?.id, myName])
   );
 
+  // Pull down to refetch the recipe from the server (and refresh its cached
+  // copy). On failure the current copy stays up; the offline banner covers it.
+  const refreshControl = usePullToRefresh(async () => {
+    const r = await getRecipe(recipeId);
+    setRecipe(r);
+    if (user?.id) cacheRecentRecipe(user.id, r);
+  });
+
   if (!recipe) {
     return (
       <View style={[styles.screen_base, styles.screen_cardPad]}>
@@ -81,7 +108,10 @@ const RecipeCard = ({ route, navigation }) => {
     );
   }
 
-  const { name, ingredients, steps, authorNotes, userNotes, extLink, source } = recipe;
+  const { name, servings, ingredients, steps, userNotes, extLink, source } = recipe;
+  const multiplierLabel = multiplier === 0.5 ? '½' : String(multiplier);
+  // Servings follow the multiplier, e.g. "Makes 4 servings" -> 8 at 2×.
+  const scaledServings = servings ? formatAmount(servings * multiplier) : null;
 
   const openSource = async () => {
     if (!extLink) return;
@@ -95,13 +125,15 @@ const RecipeCard = ({ route, navigation }) => {
   };
 
   const renderIngredient = (item, i) => {
+    // Allergy matching runs on the original text; only the display is scaled.
     const info = ingredientAllergyInfo(item, activeAllergies);
     const isExpanded = expandedIngredient === item;
+    const displayText = scaleIngredient(item, multiplier);
 
     if (!info) {
       return (
         <Text key={i} style={styles.recipeItem}>
-          • {item}
+          • {displayText}
         </Text>
       );
     }
@@ -116,7 +148,7 @@ const RecipeCard = ({ route, navigation }) => {
           ]}
         >
           <Text style={[styles.recipeItem, { flex: 1, marginVertical: 0 }]}>
-            • {item}
+            • {displayText}
           </Text>
           <View style={[styles.allergyDot, { backgroundColor: info.color, marginLeft: 8 }]} />
         </TouchableOpacity>
@@ -163,7 +195,7 @@ const RecipeCard = ({ route, navigation }) => {
   };
 
   return (
-    <ScrollView style={[styles.screen_base, styles.screen_cardPad]}>
+    <ScrollView style={[styles.screen_base, styles.screen_cardPad]} refreshControl={refreshControl}>
       <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={() => navigation.goBack()}>
         <BackIcon style={styles.overlayIcon_sm} />
       </TouchableOpacity>
@@ -178,8 +210,51 @@ const RecipeCard = ({ route, navigation }) => {
       <View style={styles.card_headerRow}>
         <Text style={styles.header_card}>{name || 'Untitled'}</Text>
       </View>
+      <OfflineBanner />
 
-      <Text style={styles.header_section}>Ingredients</Text>
+      {!!scaledServings && (
+        <Text style={[styles.servings_display, contrast && { color: colors.text }]}>
+          Makes {scaledServings} {scaledServings === '1' ? 'serving' : 'servings'}
+        </Text>
+      )}
+
+      <View style={styles.multiplier_headerRow}>
+        <Text style={styles.header_section_marginless}>Ingredients</Text>
+        {ingredients.length > 0 && (
+          <View style={styles.multiplier_row} accessibilityRole="radiogroup">
+            {MULTIPLIERS.map((m) => {
+              const selected = m.value === multiplier;
+              return (
+                <TouchableOpacity
+                  key={m.value}
+                  onPress={() => setMultiplier(m.value)}
+                  style={[styles.multiplier_chip, selected && styles.multiplier_chipSelected]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`${m.value} times amounts`}
+                >
+                  <Text
+                    style={[
+                      styles.multiplier_chipText,
+                      selected && styles.multiplier_chipTextSelected,
+                    ]}
+                  >
+                    {m.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+      </View>
+      {multiplier !== 1 && (
+        <Text style={[styles.readOnly_hint, { marginTop: 0 }, contrast && { color: colors.text }]}>
+          {servings
+            ? `Ingredient amounts scaled ${multiplierLabel}× from ${servings} to ${scaledServings} servings.`
+            : `Ingredient amounts shown at ${multiplierLabel}×.`}{' '}
+          Amounts in the instructions aren&apos;t adjusted.
+        </Text>
+      )}
       {ingredients.length > 0 ? (
         ingredients.map(renderIngredient)
       ) : (
@@ -196,18 +271,6 @@ const RecipeCard = ({ route, navigation }) => {
         ))
       ) : (
         <Text style={[styles.emptyText, contrast && { color: colors.text }]}>No items</Text>
-      )}
-
-      {authorNotes.length > 0 && (
-        <>
-          <Text style={styles.spacing} />
-          <Text style={styles.header_section}>Author Notes</Text>
-          {authorNotes.map((item, i) => (
-            <Text key={i} style={styles.recipeItem}>
-              • {item}
-            </Text>
-          ))}
-        </>
       )}
 
       <Text style={styles.spacing} />
