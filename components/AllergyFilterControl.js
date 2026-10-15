@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, Pressable } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
@@ -39,7 +39,9 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
   const filterActive = includeSelf || selectedFriendIds.size > 0;
 
   const onSelectionChangeRef = useRef(onSelectionChange);
-  onSelectionChangeRef.current = onSelectionChange;
+  useLayoutEffect(() => {
+    onSelectionChangeRef.current = onSelectionChange;
+  });
 
   // Hydrate the persisted selection once on mount.
   useEffect(() => {
@@ -62,16 +64,6 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
     };
   }, [user?.id]);
 
-  // Returning from AllergyOverview's back button lands here with this
-  // param set — reopen the popup instead of leaving a bare screen.
-  useEffect(() => {
-    if (route.params?.reopenAllergyFilter) {
-      navigation.setParams({ reopenAllergyFilter: undefined });
-      openFilter();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route.params?.reopenAllergyFilter]);
-
   const openFilter = async () => {
     try {
       const [friendList, profile] = await Promise.all([getFriends(), getMyProfile()]);
@@ -84,6 +76,19 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
       // Best-effort — the icon just won't open a populated list this time.
     }
   };
+
+  // Returning from AllergyOverview's back button lands here with this
+  // param set — reopen the popup instead of leaving a bare screen.
+  useEffect(() => {
+    if (route.params?.reopenAllergyFilter) {
+      navigation.setParams({ reopenAllergyFilter: undefined });
+      // openFilter only sets state after awaiting its fetches, so this
+      // doesn't cascade renders the way the rule assumes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      openFilter();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.reopenAllergyFilter]);
 
   const toggleFriend = (id) => {
     setSelectedFriendIds((prev) => {
