@@ -4,6 +4,8 @@ import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
 import { submitFeedback } from '../lib/api/feedback';
+import ConfirmModal from '../components/ConfirmModal';
+import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
 
 const TYPES = [
   { id: 'suggestion', label: 'Suggestion' },
@@ -14,6 +16,10 @@ const Feedback = ({ navigation }) => {
   const [type, setType] = useState('suggestion');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { discardModalProps, leaveWithoutPrompt } = useUnsavedChangesGuard({
+    navigation,
+    isDirty: message.trim().length > 0,
+  });
 
   const handleSubmit = async () => {
     if (!message.trim() || submitting) return;
@@ -21,7 +27,7 @@ const Feedback = ({ navigation }) => {
       setSubmitting(true);
       await submitFeedback({ type, message: message.trim() });
       Alert.alert('Thanks!', 'Your feedback has been sent.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        { text: 'OK', onPress: () => leaveWithoutPrompt(() => navigation.goBack()) },
       ]);
     } catch (err) {
       Alert.alert('Could not send feedback', err.message ?? 'Unknown error');
@@ -94,6 +100,8 @@ const Feedback = ({ navigation }) => {
           {submitting ? 'Sending…' : 'Send'}
         </Text>
       </TouchableOpacity>
+
+      <ConfirmModal {...discardModalProps} />
     </ScrollView>
   );
 };

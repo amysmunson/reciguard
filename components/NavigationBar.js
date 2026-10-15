@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigationState } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { TabIcon } from './icons';
+import OfflineBanner from './OfflineBanner';
 
 // Extends each tab's touch target into the otherwise-dead bar around it
 // without changing layout: vertical reaches the bar's padded edges (10px,
@@ -30,28 +31,32 @@ const NavigationBar = ({ navigation, onAddPress, onHomePress }) => {
     navigation.navigate(name);
   };
 
+  // The offline banner sits just above the bar so every tab screen gets it.
   return (
-    <View style={styles.bottomNav}>
-      {TABS.map((tab) => {
-        const isActive = activeRoute === tab.name;
-        return (
-          <TouchableOpacity
-            key={tab.name}
-            style={styles.navButton}
-            hitSlop={TAB_HIT_SLOP}
-            onPress={() => go(tab.name)}
-          >
-            <TabIcon
-              name={tab.name}
-              style={[styles.navButtonIcon, isActive && styles.navButtonIconActive]}
-            />
-            <Text style={[styles.navButtonText, isActive && styles.navButtonTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
+    <>
+      <OfflineBanner />
+      <View style={styles.bottomNav}>
+        {TABS.map((tab) => {
+          const isActive = activeRoute === tab.name;
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              style={styles.navButton}
+              hitSlop={TAB_HIT_SLOP}
+              onPress={() => go(tab.name)}
+            >
+              <TabIcon
+                name={tab.name}
+                style={[styles.navButtonIcon, isActive && styles.navButtonIconActive]}
+              />
+              <Text style={[styles.navButtonText, isActive && styles.navButtonTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </>
   );
 };
 
