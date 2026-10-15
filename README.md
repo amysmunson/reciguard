@@ -19,6 +19,8 @@ ReciGuard is a React Native + Expo app with a Supabase backend for storing recip
 ## Features
 
 - Create, edit, and delete recipes
+- Servings count per recipe ("Makes 4 servings") — read from the recipe link when available, or entered by hand
+- Scale ingredient amounts and servings on a recipe (½×, 1×, 2×, 3×)
 - Add recipes by pasting a link (auto-parsed) or entering them manually
 - Organize recipes into folders, with rename and multi-select bulk delete
 - Search recipes and friends by name
@@ -29,9 +31,14 @@ ReciGuard is a React Native + Expo app with a Supabase backend for storing recip
 - Friend profile linking via unique friend codes
 - High-contrast accessibility mode
 - Persistent per-user filters and preferences
-- Instant list loads with a stale-while-revalidate cache
+- Instant loads with a stale-while-revalidate cache: screens show cached data first, then quietly refresh from the server and update only if something changed. The cache is kept lightweight (the recipe list holds names and ingredients only)
+- On launch, other screens' caches are refreshed quietly in the background
+- Your 5 most recently opened recipes are cached in full, so they open instantly and stay readable offline
+- Pull down to refresh on Home, Folders, a folder, Friends, and a recipe
 - Authentication with Supabase Auth
 - In-app feedback form (suggestions/questions submitted straight to the database)
+- "Discard changes?" prompt when leaving any recipe, dietary needs, profile, or folder edit without saving (back button, swipe, or Android back)
+- Offline banner when the server can't be reached, plus clear "your changes have not been saved" alerts when a save fails
 
 
 ## Dietary Needs System
@@ -105,6 +112,7 @@ A per-user high-contrast mode, toggled from the Accessibility screen and stored 
     - Per-user filter persistence
     - Sort preferences
     - Cached list snapshots (recipes, folders, friends)
+    - Full copies of the 5 most recently opened recipes
     - Local storage keys are namespaced per-user.
 
 

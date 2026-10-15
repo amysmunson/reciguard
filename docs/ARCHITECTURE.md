@@ -48,7 +48,14 @@ recipes/
 │   ├── auth-context.js             # AuthProvider + useAuth() hook (session, user, loading)
 │   ├── storage.js                  # AsyncStorage helpers (loadJson, saveJson) + KEYS registry
 │   ├── cache.js                    # Stale-while-revalidate cache: useCachedResource() + mutateCachedResource() + invalidate()
+│   ├── recipeCache.js              # Full-recipe cache for the 5 most recently opened recipes (offline/instant RecipeCard)
+│   ├── usePullToRefresh.js         # usePullToRefresh(refresh) → <RefreshControl> for lists / ScrollViews
+│   ├── useCacheWarmup.js           # On launch/sign-in: quietly refresh folders, folder memberships, friends, cached recipes
 │   ├── sort.js                     # Shared sort options + sortRecipes/sortFolders + normalizeSort
+│   ├── unsavedChanges.js           # useUnsavedChangesGuard() (leave-screen prompt) + confirmDiscard() (modals)
+│   ├── connectivity.js             # Server ping: useIsOnline(), checkConnection(), alertSaveFailed()
+│   ├── scaleIngredient.js          # Ingredient amount multiplier: scaleIngredient(), formatAmount(), MULTIPLIERS
+│   ├── recipeUrlParser.js          # fetchRecipeFromUrl(): schema.org Recipe JSON-LD → name/ingredients/steps/servings
 │   └── api/                        # Per-domain functions screens import
 │       ├── auth.js                 # signUp, signIn, signOut, deleteAccount
 │       ├── recipes.js              # getRecipes, getRecipe, create/update/deleteRecipe
@@ -68,8 +75,8 @@ recipes/
 │   │
 │   │  ── AppStack (session present) ──
 │   ├── Home.js                     # Grid of the user's recipes
-│   ├── RecipeCard.js               # Read-only recipe view
-│   ├── EditRecipe.js               # Recipe editor (name, ingredients, steps, notes)
+│   ├── RecipeCard.js               # Read-only recipe view + servings + ½×/1×/2×/3× ingredient amount multiplier
+│   ├── EditRecipe.js               # Recipe editor (name, servings, ingredients, steps, notes)
 │   ├── InputSelector.js            # "How do you want to add this recipe?" picker
 │   ├── Folders.js                  # Grid of folders + create-folder modal; long-press to bulk-delete
 │   ├── FolderDetail.js             # Recipes inside a folder; long-press to bulk-remove
@@ -86,10 +93,11 @@ recipes/
 │   └── Accessibility.js            # High-contrast mode toggle tied to profile settings
 │
 ├── components/                     # Shared UI + utilities (NOT screens)
-│   ├── NavigationBar.js            # Bottom tab bar with active-tab highlight
+│   ├── NavigationBar.js            # Bottom tab bar with active-tab highlight (+ OfflineBanner above it)
+│   ├── OfflineBanner.js            # "You're offline" strip; renders nothing while the server is reachable
 │   ├── AllergyChecklist.js         # Group/individual/custom allergen picker — instant add/remove, used by EditAllergies
 │   ├── AllergyFilterControl.js     # Shared "which profiles' allergies matter" trigger+popup (Home, FolderDetail)
-│   ├── ConfirmModal.js             # Generic discard-confirmation dialog (Profile, FriendProfile)
+│   ├── ConfirmModal.js             # Generic confirmation dialog (discard prompts on edit screens)
 │   ├── SortMenu.js                 # Pop-down sort menu shared by Home / Folders / FolderDetail
 │   ├── LandingCard.js              # Decorative oval-with-cusps SVG shape behind the Landing title
 │   ├── LandingCard2.js             # Alternate shape: smooth oval with 4 small outward points
@@ -117,6 +125,9 @@ recipes/
 │
 ├── scripts/
 │   └── reset-project.js            # Expo template helper (unused day-to-day)
+│
+├── supabase/                       # Migration SQL to run in the Supabase SQL editor
+│   └── recipes_add_servings.sql    # recipes.servings integer (nullable, > 0)
 │
 └── docs/
     └── ARCHITECTURE.md             # This file
@@ -279,7 +290,9 @@ Each screen is a default-exported React component that:
   Supabase update finishes.
 - Renders styles from `styles/main_style.js`.
 - Calls `navigation.navigate(...)` for transitions.
-- Uses `Alert` for errors (simple, non-blocking).
+- Uses `Alert` for errors (simple, non-blocking). Failed **saves** go through
+  `alertSaveFailed()` from [lib/connectivity.js](lib/connectivity.js) instead
+  (see "Offline banner & failed saves").
 
 Screens never import `supabase`.
 
@@ -290,6 +303,10 @@ Settings). Uses `useNavigationState` to figure out the active route and
 highlights it. The Add (+) button is special: it doesn't navigate to a tab,
 it calls a `onAddPress` handler the parent screen provides (which creates a
 recipe and routes to `InputSelector`).
+
+It also renders [components/OfflineBanner.js](components/OfflineBanner.js)
+directly above the bar, so every tab screen gets the offline warning without
+each screen adding it.
 
 ### `components/utils/addRecipe.js`
 
@@ -402,12 +419,15 @@ state:
 - `KEYS.folderRecipesSort(userId)` — same shape, applied to recipes
   rendered **inside** any folder on FolderDetail.
 - `KEYS.recipeOpenedAt(userId)` — map of `{ recipeId: ISO timestamp }`
-  for the "Recently opened" sort.
+  for the "Recently opened" sort. Also decides which recipes
+  [lib/recipeCache.js](lib/recipeCache.js) keeps.
 
 Plus two domain helpers built on the generic ones:
 
 - `recordRecipeOpened(userId, recipeId)` — write the current timestamp
   into the recipe-opens map. Called from RecipeCard on focus.
+- `forgetRecipesOpened(userId, recipeIds)` — remove deleted recipes from
+  the map, so they stop holding "recently opened" cache slots.
 - `getRecipeOpenedMap(userId)` — read the full map. Called from Home on
   focus.
 
@@ -481,6 +501,109 @@ matching the per-user discipline of the `KEYS` registry. This is why mutations
 must call `invalidate()` — without it a screen would keep showing its cached
 list until the next focus refetch.
 
+**Quiet updates.** The hook remembers the JSON of what it's showing; a
+refetch that returns identical data doesn't re-render or rewrite the
+snapshot, so background refreshes are invisible unless something changed. A
+`fetchedRef` stops a slow disk read from overwriting a fresher server result.
+
+Two non-hook helpers:
+
+- **`readCachedResource(resource, userId)`** — one-off read of a snapshot,
+  for screens that paint first from data another screen cached.
+- **`updateCachedResource(resource, userId, updater)`** — read-modify-write
+  of a snapshot no hook subscribes to (used for `friendProfiles`).
+- **`prefetchResource(resource, userId, fetcher)`** — fetch in the
+  background; only if the data changed, save it and push it to mounted
+  hooks. Throws on failure (callers stay quiet).
+
+**Launch warm-up** — [lib/useCacheWarmup.js](lib/useCacheWarmup.js) runs
+once per signed-in session from `AppStack` in [App.js](App.js). It
+prefetches `folders`, `folderMembers`, and `friends` (Home already fetches
+`recipes` and `profile` itself) and calls `refreshAllCachedRecipes()` so the
+recently opened recipes are current before the user goes offline. Failures
+are silent; every screen still refetches when opened.
+
+**Cache-first screens without their own resource:**
+
+| Screen | First paint from | Then |
+|---|---|---|
+| FolderDetail | cached `recipes` list filtered by cached `folderMembers` (`{ folderId: [recipeId] }`, ids only, from `getFolderMemberships()`) | `getFolder` + `getRecipesInFolder`; state only replaced if different |
+| Profile | cached `profile` | `getMyProfile` + `getMyAllergies` |
+| RecipeCard | `lib/recipeCache.js` (5 most recent) | `getRecipe`; only re-renders if different |
+
+Profile shows the cached copy **read-only**: the Edit button is disabled
+until server data arrives, so edits never start from (or save over) a stale
+copy. Its dietary needs aren't cached, so that section stays blank (not
+"None") until loaded, and "Edit Dietary Needs" only appears once it is. A
+failed background load is silent when a cached copy is showing.
+
+**FriendProfile is server-first** (no cache-then-server swap). It waits for
+the server and only falls back to its cached copy if the server hasn't
+answered within 2 s (`CACHE_FALLBACK_MS`), or straight away if the request
+fails (e.g. offline) — then the server data replaces it when it arrives.
+The cached copy lives in the `friendProfiles` snapshot (`{ [friendshipId]:
+{ friend, allergies, theirAllergies } }`): the friendship (name + your
+private notes), your dietary-need notes for them, and their own public
+dietary needs, all applied together so the screen never fills in piece by
+piece. It's written after every successful load
+(`cacheFriendProfile` in [lib/api/friends.js](lib/api/friends.js)), removed on
+`deleteFriend` or a "Friend not found" response, and cleared on sign-out
+(it's in `CACHED_RESOURCES`). While showing the cached copy the screen is
+read-only (Edit disabled), same as Profile. EditRecipe deliberately loads from the server only — editing a
+cached copy could save over newer changes.
+
+`folderMembers` is invalidated by every folder/mapping mutation in
+[lib/api/folders.js](lib/api/folders.js) (via `bustFolderCaches`).
+
+**Keeping the recipe list light.** The `recipes` resource (Home) is
+`getRecipes()`, which selects only `id`, `name`, `photo`, dates, and
+ingredient text — what tiles, search, sort, and allergy dots need. Steps,
+notes, links, and servings are never in the list (or its on-disk snapshot),
+so it doesn't grow with long recipes. Ingredients stay because Home's
+allergy dots are computed from them on-device.
+
+### `lib/recipeCache.js` — recently opened recipes
+
+Full recipes are cached only for the **5 most recently opened**
+(`RECENT_RECIPE_LIMIT`), ranked by the `KEYS.recipeOpenedAt` map. Each is its
+own AsyncStorage entry (`cache:recipe:<userId>:<recipeId>`), plus an index
+(`cache:recipeIndex:<userId>`) listing the stored ids so eviction and
+sign-out don't have to scan all keys. Index updates run one at a time.
+
+- **RecipeCard** paints `getCachedRecipe()` immediately, records the open,
+  then fetches with `getRecipe()`. On success it shows and stores the fresh
+  copy via `cacheRecentRecipe()`, which evicts anything that has dropped out
+  of the 5 most recent. If the fetch fails (e.g. offline) and a cached copy
+  is showing, no error is shown.
+- **Edits** — `updateRecipe()` calls `refreshCachedRecipe()`, which
+  overwrites the cached copy only if that recipe is already cached (editing
+  doesn't count as opening).
+- **Deletes** — `deleteRecipe()` / `deleteRecipes()` call
+  `removeCachedRecipes()`, which also removes the ids from the opens map.
+- **Sign-out / account deletion** — `clearUserCache()` calls
+  `clearCachedRecipes()`.
+
+The cache is per device, like the opens map. Edits made on another device
+show up on the next successful fetch.
+
+### Pull to refresh
+
+Cached data is only what paints first: every screen still calls the server
+when it opens/regains focus, and [lib/usePullToRefresh.js](lib/usePullToRefresh.js)
+adds a manual pull-down refetch on top. `usePullToRefresh(refresh)` returns a
+`<RefreshControl>` for a FlatList/ScrollView's `refreshControl` prop; the
+spinner runs until `refresh()` settles, and `checkConnection()` runs
+alongside so the offline banner updates on the same pull. Failures leave the
+current data on screen.
+
+| Screen | Refetches |
+|---|---|
+| Home | recipe list (`refresh` from `useCachedResource`), opened map, allergy dots |
+| Folders | folder list |
+| FolderDetail | folder + its recipes, opened map, allergy dots |
+| Friends | friends list + profile name |
+| RecipeCard | the recipe (and its cached copy) |
+
 ---
 
 ## Navigation flow
@@ -529,7 +652,8 @@ profiles (id FK → auth.users, name, email, notes, phone, friend_code unique,
           contrast boolean default false)
    │ 1:N
    ├──▶ recipes (id, user_id, name, photo, source, ext_link,
-   │     │              author_notes text[], user_notes text[], is_public)
+   │     │              servings integer null check (> 0),
+   │     │              author_notes text[] (legacy), user_notes text[], is_public)
    │     │ 1:N
    │     ├──▶ recipe_ingredients (recipe_id, position, text)
    │     └──▶ recipe_steps      (recipe_id, position, text)
@@ -882,11 +1006,11 @@ local working copy (`items` state) seeded from `route.params.allergies`;
 adding, removing, or changing a severity only touches that local copy.
 Hitting the top-right Save calls `syncAllergies({ original:
 initialAllergies, updated: items, friendId })` (see the `lib/api/*` note
-above) — which does the actual Supabase writes — then `goBack()`. The
-back button (top-left) just discards and goes back; there's no "unsaved
-changes" prompt here specifically (that confirmation lives on the
-Profile/FriendProfile side for their *own* fields — see "Profile editing"
-below — allergy edits are a separate, self-contained save).
+above) — which does the actual Supabase writes — then `goBack()`. Leaving
+any other way (back button, swipe, Android back) with a changed list shows
+the "Discard changes?" prompt — see "Unsaved-changes guard". Dirty is an
+order-independent name + severity comparison against the original list, so
+adding then removing the same item isn't counted as a change.
 
 **Per-row severity** is a 4-way choice (unspecified / mild / moderate /
 severe), not a cycling chip anymore: each row shows a small colored dot
@@ -1005,6 +1129,11 @@ edit-mode pattern:
   EditAllergies and back doesn't clobber whatever's still unsaved in
   those fields. `handleDiscard` always calls `load()` with the default
   (`preserveEdits: false`) to fully revert, regardless of this flag.
+- The back button only *leaves edit mode*; actually leaving the screen
+  mid-edit (iOS swipe, Android back, popping the stack from elsewhere) is
+  caught separately by `useUnsavedChangesGuard` with `isDirty: isEditing &&
+  isDirty`, which shows the same dialog and then leaves on Discard. Removing
+  a friend leaves via `leaveWithoutPrompt` so it isn't interrupted.
 
 `ConfirmModal` is generic (`visible`, `title`, `message`, `confirmLabel`,
 `cancelLabel`, `onConfirm`, `onCancel`) — same visual language as the
@@ -1164,6 +1293,91 @@ same `lookupProfileByFriendCode`/`lookup_friend_code` RPC `addFriendByCode`
 uses, then calls `blockUser(profile.id)` directly — no friendship, no prior
 sharing, no `SharedWith`/`SharingWith` entry required first.
 
+### Unsaved-changes guard
+
+[lib/unsavedChanges.js](lib/unsavedChanges.js) has two helpers:
+
+- **`useUnsavedChangesGuard({ navigation, isDirty })`** — for stack screens.
+  Built on React Navigation's `usePreventRemove`, so it catches *every* way a
+  screen is removed: the in-screen back button, the iOS swipe-back gesture,
+  Android hardware back, and nav-bar jumps that pop the stack. When
+  `isDirty`, the removal is held and a `ConfirmModal` ("Discard changes?" /
+  Discard / Keep Editing) is shown; Discard re-dispatches the held action.
+  Returns `{ discardModalProps, leaveWithoutPrompt }` — spread the first onto
+  `<ConfirmModal />`; wrap navigation after a successful save/delete in
+  `leaveWithoutPrompt(() => navigation.goBack())`, since `isDirty` is still
+  true until the next render.
+  Used by EditRecipe, EditAllergies, Profile, FriendProfile, and Feedback.
+  EditRecipe's dirty check compares a snapshot of name/ingredients/steps/notes
+  with blank rows dropped (they're dropped on save too).
+- **`confirmDiscard(isDirty, onDiscard)`** — for in-screen modals, which
+  aren't stack screens. Wired to the backdrop tap and `onRequestClose`
+  (Android back) of: Folders' New Folder, FolderDetail's Rename and Add
+  recipes picker, Home's "New folder" inside Add to folder, and Friends' Add
+  Friend modal. Explicit Cancel buttons still discard without asking.
+
+### Offline banner & failed saves
+
+[lib/connectivity.js](lib/connectivity.js) tracks server reachability
+app-wide by pinging Supabase's `/auth/v1/health` (5 s timeout). Any HTTP
+response below 500 counts as online; a network error, timeout, or 5xx
+counts as offline. Polling runs only while something is subscribed via
+`useIsOnline()` — every 20 s while online, every 5 s while offline so the
+banner clears quickly — plus an immediate check whenever the app returns to
+the foreground. Concurrent checks share one request.
+
+- [components/OfflineBanner.js](components/OfflineBanner.js) renders above
+  the bottom nav (all tab screens) and under the title on RecipeCard,
+  EditRecipe, EditAllergies, Profile, FriendProfile, and FolderDetail.
+- `alertSaveFailed(err, title)` replaces the plain error alert on recipe,
+  dietary needs, profile, and folder saves. It always says the changes were
+  **not** saved; if the error looks like a network failure *or* a fresh ping
+  fails, it shows "You're offline … stay on this page and try again once
+  you're reconnected" instead. The re-ping matters because offline failures
+  don't always look like network errors — `requireUser()` in
+  `lib/api/recipes.js` surfaces a failed auth check as "Not signed in".
+
+### Servings
+
+`recipes.servings` is an optional positive integer ("Makes 4 servings"),
+added by [supabase/recipes_add_servings.sql](../supabase/recipes_add_servings.sql).
+NULL means not specified.
+
+- **Link import** — `parseServings()` in
+  [lib/recipeUrlParser.js](lib/recipeUrlParser.js) reads schema.org
+  `recipeYield`, which sites publish as a number, a string ("Serves 4-6"), an
+  array (`["4", "4 servings"]`), or a `QuantitativeValue`. It takes the first
+  count (a range uses its low end, decimals round), preferring an array entry
+  that mentions servings/people over e.g. "24 cookies". InputSelector passes
+  it to `createRecipe`.
+- **Manual entry / edits** — EditRecipe has a "Makes [ # ] servings" number
+  field above Ingredients (digits only, up to 3). Blank or 0 saves as NULL;
+  it's part of the unsaved-changes snapshot.
+- **Display** — RecipeCard shows "Makes N servings" under the title when set,
+  scaled by the multiplier below.
+
+### Ingredient amount multiplier
+
+RecipeCard shows ½× / 1× / 2× / 3× chips beside the Ingredients header.
+[lib/scaleIngredient.js](lib/scaleIngredient.js) scales only the **leading**
+amount of each line — integers, decimals, `1/2`, mixed `1 1/2`, unicode `½` /
+`1½`, and ranges (`2-3`, `2 to 3`) — and formats results as common cooking
+fractions (⅛ ⅙ ¼ ⅓ ⅜ ½ ⅝ ⅔ ¾ ⅚ ⅞) or a 2-place decimal. Lines without a
+leading amount are untouched. It's display-only: nothing is written to the
+database, the multiplier resets to 1× each time the recipe opens, allergy
+highlighting still matches against the original text, and amounts inside the
+instructions aren't changed (a hint says so when not at 1×). When the recipe
+has a servings count, the "Makes N servings" line scales with it (e.g. 4 → 8
+at 2×, 3 → 1½ at ½×) and the hint reads "scaled 2× from 4 to 8 servings".
+
+### Recipe notes
+
+Recipes have a single "Your Notes" list. The `author_notes` column is legacy
+(it was never auto-populated by the link parser): `shapeRecipe` folds any
+existing author notes into `userNotes`, and `updateRecipe` clears
+`author_notes` whenever it writes `user_notes`, so nothing a user typed is
+lost or shown twice.
+
 ### Feedback form
 
 [screens/Feedback.js](screens/Feedback.js) is a simple submit-only form
@@ -1186,11 +1400,12 @@ and [supabase/feedback_submissions_add_open_column.sql](../supabase/feedback_sub
 land on a new recipe, and each ends the flow differently:
 
 - **Manual** — navigates straight to `EditRecipe` with no `recipeId`
-  (`isNew`). Saving there calls `createRecipe` and `navigation.popToTop()`
+  (`isNew`); servings are typed there. Saving there calls `createRecipe` and `navigation.popToTop()`
   back to Home.
 - **Link, successful parse** — `handleFetch` calls `createRecipe` itself
-  (the row already exists) and immediately `navigation.popToTop()`s; the
-  user never sees `EditRecipe` for this path.
+  (the row already exists, including `servings` parsed from `recipeYield`
+  when present) and immediately `navigation.popToTop()`s; the user never
+  sees `EditRecipe` for this path.
 - **Link, no recipe found ("Create anyway")** — the page loaded but
   nothing parseable was on it. `handleCreateAnyway` creates a blank recipe
   (source + link only) and navigates to `EditRecipe` **with** a
