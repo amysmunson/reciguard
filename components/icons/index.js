@@ -90,11 +90,6 @@ export const DragHandleIcon = ({ size = 22, color = colors.iconInactive, style, 
   <Ionicons name="reorder-three-outline" size={size} color={color} style={style} {...rest} />
 );
 
-// Prep / cook / total times on RecipeCard.
-export const TimeIcon = ({ size = 16, color = colors.textSecondary, style, ...rest }) => (
-  <Ionicons name="time-outline" size={size} color={color} style={style} {...rest} />
-);
-
 // --- Linking / friend code -----------------------------------------------
 
 // Filled link glyph used in the small "this friend is linked" badge.

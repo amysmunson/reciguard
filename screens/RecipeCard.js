@@ -14,7 +14,6 @@ import {
   LinkIcon,
   RestoreIcon,
   StarIcon,
-  TimeIcon,
   TrashIcon,
 } from '../components/icons';
 import { colors } from '../styles/theme';
@@ -167,7 +166,11 @@ const RecipeCard = ({ route, navigation }) => {
     prepMinutes && `Prep ${formatMinutes(prepMinutes)}`,
     cookMinutes && `Cook ${formatMinutes(cookMinutes)}`,
     totalMinutes && `Total ${formatMinutes(totalMinutes)}`,
-  ].filter(Boolean);
+  ]
+    .filter(Boolean)
+    // Non-breaking spaces keep "Cook 2 hr 15 min" on one line, so long
+    // times wrap between entries rather than in the middle of one.
+    .map((t) => t.replace(/ /g, '\u00A0'));
 
   const openSource = async () => {
     if (!extLink) return;
@@ -379,11 +382,6 @@ const RecipeCard = ({ route, navigation }) => {
 
       <View style={[styles.overlay_base, styles.overlay_topRight_card, styles.recipeCard_actions]}>
         {!inTrash && (
-          <TouchableOpacity onPress={() => navigation.navigate('EditRecipe', { recipeId })}>
-            <Text style={styles.overlayText}>Edit</Text>
-          </TouchableOpacity>
-        )}
-        {!inTrash && (
           <TouchableOpacity
             onPress={toggleFavorite}
             hitSlop={8}
@@ -391,7 +389,12 @@ const RecipeCard = ({ route, navigation }) => {
             accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
             accessibilityState={{ selected: isFavorite }}
           >
-            <StarIcon filled={isFavorite} size={22} />
+            <StarIcon filled={isFavorite} size={20} style={styles.recipeCard_star} />
+          </TouchableOpacity>
+        )}
+        {!inTrash && (
+          <TouchableOpacity onPress={() => navigation.navigate('EditRecipe', { recipeId })}>
+            <Text style={styles.overlayText}>Edit</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity
@@ -429,12 +432,9 @@ const RecipeCard = ({ route, navigation }) => {
       )}
 
       {times.length > 0 && (
-        <View style={styles.recipeTimes_row}>
-          <TimeIcon />
-          <Text style={[styles.recipeTimes_text, contrast && { color: colors.text }]}>
-            {times.join('  ·  ')}
-          </Text>
-        </View>
+        <Text style={[styles.recipeTimes_text, contrast && { color: colors.text }]}>
+          {times.join('  ·  ')}
+        </Text>
       )}
 
       <View style={styles.multiplier_headerRow}>

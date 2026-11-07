@@ -1246,6 +1246,7 @@ const buildStyles = () => StyleSheet.create({
     textAlign: 'center',
   },
   servings_display: {
+    textAlign: 'center',
     fontSize: 16,
     color: colors.textSecondary,
     marginBottom: 12,
@@ -1373,6 +1374,12 @@ const buildStyles = () => StyleSheet.create({
     alignItems: 'center',
     columnGap: 18,
   },
+  // A star's visual center sits below its box's middle (the points meet
+  // low), and "Edit" sits a bit high in its line box, so lift the star to
+  // read level with the text.
+  recipeCard_star: {
+    transform: [{ translateY: -0.5 }],
+  },
   //   Section header inside Ingredients / Instructions ("For the sauce").
   recipeSection_header: {
     fontSize: 17,
@@ -1389,15 +1396,14 @@ const buildStyles = () => StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 6,
   },
-  recipeTimes_row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    columnGap: 6,
-    marginBottom: 12,
-  },
+  // RecipeCard's "Prep 15 min · Cook 1 hr" line. Each entry is held
+  // together with non-breaking spaces, so it only wraps (between entries)
+  // when the whole line can't fit.
   recipeTimes_text: {
+    textAlign: 'center',
     fontSize: 15,
     color: colors.textSecondary,
+    marginBottom: 12,
   },
   //   "In Trash" notice on a trashed recipe.
   trashBanner: {
