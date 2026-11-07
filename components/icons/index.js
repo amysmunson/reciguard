@@ -1,30 +1,16 @@
-// Central icon registry.
-//
-// Every icon used in the app lives here. To swap an icon — change its
-// look, switch icon libraries, replace a vendor icon with a custom SVG —
-// edit this file in one place and every screen picks it up.
-//
-// Two kinds of icons:
-//
-//   1. Custom SVG icons (one file each, in this directory):
-//      PlusIcon, SearchIcon, SortIcon, FilterIcon, EditIcon, StarIcon.
-//
-//   2. Vector-icon wrappers (defined inline below) — each pins a semantic
-//      name (e.g. `BackIcon`) to a specific vendor icon string. Defaults
-//      reflect the most common usage; pass `size`, `color`, or `style` to
-//      override. `style` always wins over `size`/`color` (react-native-
-//      vector-icons honors style.fontSize / style.color).
-//
-// Stateful icons (`CheckboxIcon`, `RadioIcon`, `SelectCircleIcon`,
-// `SortArrowIcon`) take a state prop and pick the right glyph internally
-// so callers don't have to keep two icon strings in sync.
+// Central collection of icons
+//   1. SVG icons from HeroIcons in files
+//   2. Vector-icon wrappers defined inline below
+
+// Stateful icons like CheckboxIcon take a state prop and pick the right glyph internally.
+// Callers don't have to keep two icon strings in sync.
 
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FAIcon from 'react-native-vector-icons/FontAwesome';
 import { colors } from '../../styles/theme';
 
-// --- Custom SVG icons (live in their own files) ---------------------------
+// SVG icons
 export { default as PlusIcon } from './PlusIcon';
 export { default as SearchIcon } from './SearchIcon';
 export { default as SortIcon } from './SortIcon';
@@ -32,50 +18,21 @@ export { default as FilterIcon } from './FilterIcon';
 export { default as EditIcon } from './EditIcon';
 export { default as StarIcon } from './StarIcon';
 
-// --- Navigation / structure ----------------------------------------------
+// Vector icons
 
-// Back chevron used by every overlay back button. Pair with
-// styles.overlayIcon_sm or styles.overlayIcon_lg for size + color.
+// Uses styles.overlayIcon_sm or styles.overlayIcon_lg for size/color
 export const BackIcon = ({ style, ...rest }) => (
   <Ionicons name="chevron-back" style={style} {...rest} />
 );
 
-// "Open original" / external-link icon on RecipeCard.
 export const ExternalLinkIcon = ({ size = 20, color = colors.primary, style, ...rest }) => (
   <Ionicons name="open-outline" size={size} color={color} style={style} {...rest} />
 );
-
-// --- Destructive / write actions -----------------------------------------
 
 export const TrashIcon = ({ size = 20, color = colors.danger, style, ...rest }) => (
   <Ionicons name="trash-outline" size={size} color={color} style={style} {...rest} />
 );
 
-// Overflow ("more actions") menu
-export const EllipsisIcon = ({ size = 20, color = colors.textSecondary, style, ...rest }) => (
-  <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} style={style} {...rest} />
-);
-
-// Plain checkmark — e.g. the keyboard "Done" accessory.
-export const CheckIcon = ({ size = 20, color = colors.primary, style, ...rest }) => (
-  <Ionicons name="checkmark" size={size} color={color} style={style} {...rest} />
-);
-
-// Remove-from-folder action in FolderDetail's select bar.
-export const RemoveCircleIcon = ({ size = 22, color = colors.danger, style, ...rest }) => (
-  <Ionicons name="remove-circle-outline" size={size} color={color} style={style} {...rest} />
-);
-
-// Filled minus badge on the corner of an EditRecipe row's input (RemoveBadge).
-export const RemoveBadgeIcon = ({ size = 20, color = colors.danger, style, ...rest }) => (
-  <Ionicons name="remove-circle" size={size} color={color} style={style} {...rest} />
-);
-
-export const ShareIcon = ({ size = 18, color = colors.textOnPrimary, style, ...rest }) => (
-  <Ionicons name="share-outline" size={size} color={color} style={style} {...rest} />
-);
-
-// "Make a copy" in the recipe actions menu.
 export const CopyIcon = ({ size = 18, color = colors.textSecondary, style, ...rest }) => (
   <Ionicons name="copy-outline" size={size} color={color} style={style} {...rest} />
 );
@@ -85,19 +42,32 @@ export const RestoreIcon = ({ size = 18, color = colors.primary, style, ...rest 
   <Ionicons name="arrow-undo-outline" size={size} color={color} style={style} {...rest} />
 );
 
-// Drag handle on reorderable EditRecipe rows.
-export const DragHandleIcon = ({ size = 22, color = colors.iconInactive, style, ...rest }) => (
-  <Ionicons name="reorder-three-outline" size={size} color={color} style={style} {...rest} />
+export const RemoveCircleIcon = ({ size = 22, color = colors.danger, style, ...rest }) => (
+  <Ionicons name="remove-circle-outline" size={size} color={color} style={style} {...rest} />
 );
 
-// --- Linking / friend code -----------------------------------------------
+// Filled minus badge on the corner of an EditRecipe row's input (RemoveBadge).
+export const RemoveBadgeIcon = ({ size = 20, color = colors.danger, style, ...rest }) => (
+  <Ionicons name="remove-circle" size={size} color={color} style={style} {...rest} />
+);
 
-// Filled link glyph used in the small "this friend is linked" badge.
+export const EllipsisIcon = ({ size = 20, color = colors.textSecondary, style, ...rest }) => (
+  <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} style={style} {...rest} />
+);
+
+export const CheckIcon = ({ size = 20, color = colors.primary, style, ...rest }) => (
+  <Ionicons name="checkmark" size={size} color={color} style={style} {...rest} />
+);
+
+export const ShareIcon = ({ size = 18, color = colors.textOnPrimary, style, ...rest }) => (
+  <Ionicons name="share-outline" size={size} color={color} style={style} {...rest} />
+);
+
+// Two Links
 export const LinkIcon = ({ size = 12, color = colors.textOnPrimary, style, ...rest }) => (
   <Ionicons name="link" size={size} color={color} style={style} {...rest} />
 );
 
-// Outline link glyph used on the InputSelector "From link" picker.
 export const LinkOutlineIcon = ({ style, ...rest }) => (
   <Ionicons name="link-outline" style={style} {...rest} />
 );
@@ -114,27 +84,29 @@ export const PersonAddIcon = ({ size = 22, color = colors.primary, style, ...res
   <Ionicons name="person-add-outline" size={size} color={color} style={style} {...rest} />
 );
 
-// Allergy-overview entry point (Home action bar).
 export const AllergyListIcon = ({ size = 22, color = colors.textSecondary, style, ...rest }) => (
   <Ionicons name="list-outline" size={size} color={color} style={style} {...rest} />
 );
 
-// --- Folder (bulk action in Home select bar + folder-picker rows) --------
 export const FolderIcon = ({ size = 22, color = colors.primary, style, ...rest }) => (
   <FAIcon name="folder" size={size} color={color} style={style} {...rest} />
 );
 
-// --- Stateful toggles ----------------------------------------------------
+// Drag handle on reorderable EditRecipe rows.
+export const DragHandleIcon = ({ size = 22, color = colors.iconInactive, style, ...rest }) => (
+  <Ionicons name="reorder-three-outline" size={size} color={color} style={style} {...rest} />
+);
 
-// Square checkbox: unchecked / checked. 
+// Stateful icons
+
+// Checkbox that can be checked/unchecked 
 export const CheckboxIcon = ({ checked = false, size = 22, color, style, ...rest }) => {
   const name = checked ? 'checkbox' : 'square-outline';
   const resolvedColor = color ?? (checked ? colors.primary : colors.textMuted);
   return <Ionicons name={name} size={size} color={resolvedColor} style={style} {...rest} />;
 };
 
-// Circular checkmark used on multi-select recipe tiles. Empty circle when
-// not selected, filled checkmark when selected.
+// Circular checkbox
 export const SelectCircleIcon = ({
   selected = false,
   size = 24,
@@ -147,14 +119,14 @@ export const SelectCircleIcon = ({
   return <Ionicons name={name} size={size} color={resolvedColor} style={style} {...rest} />;
 };
 
-// Radio button used in SortMenu rows.
+// Radio button for SortMenu options
 export const RadioIcon = ({ selected = false, size = 20, color, style, ...rest }) => {
   const name = selected ? 'radio-button-on' : 'radio-button-off';
   const resolvedColor = color ?? (selected ? colors.primary : colors.textMuted);
   return <Ionicons name={name} size={size} color={resolvedColor} style={style} {...rest} />;
 };
 
-// Up/down arrow for SortMenu's asc/desc toggle.
+// Arrows for the SortMenu asc/desc
 export const SortArrowIcon = ({
   direction = 'asc',
   size = 20,
@@ -166,11 +138,7 @@ export const SortArrowIcon = ({
   return <Ionicons name={name} size={size} color={color} style={style} {...rest} />;
 };
 
-// --- Bottom NavBar tabs --------------------------------------------------
-
-// Single icon component for the bottom tab bar. Pass `name` matching the
-// route name; the mapping to vendor icons lives here so NavigationBar
-// doesn't need to know about FontAwesome glyph names.
+// NavBar icons, requires passed route name
 const TAB_GLYPHS = {
   Home: 'home',
   Folders: 'folder',

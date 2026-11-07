@@ -2,9 +2,8 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../styles/theme';
 
-// Thin plus icon — two crossed strokes (Heroicons-style).
-// Usage:
-//   <PlusIcon size={24} color={colors.link} />
+// Usage: <PlusIcon size={24} color={colors.link} />
+
 const PlusIcon = ({ size = 24, color = colors.textSecondary, strokeWidth = 1.5 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path

@@ -2,7 +2,8 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../styles/theme';
 
-// Magnifying glass icon (Heroicons-style).
+// Usage: <SearchIcon size={24} color={colors.textSecondary} />
+
 const SearchIcon = ({ size = 24, color = colors.textSecondary, strokeWidth = 1.5 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
