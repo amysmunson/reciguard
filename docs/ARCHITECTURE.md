@@ -186,7 +186,7 @@ be safely removed if/when you confirm nothing pulls it in.
 | `expo-secure-store` | Backs [lib/secureStoreAdapter.js](lib/secureStoreAdapter.js), the Supabase auth session storage adapter — puts the access/refresh token in the OS Keychain (iOS) / encrypted storage (Android) instead of plain AsyncStorage. Values are chunked across multiple SecureStore items since a single item is capped around 2048 bytes and a full session (tokens + user metadata) can exceed that. |
 | `react-native-url-polyfill` | Side-effect import in [lib/supabase.js](lib/supabase.js) — Supabase needs URL globals that RN doesn't ship. |
 | `react-native-svg` | Used by `components/LandingCard*.js` for the decorative title shapes and by `components/icons/*.js` for the custom Heroicons-style glyphs (Plus / Search / Sort). |
-| `react-native-vector-icons` | Provides the `Ionicons` and `FontAwesome` font sets consumed via `react-native-vector-icons/Ionicons` and `/FontAwesome`. Direct imports are confined to [components/icons/index.js](components/icons/index.js); every screen consumes semantic wrappers (e.g. `<TrashIcon>`, `<BackIcon>`) from the registry instead. It was only a *transitive* dependency (pulled in by `expo-router`) until `expo-router`'s removal surfaced that gap — it's now declared explicitly in `package.json`. |
+| `@expo/vector-icons` | Provides the `Ionicons` and `FontAwesome` font sets, imported as `@expo/vector-icons/Ionicons` and `/FontAwesome`. Direct imports are confined to [components/icons/index.js](components/icons/index.js); every screen consumes semantic wrappers (e.g. `<TrashIcon>`, `<BackIcon>`) from the registry instead. (The registry used to import `react-native-vector-icons`, but Expo's Metro config and `jest-expo` both silently redirect that name to `@expo/vector-icons`, so that package was never actually loaded. It was removed 2026-11-07.) |
 | `expo-clipboard` | `setStringAsync` — long-press-to-copy on the friend code in `Profile.js`. |
 | `expo-haptics` | `selectionAsync()` ticks when a row is picked up / moves in [components/ReorderableList.js](components/ReorderableList.js). |
 | `expo-status-bar` | `<StatusBar>` in [App.js](App.js), styled light/dark to match the theme. |
@@ -195,30 +195,33 @@ be safely removed if/when you confirm nothing pulls it in.
 
 | Package | Why it's installed |
 |---|---|
-| `react-native-gesture-handler` | Was required by `@react-navigation/stack`'s gestures; the native stack doesn't need it and app code doesn't import it. Kept installed for now (it's a native module); a candidate for removal with the next native build. |
-| `react-native-reanimated` | Required by React Navigation transitions. |
-| `react-native-safe-area-context` | Required by React Navigation for safe-area inset handling. |
-| `react-native-screens` | Required by React Navigation to use native screen primitives. |
-| `react-native-worklets` | Peer of `react-native-reanimated` v4. |
-| `react-dom` / `react-native-web` | Needed for the web build (`npx expo start --web`). Not used on mobile. |
-| `expo-splash-screen`, `expo-system-ui`, `expo-constants`, `expo-font` | Managed by Expo internally; the SDK pulls bits of these in for startup/runtime. Safe to leave installed. |
+| `react-native-screens` | Peer of `@react-navigation/native-stack` (native screen primitives and swipe-back). |
+| `react-native-safe-area-context` | Peer of `@react-navigation/native-stack`; also used directly by `App.js` and `StatusBarBackdrop`. |
+| `expo-font` | Peer of `@expo/vector-icons` (loads the icon fonts). |
+| `expo-splash-screen` | Splash image, configured as a plugin in `app.json`. |
+| `expo-system-ui` | Needed for `userInterfaceStyle: "automatic"` on Android, and sets the root background color. |
 
-### Runtime — template leftovers (currently UNUSED by app code)
+### Removed template leftovers (2026-11-07)
 
-These were added by `npx create-expo-app` and our code never imports them.
-Removing them would slim the install slightly; verify nothing imports each
-one (grep) before deleting.
+These came from `npx create-expo-app` or earlier versions of the app, and
+nothing imported them. They were uninstalled, and their `app.json` plugins
+dropped (`expo-sqlite`, `expo-web-browser`, `expo-image`, plus the no-op
+`expo-font` entry). If you need one again, add it with `npx expo install`.
 
-| Package | Replaced by / status |
+| Package | Why it was unused |
 |---|---|
-| `expo-sqlite` | Legacy from the local-SQLite version of the app before Supabase. Unused now. |
-| `expo-image` | We use `ImageBackground` from `react-native`. Unused. |
-| `expo-linking` | No deep links yet. Unused. |
-| `expo-symbols` | No SF Symbols use. Unused. |
-| `expo-web-browser` | No in-app browser use. Unused. |
-| `@react-navigation/bottom-tabs` | We use a custom `NavigationBar` component. Unused. |
-| `@react-navigation/elements` | Pulled in transitively by `@react-navigation/native`. May be removable but low priority. |
-| `@expo/vector-icons` | Not imported anywhere — the icon registry imports `react-native-vector-icons` directly instead (see above). Candidate for removal. |
+| `expo-sqlite` | Local storage from before the move to Supabase. |
+| `expo-image` | The app uses `ImageBackground` from `react-native`. |
+| `expo-linking`, `expo-constants` | No deep links. `expo` still bundles `expo-constants` itself. |
+| `expo-symbols` | No SF Symbols. |
+| `expo-web-browser` | No in-app browser. |
+| `@react-navigation/bottom-tabs` | The app uses its own `NavigationBar`. |
+| `@react-navigation/elements` | Not imported; `native-stack` still installs it as its own dependency. |
+| `react-native-gesture-handler` | Only `@react-navigation/stack` needed it, and that was replaced by the native stack. |
+| `react-native-reanimated`, `react-native-worklets` | Not used by any code or by the native stack. |
+| `react-dom`, `react-native-web` | Web build only. The app targets iOS (and the auth session needs SecureStore, which has no web version), so the `web` script was removed too. |
+| `react-native-vector-icons` | Never loaded (see `@expo/vector-icons` above). |
+| `typescript`, `@types/react` | No TypeScript files or `tsconfig.json` remain. |
 
 ### Dev tooling
 
@@ -226,7 +229,6 @@ one (grep) before deleting.
 |---|---|
 | `@expo/ngrok` | Required for `npx expo start --tunnel` (used during sharing dev builds). |
 | `eslint` + `eslint-config-expo` | Linting. Run via `npm run lint`. |
-| `typescript` + `@types/react` | Required by the lone `constants/theme.ts` file and `tsconfig.json` — the rest of the codebase is JS. |
 | `jest` + `jest-expo` | Test runner with Expo's React Native preset (`npm test`, `npm run verify`). See [docs/TESTING.md](TESTING.md). |
 | `@testing-library/react-native` | Component tests (DialogHost, ReorderableList, EditHeader). v14: `render` / `fireEvent` are async. |
 
@@ -374,7 +376,7 @@ Every icon used in the app is exported from
 [components/icons/index.js](../components/icons/index.js). Screens import
 **named semantic components** (`<BackIcon>`, `<TrashIcon>`, `<CheckboxIcon checked />`, etc.)
 from `'../components/icons'`. No screen or shared component imports
-`react-native-vector-icons` directly anymore — the only file that does
+`@expo/vector-icons` directly — the only file that does
 is `index.js` itself. To swap a glyph globally (change vendor, switch
 from outline to filled, replace a vendor icon with a custom SVG), edit
 the registry in one place and every consumer picks it up.

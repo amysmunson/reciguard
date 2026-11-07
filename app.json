@@ -23,9 +23,6 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite",
-      "expo-web-browser",
-      "expo-font",
       [
         "expo-splash-screen",
         {
@@ -35,7 +32,6 @@
         }
       ],
       "expo-secure-store",
-      "expo-image",
       "expo-status-bar"
     ],
     "extra": {

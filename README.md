@@ -103,7 +103,7 @@ A per-user high-contrast mode, toggled from the Accessibility screen and stored 
 - Expo SDK 54
 - React Navigation
 - react-native-svg
-- react-native-vector-icons
+- @expo/vector-icons
 - expo-clipboard
 
 ### Backend
@@ -294,7 +294,7 @@ Every icon used in the app is exported from a single registry at
 [`components/icons/index.js`](components/icons/index.js). Screens import
 semantic, named components (`<BackIcon>`, `<TrashIcon>`,
 `<CheckboxIcon checked />`, etc.) from `'../components/icons'` — no
-screen or shared component imports `react-native-vector-icons` directly.
+screen or shared component imports `@expo/vector-icons` directly.
 
 The registry contains three flavors:
 

@@ -6,8 +6,8 @@
 // Callers don't have to keep two icon strings in sync.
 
 import React from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import FAIcon from 'react-native-vector-icons/FontAwesome';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import FAIcon from '@expo/vector-icons/FontAwesome';
 import { colors } from '../../styles/theme';
 
 // SVG icons
