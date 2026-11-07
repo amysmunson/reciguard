@@ -10,7 +10,6 @@ import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
 import { signOut, deleteAccount } from '../lib/api/auth';
-import { startNewRecipe } from '../components/utils/addRecipe';
 import { useAuth } from '../lib/auth-context';
 import { loadJson, saveJson, KEYS } from '../lib/storage';
 import { THEME_PREFERENCES, useTheme } from '../lib/theme-context';
@@ -108,10 +107,6 @@ const Settings = ({ navigation }) => {
         },
       ]
     );
-  };
-
-  const handleAddRecipe = () => {
-    startNewRecipe({ navigation });
   };
 
   return (
@@ -213,7 +208,7 @@ const Settings = ({ navigation }) => {
         <Row label="Delete Account" onPress={handleDeleteAccount} danger />
       </ScrollView>
 
-      <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
+      <NavigationBar navigation={navigation} />
     </View>
   );
 };

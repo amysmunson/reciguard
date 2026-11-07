@@ -12,23 +12,24 @@ import OfflineBanner from './OfflineBanner';
 // meet and a near-miss still lands on a button rather than the inert bar.
 const TAB_HIT_SLOP = { top: 10, bottom: 10, left: 24, right: 24 };
 
-// Route names match the screen names registered in the navigator; the
-// per-route icon glyph is mapped in components/icons/index.js (TAB_GLYPHS).
+// Tab names match the screen names registered in the navigator, except Add,
+// which opens InputSelector (`route`) to start a new recipe. Nothing is saved
+// until Save in EditRecipe. The per-tab icon glyph is mapped in
+// components/icons/index.js (TAB_GLYPHS).
 const TABS = [
   { name: 'Home', label: 'Home' },
   { name: 'Folders', label: 'Folders' },
-  { name: 'Add', label: 'Add' },
+  { name: 'Add', label: 'Add', route: 'InputSelector' },
   { name: 'Friends', label: 'Friends' },
   { name: 'Settings', label: 'Settings' },
 ];
 
-const NavigationBar = ({ navigation, onAddPress, onHomePress }) => {
+const NavigationBar = ({ navigation, onHomePress }) => {
   const activeRoute = useNavigationState((state) => state?.routes?.[state.index]?.name);
 
-  const go = (name) => {
-    if (name === 'Add') return onAddPress?.();
-    if (name === 'Home') onHomePress?.();
-    navigation.navigate(name);
+  const go = (tab) => {
+    if (tab.name === 'Home') onHomePress?.();
+    navigation.navigate(tab.route ?? tab.name);
   };
 
   // The offline banner sits just above the bar so every tab screen gets it.
@@ -43,7 +44,7 @@ const NavigationBar = ({ navigation, onAddPress, onHomePress }) => {
               key={tab.name}
               style={styles.navButton}
               hitSlop={TAB_HIT_SLOP}
-              onPress={() => go(tab.name)}
+              onPress={() => go(tab)}
             >
               <TabIcon
                 name={tab.name}

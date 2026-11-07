@@ -15,7 +15,6 @@ import { getMyProfile } from '../lib/api/profile';
 import { useCachedResource } from '../lib/cache';
 import { usePullToRefresh } from '../lib/usePullToRefresh';
 import { useAuth } from '../lib/auth-context';
-import { startNewRecipe } from '../components/utils/addRecipe';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/unsavedChanges';
 import { alertSaveFailed } from '../lib/connectivity';
 import { PlusIcon, SearchIcon, SelectCircleIcon, SortIcon, StarIcon, TrashIcon } from '../components/icons';
@@ -104,10 +103,6 @@ const Folders = ({ navigation }) => {
   const dismissCreate = () => confirmDiscard(!!newName.trim(), closeCreate);
   // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
   useRegisterUnsaved(creating && !!newName.trim());
-
-  const handleAddRecipe = () => {
-    startNewRecipe({ navigation });
-  };
 
   // --- Selection helpers --------------------------------------------------
   const toggleSelect = (id) => {
@@ -317,7 +312,7 @@ const Folders = ({ navigation }) => {
         onChange={applySort}
       />
 
-      <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
+      <NavigationBar navigation={navigation} />
     </View>
   );
 };

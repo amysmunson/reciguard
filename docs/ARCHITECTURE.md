@@ -127,8 +127,6 @@ recipes/
 │   │   ├── FilterIcon.js           # Custom SVG
 │   │   ├── EditIcon.js             # Custom SVG (InputSelector's edit-manually option)
 │   │   └── StarIcon.js             # Custom SVG (Heroicons star; filled = favorite)
-│   ├── utils/
-│   │   └── addRecipe.js            # createRecipe() + navigate to InputSelector
 │   └── samples/
 │       └── sample_recipes.js       # Reference sample data (preserved by request)
 │
@@ -337,19 +335,14 @@ Screens never import `supabase`.
 
 Bottom tab bar used by the four "tab-like" screens (Home, Folders, Friends,
 Settings). Uses `useNavigationState` to figure out the active route and
-highlights it. The Add (+) button is special: it doesn't navigate to a tab,
-it calls a `onAddPress` handler the parent screen provides (which creates a
-recipe and routes to `InputSelector`).
+highlights it. The Add (+) button is the one tab that isn't a screen of its
+own: its `route` is `InputSelector`, the start of the add-recipe flow. No
+recipe row exists until Save in EditRecipe. Home passes `onHomePress` to clear
+its search when Home is tapped again.
 
 It also renders [components/OfflineBanner.js](components/OfflineBanner.js)
 directly above the bar, so every tab screen gets the offline warning without
 each screen adding it.
-
-### `components/utils/addRecipe.js`
-
-The single helper for "create a blank recipe and start the add flow." Used by
-Home, Folders, Friends, and Settings so the `+` button works consistently
-everywhere.
 
 ### `components/SortMenu.js`
 

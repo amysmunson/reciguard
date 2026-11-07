@@ -28,7 +28,6 @@ import {
 import { useCachedResource } from '../lib/cache';
 import { usePullToRefresh } from '../lib/usePullToRefresh';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/unsavedChanges';
-import { startNewRecipe } from '../components/utils/addRecipe';
 import { appAlert } from '../lib/dialog';
 import AppModal from '../components/AppModal';
 
@@ -122,10 +121,6 @@ const Friends = ({ navigation }) => {
     } finally {
       setBusy(false);
     }
-  };
-
-  const handleAddRecipe = () => {
-    startNewRecipe({ navigation });
   };
 
   return (
@@ -316,7 +311,7 @@ const Friends = ({ navigation }) => {
         </Pressable>
       </AppModal>
 
-      <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
+      <NavigationBar navigation={navigation} />
     </View>
   );
 };

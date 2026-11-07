@@ -12,7 +12,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
 import AllergyFilterControl from '../components/AllergyFilterControl';
-import { startNewRecipe } from '../components/utils/addRecipe';
 import { getRecipes, trashRecipes, TRASH_RETENTION_DAYS } from '../lib/api/recipes';
 import { useHideUnsafe, applyDietaryVisibility } from '../lib/useHideUnsafe';
 import { getFolders, createFolder, addRecipesToFolder } from '../lib/api/folders';
@@ -249,9 +248,6 @@ const Home = ({ navigation, route }) => {
   };
 
   // --- Misc ---------------------------------------------------------------
-  const handleAddRecipe = () => {
-    startNewRecipe({ navigation });
-  };
 
   // Sort recipes by the selected field + direction, then apply the search
   // filter. Missing values always sort to the bottom (see lib/sort).
@@ -479,7 +475,6 @@ const Home = ({ navigation, route }) => {
 
       <NavigationBar
         navigation={navigation}
-        onAddPress={handleAddRecipe}
         onHomePress={() => setSearchQuery('')}
       />
     </View>
