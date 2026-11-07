@@ -1,11 +1,36 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
-import { BackIcon, LinkIcon } from '../components/icons';
-import {colors} from '../styles/theme';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Linking,
+} from 'react-native';
+import {
+  BackIcon,
+  CopyIcon,
+  EllipsisIcon,
+  FolderIcon,
+  LinkIcon,
+  RestoreIcon,
+  StarIcon,
+  TimeIcon,
+  TrashIcon,
+} from '../components/icons';
+import { colors } from '../styles/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { useAuth } from '../lib/auth-context';
-import { getRecipe } from '../lib/api/recipes';
+import {
+  getRecipe,
+  setRecipeFavorite,
+  duplicateRecipe,
+  trashRecipe,
+  restoreRecipes,
+  deleteRecipesForever,
+  trashPurgeDate,
+  TRASH_RETENTION_DAYS,
+} from '../lib/api/recipes';
 import {
   getActiveAllergyDetails,
   ingredientAllergyInfo,
@@ -19,20 +44,31 @@ import { loadJson, KEYS, recordRecipeOpened } from '../lib/storage';
 import { cacheRecentRecipe, getCachedRecipe } from '../lib/recipeCache';
 import { useCachedResource } from '../lib/cache';
 import { usePullToRefresh } from '../lib/usePullToRefresh';
+import { alertSaveFailed } from '../lib/connectivity';
+import { normalizeRecipe } from '../lib/recipeItems';
+import { formatMinutes } from '../lib/recipeTimes';
+import { isSafeWebUrl } from '../lib/safeUrl';
 import OfflineBanner from '../components/OfflineBanner';
+import ActionMenu from '../components/ActionMenu';
+import FolderPickerModal from '../components/FolderPickerModal';
 import { MULTIPLIERS, formatAmount, scaleIngredient } from '../lib/scaleIngredient';
+import { appAlert } from '../lib/dialog';
 
 const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const RecipeCard = ({ route, navigation }) => {
   const { user } = useAuth();
+  const userId = user?.id;
   const { recipeId } = route.params;
   const [recipe, setRecipe] = useState(null);
   const [activeAllergies, setActiveAllergies] = useState([]);
-  const [expandedIngredient, setExpandedIngredient] = useState(null);
+  // Index of the ingredient whose allergy popup is open.
+  const [expandedIndex, setExpandedIndex] = useState(null);
   // Amount multiplier for ingredient quantities (½×, 1×, 2×, 3×). Display
   // only — resets to 1× each time the recipe is opened.
   const [multiplier, setMultiplier] = useState(1);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const { data: profile } = useCachedResource({
     resource: 'profile',
     userId: user?.id,
@@ -49,27 +85,27 @@ const RecipeCard = ({ route, navigation }) => {
       // revalidate from the server. If that fails — e.g. offline — keep
       // showing the cached copy rather than an error.
       const loadRecipe = async () => {
-        const cached = await getCachedRecipe(user?.id, recipeId);
+        const cached = normalizeRecipe(await getCachedRecipe(userId, recipeId));
         if (cached && !cancelled) setRecipe((prev) => prev ?? cached);
         // Record this open so Home's "Recently opened" sort can use it, and
         // so the recent-recipe cache keeps this one.
-        if (user?.id) await recordRecipeOpened(user.id, recipeId);
+        if (userId) await recordRecipeOpened(userId, recipeId);
         try {
           const r = await getRecipe(recipeId);
           // Quiet background refresh: only re-render if something changed.
           if (!cancelled) setRecipe((prev) => (sameJson(prev, r) ? prev : r));
-          if (user?.id) cacheRecentRecipe(user.id, r);
+          if (userId) cacheRecentRecipe(userId, r);
         } catch (err) {
           if (!cancelled && !cached) {
-            Alert.alert('Could not load recipe', err.message ?? 'Unknown error');
+            appAlert('Could not load recipe', err.message ?? 'Unknown error');
           }
         }
       };
 
       const loadFilter = async () => {
-        if (!user?.id) return;
+        if (!userId) return;
         try {
-          const saved = await loadJson(KEYS.homeAllergyFilter(user.id), {
+          const saved = await loadJson(KEYS.homeAllergyFilter(userId), {
             includeSelf: false,
             friendIds: [],
           });
@@ -89,7 +125,7 @@ const RecipeCard = ({ route, navigation }) => {
       return () => {
         cancelled = true;
       };
-    }, [recipeId, user?.id, myName])
+    }, [recipeId, userId, myName])
   );
 
   // Pull down to refetch the recipe from the server (and refresh its cached
@@ -108,27 +144,161 @@ const RecipeCard = ({ route, navigation }) => {
     );
   }
 
-  const { name, servings, ingredients, steps, userNotes, extLink, source } = recipe;
+  const {
+    name,
+    servings,
+    ingredients,
+    steps,
+    userNotes,
+    extLink,
+    source,
+    isFavorite,
+    deletedAt,
+    prepMinutes,
+    cookMinutes,
+    totalMinutes,
+  } = recipe;
+  const inTrash = !!deletedAt;
+  const hasIngredients = ingredients.some((i) => !i.isHeader);
   const multiplierLabel = multiplier === 0.5 ? '½' : String(multiplier);
   // Servings follow the multiplier, e.g. "Makes 4 servings" -> 8 at 2×.
   const scaledServings = servings ? formatAmount(servings * multiplier) : null;
+  const times = [
+    prepMinutes && `Prep ${formatMinutes(prepMinutes)}`,
+    cookMinutes && `Cook ${formatMinutes(cookMinutes)}`,
+    totalMinutes && `Total ${formatMinutes(totalMinutes)}`,
+  ].filter(Boolean);
 
   const openSource = async () => {
     if (!extLink) return;
+    // Web links only — never hand other schemes from recipe data to the OS.
+    if (!isSafeWebUrl(extLink)) {
+      appAlert('Cannot open link', "This recipe's source link isn't a web address.");
+      return;
+    }
     try {
       const supported = await Linking.canOpenURL(extLink);
       if (supported) await Linking.openURL(extLink);
-      else Alert.alert('Cannot open link', extLink);
+      else appAlert('Cannot open link', extLink);
     } catch (err) {
-      Alert.alert('Could not open link', err.message ?? 'Unknown error');
+      appAlert('Could not open link', err.message ?? 'Unknown error');
     }
   };
 
+  // --- Actions --------------------------------------------------------------
+
+  // Optimistic star toggle; reverts if the save fails.
+  const toggleFavorite = async () => {
+    const next = !isFavorite;
+    setRecipe((prev) => ({ ...prev, isFavorite: next }));
+    try {
+      await setRecipeFavorite(recipeId, next);
+    } catch (err) {
+      setRecipe((prev) => ({ ...prev, isFavorite: !next }));
+      alertSaveFailed(err, 'Could not update favorite');
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      const copy = await duplicateRecipe(recipe);
+      navigation.push('RecipeCard', { recipeId: copy.id });
+    } catch (err) {
+      alertSaveFailed(err, 'Could not copy recipe');
+    }
+  };
+
+  const handleTrash = () => {
+    appAlert(
+      'Delete recipe?',
+      `It stays in Recently Deleted for ${TRASH_RETENTION_DAYS} days, so you can restore it.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await trashRecipe(recipeId);
+              navigation.goBack();
+            } catch (err) {
+              alertSaveFailed(err, 'Could not delete recipe');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRestore = async () => {
+    try {
+      await restoreRecipes([recipeId]);
+      setRecipe((prev) => ({ ...prev, deletedAt: null }));
+    } catch (err) {
+      alertSaveFailed(err, 'Could not restore recipe');
+    }
+  };
+
+  const handleDeleteForever = () => {
+    appAlert('Delete forever?', 'This recipe will be permanently deleted. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete Forever',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteRecipesForever([recipeId]);
+            navigation.goBack();
+          } catch (err) {
+            alertSaveFailed(err, 'Could not delete recipe');
+          }
+        },
+      },
+    ]);
+  };
+
+  const menuActions = inTrash
+    ? [
+        { key: 'restore', label: 'Restore', icon: <RestoreIcon />, onPress: handleRestore },
+        {
+          key: 'forever',
+          label: 'Delete forever',
+          icon: <TrashIcon size={18} />,
+          onPress: handleDeleteForever,
+          danger: true,
+        },
+      ]
+    : [
+        {
+          key: 'folder',
+          label: 'Add to folder',
+          icon: <FolderIcon size={18} color={colors.textSecondary} />,
+          onPress: () => setFolderPickerOpen(true),
+        },
+        { key: 'copy', label: 'Make a copy', icon: <CopyIcon />, onPress: handleCopy },
+        {
+          key: 'trash',
+          label: 'Delete',
+          icon: <TrashIcon size={18} />,
+          onPress: handleTrash,
+          danger: true,
+        },
+      ];
+
+  // --- Rendering ------------------------------------------------------------
+
+  const renderSectionHeader = (item, i) => (
+    <Text key={i} style={[styles.recipeSection_header, contrast && { color: colors.text }]}>
+      {item.text}
+    </Text>
+  );
+
   const renderIngredient = (item, i) => {
+    if (item.isHeader) return renderSectionHeader(item, i);
     // Allergy matching runs on the original text; only the display is scaled.
-    const info = ingredientAllergyInfo(item, activeAllergies);
-    const isExpanded = expandedIngredient === item;
-    const displayText = scaleIngredient(item, multiplier);
+    const info = ingredientAllergyInfo(item.text, activeAllergies);
+    const isExpanded = expandedIndex === i;
+    const displayText = scaleIngredient(item.text, multiplier);
 
     if (!info) {
       return (
@@ -141,7 +311,7 @@ const RecipeCard = ({ route, navigation }) => {
     return (
       <View key={i}>
         <TouchableOpacity
-          onPress={() => setExpandedIngredient(isExpanded ? null : item)}
+          onPress={() => setExpandedIndex(isExpanded ? null : i)}
           style={[
             styles.ingredientHighlight,
             { backgroundColor: info.background, borderColor: info.color },
@@ -174,12 +344,7 @@ const RecipeCard = ({ route, navigation }) => {
                             paddingHorizontal: 4,
                             borderRadius: 4,
                           }
-                        : !contrast && normalizeSeverity(p.severity) === 'mild' && {
-                            color: '#000000',
-                            textShadowColor: '#ffd000',
-                            textShadowOffset: { width: 0, height: 0 },
-                            textShadowRadius: 6,
-                          },
+                        : !contrast && normalizeSeverity(p.severity) === 'mild' && styles.mildSeverityName,
                     ]}
                   >
                     {p.name}
@@ -194,23 +359,68 @@ const RecipeCard = ({ route, navigation }) => {
     );
   };
 
+  // Steps are numbered across sections; headers aren't numbered.
+  let stepNumber = 0;
+  const renderStep = (item, i) => {
+    if (item.isHeader) return renderSectionHeader(item, i);
+    stepNumber += 1;
+    return (
+      <Text key={i} style={styles.recipeItem}>
+        {stepNumber}. {item.text}
+      </Text>
+    );
+  };
+
   return (
     <ScrollView style={[styles.screen_base, styles.screen_cardPad]} refreshControl={refreshControl}>
       <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={() => navigation.goBack()}>
-        <BackIcon style={styles.overlayIcon_sm} />
+        <BackIcon style={styles.overlayIcon_md} />
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.overlay_base, styles.overlay_topRight_card]}
-        onPress={() => navigation.navigate('EditRecipe', { recipeId })}
-      >
-        <Text style={styles.overlayText}>Edit</Text>
-      </TouchableOpacity>
+      <View style={[styles.overlay_base, styles.overlay_topRight_card, styles.recipeCard_actions]}>
+        {!inTrash && (
+          <TouchableOpacity onPress={() => navigation.navigate('EditRecipe', { recipeId })}>
+            <Text style={styles.overlayText}>Edit</Text>
+          </TouchableOpacity>
+        )}
+        {!inTrash && (
+          <TouchableOpacity
+            onPress={toggleFavorite}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            accessibilityState={{ selected: isFavorite }}
+          >
+            <StarIcon filled={isFavorite} size={22} />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          onPress={() => setMenuOpen(true)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="More actions"
+        >
+          <EllipsisIcon size={22} />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.card_headerRow}>
         <Text style={styles.header_card}>{name || 'Untitled'}</Text>
       </View>
       <OfflineBanner />
+
+      {inTrash && (
+        <View style={styles.trashBanner}>
+          <Text style={styles.trashBanner_text}>
+            Recently deleted — deleted for good on{' '}
+            {trashPurgeDate(deletedAt).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+            })}
+            . Use ⋯ to restore it.
+          </Text>
+        </View>
+      )}
 
       {!!scaledServings && (
         <Text style={[styles.servings_display, contrast && { color: colors.text }]}>
@@ -218,9 +428,18 @@ const RecipeCard = ({ route, navigation }) => {
         </Text>
       )}
 
+      {times.length > 0 && (
+        <View style={styles.recipeTimes_row}>
+          <TimeIcon />
+          <Text style={[styles.recipeTimes_text, contrast && { color: colors.text }]}>
+            {times.join('  ·  ')}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.multiplier_headerRow}>
         <Text style={styles.header_section_marginless}>Ingredients</Text>
-        {ingredients.length > 0 && (
+        {hasIngredients && (
           <View style={styles.multiplier_row} accessibilityRole="radiogroup">
             {MULTIPLIERS.map((m) => {
               const selected = m.value === multiplier;
@@ -264,11 +483,7 @@ const RecipeCard = ({ route, navigation }) => {
       <Text style={styles.spacing} />
       <Text style={styles.header_section}>Instructions</Text>
       {steps.length > 0 ? (
-        steps.map((item, i) => (
-          <Text key={i} style={styles.recipeItem}>
-            {i + 1}. {item}
-          </Text>
-        ))
+        steps.map(renderStep)
       ) : (
         <Text style={[styles.emptyText, contrast && { color: colors.text }]}>No items</Text>
       )}
@@ -292,7 +507,7 @@ const RecipeCard = ({ route, navigation }) => {
             accessibilityLabel={source ? `Open original on ${source}` : 'Open original recipe'}
           >
             <LinkIcon size={18} color={colors.primary} />
-            <Text style={[styles.recipeItem, { color: colors.primary, fontWeight: 'bold' }]}> 
+            <Text style={[styles.recipeItem, { color: colors.primary, fontWeight: 'bold' }]}>
               Original Recipe
             </Text>
           </TouchableOpacity>
@@ -300,6 +515,18 @@ const RecipeCard = ({ route, navigation }) => {
 
       <Text style={styles.spacing} />
       <Text style={styles.spacing} />
+
+      <ActionMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        anchorStyle={styles.recipeCard_menu}
+        actions={menuActions}
+      />
+      <FolderPickerModal
+        visible={folderPickerOpen}
+        onClose={() => setFolderPickerOpen(false)}
+        recipeId={recipeId}
+      />
     </ScrollView>
   );
 };

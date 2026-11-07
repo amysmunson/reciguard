@@ -1,5 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Pressable,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
@@ -14,6 +20,8 @@ import {
   SEVERITY_RANK,
 } from '../lib/api/allergies';
 import { loadJson, saveJson, KEYS } from '../lib/storage';
+import { appAlert } from '../lib/dialog';
+import AppModal from '../components/AppModal';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -81,7 +89,7 @@ const AllergyOverview = ({ navigation, route }) => {
         setSelectedFriendIds(new Set(allFriendIds));
       }
     } catch (err) {
-      Alert.alert('Could not load Dietary Needs Overview', err.message ?? 'Unknown error');
+      appAlert('Could not load Dietary Needs Overview', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -227,7 +235,7 @@ const AllergyOverview = ({ navigation, route }) => {
         </>
       )}
 
-      <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
+      <AppModal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
         <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Show dietary needs for</Text>
@@ -262,7 +270,7 @@ const AllergyOverview = ({ navigation, route }) => {
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
     </ScrollView>
   );
 };

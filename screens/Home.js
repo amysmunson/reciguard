@@ -4,8 +4,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Alert,
-  Modal,
   ScrollView,
   TextInput,
   Pressable,
@@ -15,7 +13,8 @@ import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
 import AllergyFilterControl from '../components/AllergyFilterControl';
 import { startNewRecipe } from '../components/utils/addRecipe';
-import { getRecipes, deleteRecipes } from '../lib/api/recipes';
+import { getRecipes, trashRecipes, TRASH_RETENTION_DAYS } from '../lib/api/recipes';
+import { useHideUnsafe, applyDietaryVisibility } from '../lib/useHideUnsafe';
 import { getFolders, createFolder, addRecipesToFolder } from '../lib/api/folders';
 import { getMyProfile } from '../lib/api/profile';
 import {
@@ -27,7 +26,7 @@ import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
 import { useCachedResource } from '../lib/cache';
 import { usePullToRefresh } from '../lib/usePullToRefresh';
 import { useAuth } from '../lib/auth-context';
-import { confirmDiscard } from '../lib/unsavedChanges';
+import { confirmDiscard, useRegisterUnsaved } from '../lib/unsavedChanges';
 import { alertSaveFailed } from '../lib/connectivity';
 import { colors } from '../styles/theme';
 import {
@@ -36,6 +35,7 @@ import {
   SearchIcon,
   SelectCircleIcon,
   SortIcon,
+  StarIcon,
   TrashIcon,
 } from '../components/icons';
 import SortMenu from '../components/SortMenu';
@@ -45,9 +45,12 @@ import {
   normalizeSort,
   sortRecipes,
 } from '../lib/sort';
+import { appAlert } from '../lib/dialog';
+import AppModal from '../components/AppModal';
 
 const Home = ({ navigation, route }) => {
   const { user } = useAuth();
+  const hideUnsafe = useHideUnsafe(user?.id);
   const { data: recipesData, refresh: refreshRecipes } = useCachedResource({
     resource: 'recipes',
     userId: user?.id,
@@ -99,7 +102,7 @@ const Home = ({ navigation, route }) => {
       });
       setActiveAllergies(details);
     } catch (err) {
-      Alert.alert('Could not load dietary needs', err.message ?? 'Unknown error');
+      appAlert('Could not load dietary needs', err.message ?? 'Unknown error');
     }
   }, []);
 
@@ -176,21 +179,25 @@ const Home = ({ navigation, route }) => {
   const handleBulkDelete = () => {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    Alert.alert('Delete recipes?', `${ids.length} will be permanently deleted.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteRecipes(ids);
-            exitSelect();
-          } catch (err) {
-            Alert.alert('Could not delete', err.message ?? 'Unknown error');
-          }
+    appAlert(
+      'Delete recipes?',
+      `${ids.length} recipe(s) will move to Recently Deleted, where you can restore them for ${TRASH_RETENTION_DAYS} days.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await trashRecipes(ids);
+              exitSelect();
+            } catch (err) {
+              alertSaveFailed(err, 'Could not delete recipes');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const openFolderPicker = async () => {
@@ -201,7 +208,7 @@ const Home = ({ navigation, route }) => {
       setNewFolderName('');
       setFolderPickerOpen(true);
     } catch (err) {
-      Alert.alert('Could not load folders', err.message ?? 'Unknown error');
+      appAlert('Could not load folders', err.message ?? 'Unknown error');
     }
   };
 
@@ -210,6 +217,9 @@ const Home = ({ navigation, route }) => {
     setCreatingFolder(false);
     setNewFolderName('');
   };
+
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  useRegisterUnsaved(folderPickerOpen && creatingFolder && !!newFolderName.trim());
 
   // Backdrop tap / Android back — ask first if a new folder name is typed.
   const dismissFolderPicker = () =>
@@ -221,7 +231,7 @@ const Home = ({ navigation, route }) => {
       await addRecipesToFolder({ recipeIds: ids, folderId });
       closeFolderPicker();
       exitSelect();
-      Alert.alert('Added', `${ids.length} recipe(s) added to folder.`);
+      appAlert('Added', `${ids.length} recipe(s) added to folder.`);
     } catch (err) {
       alertSaveFailed(err, 'Could not add to folder');
     }
@@ -247,11 +257,17 @@ const Home = ({ navigation, route }) => {
   // filter. Missing values always sort to the bottom (see lib/sort).
   const sortedRecipes = sortRecipes(recipes, sort, openedMap);
 
-  const displayedRecipes = searchQuery.trim()
+  const searchedRecipes = searchQuery.trim()
     ? sortedRecipes.filter((r) =>
         (r.name ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase())
       )
     : sortedRecipes;
+  // Settings → hide (rather than flag) recipes that conflict with the filter.
+  const { visible: displayedRecipes, hiddenCount } = applyDietaryVisibility(searchedRecipes, {
+    hide: hideUnsafe,
+    filterActive,
+    activeAllergies,
+  });
 
   const applySort = (next) => {
     setSort(next);
@@ -270,6 +286,12 @@ const Home = ({ navigation, route }) => {
       >
         <View style={[styles.tile, isSelected && styles.tile_selected]}>
           <Text style={styles.tileText}>{item.name || 'Untitled'}</Text>
+
+          {item.isFavorite && !selectMode && (
+            <View style={styles.tile_star} accessibilityLabel="Favorite">
+              <StarIcon filled size={16} />
+            </View>
+          )}
 
           {dots.length > 0 && (
             <View style={styles.allergyDotRow}>
@@ -354,13 +376,23 @@ const Home = ({ navigation, route }) => {
         renderItem={renderTile}
         keyExtractor={(item) => item.id}
         refreshControl={refreshControl}
-        extraData={{ selectedIds, selectMode, activeAllergies, searchQuery, sort, openedMap }}
+        extraData={{ selectedIds, selectMode, activeAllergies, searchQuery, sort, openedMap, hideUnsafe }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
-            {searchQuery.trim()
-              ? `No recipes match "${searchQuery}".`
-              : 'No recipes yet. Tap + to add one.'}
+            {hiddenCount > 0
+              ? 'Every matching recipe is hidden by your dietary filter.'
+              : searchQuery.trim()
+                ? `No recipes match "${searchQuery}".`
+                : 'No recipes yet. Tap + to add one.'}
           </Text>
+        }
+        ListFooterComponent={
+          hiddenCount > 0 ? (
+            <Text style={styles.hiddenCount_text}>
+              {hiddenCount} recipe{hiddenCount === 1 ? '' : 's'} hidden by your dietary filter
+              (Settings → Hide recipes with dietary conflicts).
+            </Text>
+          ) : null
         }
       />
 
@@ -374,7 +406,7 @@ const Home = ({ navigation, route }) => {
       />
 
       {/* Folder picker modal */}
-      <Modal
+      <AppModal
         visible={folderPickerOpen}
         transparent
         animationType="fade"
@@ -443,7 +475,7 @@ const Home = ({ navigation, route }) => {
             )}
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
 
       <NavigationBar
         navigation={navigation}

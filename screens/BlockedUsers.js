@@ -1,13 +1,23 @@
 // Reachable from SharingWith. Lists people the current user has blocked with an Unblock option. 
 
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Pressable,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
 import { getMyBlocks, unblockUser, blockUserByCode } from '../lib/api/friends';
 import ConfirmModal from '../components/ConfirmModal';
+import { appAlert } from '../lib/dialog';
+import AppModal from '../components/AppModal';
+import { useRegisterUnsaved } from '../lib/unsavedChanges';
 
 // Strip non-alphanumeric, uppercase, max 8 chars — same normalization as
 // the friend-code inputs in Friends.js/FriendProfile.js.
@@ -34,7 +44,7 @@ const BlockedUsers = ({ navigation }) => {
     try {
       setBlocks(await getMyBlocks());
     } catch (err) {
-      Alert.alert('Could not load', err.message ?? 'Unknown error');
+      appAlert('Could not load', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -59,7 +69,7 @@ const BlockedUsers = ({ navigation }) => {
       await unblockUser(person.blockedId);
       load();
     } catch (err) {
-      Alert.alert('Could not unblock', err.message ?? 'Unknown error');
+      appAlert('Could not unblock', err.message ?? 'Unknown error');
     }
   };
 
@@ -67,6 +77,8 @@ const BlockedUsers = ({ navigation }) => {
   // prior sharing required, so you can preempt ever sharing with them.
   const [codeModalVisible, setCodeModalVisible] = useState(false);
   const [codeInput, setCodeInput] = useState('');
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  useRegisterUnsaved(codeModalVisible && !!codeInput);
   const [busy, setBusy] = useState(false);
 
   const openCodeModal = () => {
@@ -79,7 +91,7 @@ const BlockedUsers = ({ navigation }) => {
   const handleBlockByCode = async () => {
     const code = normalizeCode(codeInput);
     if (code.length !== 8) {
-      Alert.alert('Bad code', 'A friend code is 8 characters.');
+      appAlert('Bad code', 'A friend code is 8 characters.');
       return;
     }
     try {
@@ -87,9 +99,9 @@ const BlockedUsers = ({ navigation }) => {
       const profile = await blockUserByCode(code);
       closeCodeModal();
       load();
-      Alert.alert('Blocked', `${profile.name ?? 'That user'} has been blocked.`);
+      appAlert('Blocked', `${profile.name ?? 'That user'} has been blocked.`);
     } catch (err) {
-      Alert.alert('Could not block', err.message ?? 'Unknown error');
+      appAlert('Could not block', err.message ?? 'Unknown error');
     } finally {
       setBusy(false);
     }
@@ -142,7 +154,7 @@ const BlockedUsers = ({ navigation }) => {
         </View>
       ))}
 
-      <Modal
+      <AppModal
         visible={codeModalVisible}
         transparent
         animationType="fade"
@@ -179,7 +191,7 @@ const BlockedUsers = ({ navigation }) => {
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
 
       <ConfirmModal
         visible={!!confirmTarget}

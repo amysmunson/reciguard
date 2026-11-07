@@ -1,5 +1,11 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Pressable,
+} from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { AllergyListIcon, CheckboxIcon, FilterIcon } from './icons';
@@ -7,6 +13,7 @@ import { useAuth } from '../lib/auth-context';
 import { getFriends, friendDisplayName } from '../lib/api/friends';
 import { getMyProfile } from '../lib/api/profile';
 import { loadJson, saveJson, KEYS } from '../lib/storage';
+import AppModal from './AppModal';
 
 // Self-contained "Allergy warnings for" control — the FilterIcon trigger
 // (with its active-dot) plus the popup checklist, shared by Home and
@@ -138,7 +145,7 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
         {filterActive && <View style={styles.home_actionBar_iconDot} />}
       </TouchableOpacity>
 
-      <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
+      <AppModal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
         <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Filter on Profiles</Text>
@@ -188,7 +195,7 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
     </>
   );
 };

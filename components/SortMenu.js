@@ -1,7 +1,8 @@
 import React from 'react';
-import { Text, TouchableOpacity, Modal, Pressable, View } from 'react-native';
+import { Text, TouchableOpacity, Pressable, View } from 'react-native';
 import styles from '../styles/main_style';
 import { RadioIcon, SortArrowIcon } from './icons';
+import AppModal from './AppModal';
 
 // Pop-down sort menu shared by Home, Folders, and FolderDetail.
 // Renders a radio list of `options` plus a direction toggle (asc/desc) that
@@ -18,7 +19,7 @@ const SortMenu = ({ visible, onClose, options, sort, onChange, popdownStyle }) =
   const { by, dir } = sort;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <AppModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.sort_popdown_backdrop} onPress={onClose}>
         <Pressable style={[styles.sort_popdown, popdownStyle]} onPress={() => {}}>
           {options.map((opt) => {
@@ -48,7 +49,7 @@ const SortMenu = ({ visible, onClose, options, sort, onChange, popdownStyle }) =
           </TouchableOpacity>
         </Pressable>
       </Pressable>
-    </Modal>
+    </AppModal>
   );
 };
 

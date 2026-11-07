@@ -18,11 +18,15 @@ ReciGuard is a React Native + Expo app with a Supabase backend for storing recip
 
 ## Features
 
-- Create, edit, and delete recipes
-- Servings count per recipe ("Makes 4 servings") — read from the recipe link when available, or entered by hand
+- Create, edit, copy, and delete recipes — deleted recipes go to a Recently Deleted folder and can be restored for 30 days
+- Star favorites; built-in Favorites and Recently Deleted folders
+- Prep / cook / total times, read from recipe links or entered by hand
+- Ingredient and instruction sections ("For the sauce"), from links or added by hand
+- Drag-and-drop reordering of ingredients and steps
+- Optional servings count per recipe ("Makes 4 servings") — read from the recipe link when available, or entered by hand; hidden when not filled in
 - Scale ingredient amounts and servings on a recipe (½×, 1×, 2×, 3×)
 - Add recipes by pasting a link (auto-parsed) or entering them manually
-- Organize recipes into folders, with rename and multi-select bulk delete
+- Organize recipes into folders, with rename and multi-select bulk delete; add a recipe to folders from its ⋯ menu
 - Search recipes and friends by name
 - Sort recipes and folders by date added, last edited, recently opened, or alphabetical — ascending or descending, persisted per-user per-screen
 - Track dietary needs for yourself and friends, each with its own severity level
@@ -30,14 +34,16 @@ ReciGuard is a React Native + Expo app with a Supabase backend for storing recip
 - Severity-aware dietary needs warnings inside recipes and in list
 - Friend profile linking via unique friend codes
 - High-contrast accessibility mode
+- Dark mode: follow the phone's setting, or choose Light or Dark in Settings
+- Choose whether recipes that conflict with your dietary filter are hidden or shown with warnings
 - Persistent per-user filters and preferences
 - Instant loads with a stale-while-revalidate cache: screens show cached data first, then quietly refresh from the server and update only if something changed. The cache is kept lightweight (the recipe list holds names and ingredients only)
 - On launch, other screens' caches are refreshed quietly in the background
-- Your 5 most recently opened recipes are cached in full, so they open instantly and stay readable offline
+- Your 5 most recently opened recipes are cached in full, so they open instantly and stay readable offline — or turn off on-device copies entirely in Settings
 - Pull down to refresh on Home, Folders, a folder, Friends, and a recipe
 - Authentication with Supabase Auth
-- In-app feedback form (suggestions/questions submitted straight to the database)
-- "Discard changes?" prompt when leaving any recipe, dietary needs, profile, or folder edit without saving (back button, swipe, or Android back)
+- In-app feedback form (submitted straight to the database; no replies)
+- "Discard changes?" prompt when leaving any recipe, dietary needs, profile, or folder edit without saving (back button, Android back, or swipe where available)
 - Offline banner when the server can't be reached, plus clear "your changes have not been saved" alerts when a save fails
 
 
@@ -210,6 +216,16 @@ Run on iOS using the Expo Go app.
 - [ ] Image-based recipe parsing
 <!-- - [ ] Re-enable Supabase email authentication on sign up
 - [ ] AI-assisted recipe import -->
+
+## Testing
+
+```bash
+npm run verify        # lint + unit tests + security tests + dependency audit + iOS bundle build
+npm test              # just the Jest suites
+npm run test:security # security checks + dependency audit
+```
+
+See [docs/TESTING.md](docs/TESTING.md) for what's covered, how to add tests, and the security fixes the suite found.
 
 ## Development Notes
 

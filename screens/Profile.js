@@ -5,22 +5,24 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Share,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
-import { BackIcon, ShareIcon } from '../components/icons';
+import { BackIcon, EditIcon, RestoreIcon, ShareIcon } from '../components/icons';
 import { useAuth } from '../lib/auth-context';
 import { getMyProfile, updateMyProfile } from '../lib/api/profile';
 import { readCachedResource } from '../lib/cache';
 import { getMyAllergies, severityColor, severityLabel } from '../lib/api/allergies';
 import ConfirmModal from '../components/ConfirmModal';
 import OfflineBanner from '../components/OfflineBanner';
+import { EditHeader } from '../components/EditHeader';
+import SectionHeading from '../components/SectionHeading';
 import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
 import { alertSaveFailed } from '../lib/connectivity';
+import { appAlert } from '../lib/dialog';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -94,7 +96,7 @@ const Profile = ({ navigation }) => {
     } catch (err) {
       // Stay quiet if the cached copy is already on screen (e.g. offline).
       if (!cachedShownRef.current) {
-        Alert.alert('Could not load profile', err.message ?? 'Unknown error');
+        appAlert('Could not load profile', err.message ?? 'Unknown error');
       }
     } finally {
       setLoading(false);
@@ -143,13 +145,18 @@ const Profile = ({ navigation }) => {
     copyTimeoutRef.current = setTimeout(() => setCodeCopied(false), 1500);
   };
 
+  const [saving, setSaving] = useState(false);
   const handleSave = async () => {
+    if (saving) return;
     try {
+      setSaving(true);
       await updateMyProfile({ name, phone, about, notes });
       setIsEditing(false);
       setBaseline({ name, phone, about, notes });
     } catch (err) {
       alertSaveFailed(err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -193,19 +200,48 @@ const Profile = ({ navigation }) => {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
-        <BackIcon style={styles.overlayIcon_sm} />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.overlay_base, styles.overlay_topRight_card]}
-        onPress={isEditing ? handleSave : () => setIsEditing(true)}
-        disabled={!serverLoaded && !isEditing}
-      >
-        <Text style={[styles.overlayText, !serverLoaded && !isEditing && { opacity: 0.4 }]}>
-          {isEditing ? 'Save' : 'Edit'}
-        </Text>
-      </TouchableOpacity>
+      {isEditing ? (
+        <EditHeader
+          onBack={handleBackPress}
+          onSave={handleSave}
+          saving={saving}
+          menuActions={[
+            ...(allergies
+              ? [
+                  {
+                    key: 'allergies',
+                    label: 'Edit dietary needs',
+                    icon: <EditIcon size={18} color={colors.textSecondary} />,
+                    onPress: () => navigation.navigate('EditAllergies', { allergies }),
+                  },
+                ]
+              : []),
+            ...(isDirty
+              ? [
+                  {
+                    key: 'discard',
+                    label: 'Discard changes',
+                    icon: <RestoreIcon color={colors.textSecondary} />,
+                    onPress: () => setConfirmDiscardVisible(true),
+                  },
+                ]
+              : []),
+          ]}
+        />
+      ) : (
+        <>
+          <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
+            <BackIcon style={styles.overlayIcon_sm} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.overlay_base, styles.overlay_topRight_card]}
+            onPress={() => setIsEditing(true)}
+            disabled={!serverLoaded}
+          >
+            <Text style={[styles.overlayText, !serverLoaded && { opacity: 0.4 }]}>Edit</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       {isEditing ? (
         <TextInput
@@ -286,7 +322,12 @@ const Profile = ({ navigation }) => {
         displayValue(notes)
       )}
 
-      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Dietary Needs</Text>
+      <SectionHeading
+        title="My Dietary Needs"
+        actionLabel={isEditing && allergies ? 'Edit' : null}
+        onAction={() => navigation.navigate('EditAllergies', { allergies })}
+        accessibilityLabel="Edit dietary needs"
+      />
       {allergies?.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
       {(allergies ?? []).map((a) => (
         <View key={a.id} style={styles.allergyRow}>
@@ -297,16 +338,6 @@ const Profile = ({ navigation }) => {
           </View>
         </View>
       ))}
-      {isEditing && allergies && (
-        <TouchableOpacity
-          style={[styles.button_outline, styles.button_outline_link, { marginTop: 8 }]}
-          onPress={() => navigation.navigate('EditAllergies', { allergies })}
-        >
-          <Text style={[styles.buttonText_outline, { color: colors.primary }]}>
-            Edit Dietary Needs
-          </Text>
-        </TouchableOpacity>
-      )}
 
       <Text style={styles.spacing} />
 

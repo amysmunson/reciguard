@@ -8,7 +8,10 @@ const itemMargin = 20;
 const numColumns = 2;
 const itemSize = (screenWidth - (itemMargin * (numColumns + 1))) / numColumns;
 
-const styles = StyleSheet.create({
+// Built by a function so the whole sheet can be rebuilt from the current
+// theme tokens when the color scheme changes (lib/theme-context.js). Styles
+// read `colors` at build time, so every color must come from a token.
+const buildStyles = () => StyleSheet.create({
   // === Containers ======================================================
   // Compose on the outer wrapper (View / ScrollView):
   //   [screen_base, screen_<archetype>Pad]
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
   // page-level headers that bundle size + weight + spacing.
 
   // Size atoms.
-  text_display: { fontSize: 40 },
+  text_display: { fontSize: 40, color: colors.text },
   text_h1: { fontSize: 32 },
   text_h2: { fontSize: 28 },
   text_h3: { fontSize: 24 },
@@ -103,6 +106,7 @@ const styles = StyleSheet.create({
 
   // Tab-screen page header — Home/Folders/Friends/Settings/FolderDetail.
   header_tab: {
+    color: colors.text,
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -112,6 +116,7 @@ const styles = StyleSheet.create({
   // Card-screen page header — Profile/FriendProfile/RecipeCard, plus
   // the EditRecipe name input. Top padding clears the back button.
   header_card: {
+    color: colors.text,
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -120,6 +125,7 @@ const styles = StyleSheet.create({
   },
   // Auth screen title — Login/SignUp.
   header_auth: {
+    color: colors.text,
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -135,6 +141,7 @@ const styles = StyleSheet.create({
   },
   // Modal title — shown at the top of a modal_card.
   header_modal: {
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
@@ -143,22 +150,26 @@ const styles = StyleSheet.create({
   // EditRecipe section names. Add marginTop inline for extra breathing
   // room above (e.g., between major sections).
   header_section: {
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   header_section_marginless: {
+    color: colors.text,
     fontSize: 20,
     fontWeight: 'bold',
   },
   // Privacy Policy main title.
   header_policyMain: {
+    color: colors.text,
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   // Privacy Policy in-content subheading.
   header_policySection: {
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 16,
@@ -215,6 +226,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.textSecondary,
   },
+  // Header back arrow next to 22-pt actions (RecipeCard's ★ ⋯ Edit,
+  // EditHeader's Save ⋯) — same size as the ⋯ so the row lines up.
+  overlayIcon_md: {
+    fontSize: 22,
+    color: colors.textSecondary,
+  },
   overlayIcon_lg: {
     fontSize: 24,
     color: colors.textSecondary,
@@ -229,16 +246,17 @@ const styles = StyleSheet.create({
   // === Inputs ==========================================================
   // Compose: [input_base, input_<modifier>?, ...]
   // input_base gives a bordered single-line TextInput. Add modifiers for
-  // layout (stacked-form margin, inline-row flex) or specialized look
+  // layout (stacked-form margin) or specialized look
   // (underline-only, monospace code entry).
 
   // Base shape — bordered rectangle with comfortable padding.
   input_base: {
+    color: colors.text,
     borderWidth: 1,
     borderColor: colors.borderInput,
     borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
     fontSize: 16,
     letterSpacing: 0,
   },
@@ -262,10 +280,6 @@ const styles = StyleSheet.create({
   },
   // Inline row input — fills the row to the left of a trailing action
   // button (e.g. delete icon in an ingredient row).
-  input_inRow: {
-    flex: 1,
-    marginRight: 10,
-  },
   // Underline-only — used when the input doubles as a heading
   // (e.g. EditRecipe's name input on top of header_card). Apply alongside
   // a header style; no surrounding border, just a bottom rule.
@@ -430,6 +444,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     // textOnPrimary if you change background to primary later
   },
+  //   Icon + name on one line (Folders' Favorites / Recently Deleted tiles).
+  //   The 16 pt icon matches the default 14 pt bold tile text's line height.
+  tile_labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: 6,
+    paddingHorizontal: 8,
+  },
   // Folders screen: sort + add buttons, aligned top-right.
   bottomNav: {
     flexDirection: 'row',
@@ -505,11 +528,43 @@ const styles = StyleSheet.create({
   //     screen_editPad] (ScrollView contentContainerStyle).
   //   Name input  → [header_card, input_underline].
   //   Back arrow  → [overlay_base, overlay_topLeft_safe] + overlayIcon_sm.
-  //   Ingredient inputs → [input_base, input_inRow].
+  //   Ingredient inputs → [input_base, editRecipe_input].
   ingredientRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  //   EditRecipe's tighter spacing — its own styles so the shared
+  //   ingredientRow (AllergyChecklist) and other screens' inputs don't change.
+  editRecipe_row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    // Room for the next row's RemoveBadge, which sits 7 pt above its input.
+    marginBottom: 8,
+  },
+  //   EditRecipe row input: the wrapper fills the rest of the row (out to
+  //   the screen padding) and anchors the corner RemoveBadge; the input's
+  //   right padding keeps typed text clear of the badge.
+  editRecipe_inputWrap: {
+    flex: 1,
+  },
+  editRecipe_input: {
+    paddingRight: 16,
+  },
+  //   RemoveBadge (components/RemoveBadge.js) — red minus straddling the
+  //   input's top-right corner. The background-colored disc behind it keeps
+  //   the input border from showing through the minus.
+  removeBadge: {
+    position: 'absolute',
+    top: -7,
+    right: -7,
+    zIndex: 2,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+  },
+  editRecipe_sectionHeader: {
+    marginTop: 8,
+    marginBottom: 6,
   },
   deleteRecipeButton: {
     padding: 10,
@@ -526,21 +581,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteButtonText: {
-    fontSize: 16,
-    color: colors.danger,
-  },
   noItemsText: {
     fontStyle: 'italic',
     color: colors.textMuted,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'left',
-    marginTop: 10,
-    marginBottom: 20,
+    justifyContent: 'flex-start',
+    marginTop: 4,
+    marginBottom: 12,
     borderRadius: 20,
   },
   addButtonText: {
@@ -681,11 +732,6 @@ const styles = StyleSheet.create({
   },
 
   //  Settings-specific styles
-  settings_email: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    color: colors.textTertiary,
-  },
   // Section header row — divides the Settings list into categories
   settings_sectionHeader: {
     backgroundColor: colors.surface,
@@ -717,6 +763,35 @@ const styles = StyleSheet.create({
   rowText: {
     fontSize: 16,
     color: colors.textSecondary,
+  },
+  settings_rowHint: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+
+  //   Segmented control (Settings → Appearance): a row of pill options.
+  segmented_row: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  segmented_option: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  segmented_optionSelected: {
+    backgroundColor: colors.primary,
+  },
+  segmented_optionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  segmented_optionTextSelected: {
+    color: colors.textOnPrimary,
   },
 
   //   Modal Styles
@@ -1100,17 +1175,6 @@ const styles = StyleSheet.create({
   //   [button_outline, button_outline_link, { marginBottom: 8 }]
   //   + [buttonText_outline, { color: colors.primary }]
 
-  //   Remove-Friend footer (FriendProfile, edit mode) — last item in the
-  //   scrollable content, set off from the link section above it by a
-  //   separating line (borderTop, matching bottomNav's own treatment) with
-  //   enough marginTop that the line doesn't sit flush against it.
-  friendProfile_dangerFooter: {
-    marginTop: 28,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderInput,
-  },
-
   //   Add-Friend Choice Buttons (in Friends modal)
   addChoice_button: {
     flexDirection: 'row',
@@ -1145,10 +1209,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  //   Bottom destructive "Remove Friend" button on FriendProfile:
-  //   wrapped in friendProfile_dangerFooter, composed as
-  //   [button_outline, button_outline_danger] + [buttonText_outline, { color: colors.danger }]
-
   readOnly_hint: {
     fontSize: 12,
     color: colors.textMuted,
@@ -1181,8 +1241,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   servings_input: {
-    width: 64,
-    marginHorizontal: 8,
+    minWidth: 36,
+    marginHorizontal: 4,
     textAlign: 'center',
   },
   servings_display: {
@@ -1222,6 +1282,170 @@ const styles = StyleSheet.create({
     color: colors.textOnPrimary,
   },
 
+  //   EditRecipe — reorderable rows, section headers, times
+  //   Drag handle (≡) at the left of each ingredient / step row.
+  dragHandle: {
+    paddingVertical: 4,
+    paddingRight: 6,
+    justifyContent: 'center',
+  },
+  //   The row currently being dragged — lifted above its neighbours.
+  reorder_dragging: {
+    zIndex: 10,
+    elevation: 6,
+    backgroundColor: colors.background,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    opacity: 0.95,
+  },
+  //   Section-header row input ("For the sauce").
+  editSection_input: {
+    fontWeight: 'bold',
+    backgroundColor: colors.surface,
+  },
+  //   "Add Ingredient" + "Add Section" side by side.
+  addButton_row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 24,
+  },
+  times_row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 14,
+    rowGap: 6,
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  times_field: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  times_input: {
+    minWidth: 36,
+    marginHorizontal: 6,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  //   EditHeader (components/EditHeader.js) — [Save] [⋯] group in the
+  //   upper right of every edit screen, and where its ⋯ menu drops down.
+  editHeader_actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 18,
+  },
+  editHeader_save: {
+    color: colors.link,
+    fontWeight: 'bold',
+  },
+  //   SectionHeading (components/SectionHeading.js): heading left, small
+  //   action ("Edit") right. Same vertical spacing as the inline
+  //   header_section margins it replaces.
+  sectionHeading_row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  editHeader_menuCard: {
+    top: 64,
+    right: 14,
+    minWidth: 200,
+  },
+  editHeader_menuSafe: {
+    top: 100,
+    right: 10,
+    minWidth: 200,
+  },
+  //   ⋯ menu anchor (ActionMenu) below RecipeCard's ⋯. Edit screens use
+  //   editHeader_menuCard / editHeader_menuSafe.
+  recipeCard_menu: {
+    top: 64,
+    right: 14,
+    minWidth: 190,
+  },
+
+  //   RecipeCard — top-right action group [★] [⋯] [Edit], times, sections
+  recipeCard_actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 18,
+  },
+  //   Section header inside Ingredients / Instructions ("For the sauce").
+  recipeSection_header: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 12,
+    marginBottom: 2,
+  },
+  //   Mild-severity name in the allergy popup: text color + yellow glow, so
+  //   pale yellow stays readable in both light and dark mode.
+  mildSeverityName: {
+    color: colors.text,
+    textShadowColor: colors.severityLow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
+  },
+  recipeTimes_row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 6,
+    marginBottom: 12,
+  },
+  recipeTimes_text: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  //   "In Trash" notice on a trashed recipe.
+  trashBanner: {
+    backgroundColor: colors.surface,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.danger,
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 12,
+  },
+  trashBanner_text: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+
+  //   Recipe / folder tiles — favorite badge, built-in folders, hidden count
+  tile_star: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+  },
+  hiddenCount_text: {
+    textAlign: 'center',
+    fontSize: 13,
+    color: colors.textMuted,
+    marginVertical: 16,
+    paddingHorizontal: 20,
+  },
+  trashFolder_hint: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+
+  //   Status-bar backdrop (components/StatusBarBackdrop.js) — fixed strip
+  //   over the top safe-area inset; height is set at runtime.
+  statusBarBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    elevation: 1000,
+    backgroundColor: colors.background,
+  },
+
   //   Offline Banner (components/OfflineBanner.js) — inline under a screen's
   //   title, or above the bottom nav on tab screens.
   offlineBanner: {
@@ -1238,5 +1462,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+const styles = buildStyles();
+
+// Re-reads every color token into the same exported object, so modules that
+// imported `styles` see the new scheme. Called by applyColorScheme().
+export const rebuildStyles = () => Object.assign(styles, buildStyles());
 
 export default styles;

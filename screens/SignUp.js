@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import styles from '../styles/main_style';
 import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
 import { signUp } from '../lib/api/auth';
+import { appAlert } from '../lib/dialog';
 
 const SignUp = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -14,22 +21,22 @@ const SignUp = ({ navigation }) => {
 
   const handleSignUp = async () => {
     if (!email || !password || !name) {
-      Alert.alert('Missing info', 'Enter a name, email, and password.');
+      appAlert('Missing info', 'Enter a name, email, and password.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Passwords do not match', 'Please ensure passwords match exactly.');
+      appAlert('Passwords do not match', 'Please ensure passwords match exactly.');
       return;
     }
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(password)) {
-      Alert.alert('Weak password', 'Follow the password requirements.');
+      appAlert('Weak password', 'Follow the password requirements.');
       return;
     }
     try {
       setLoading(true);
       await signUp({ email: email.trim(), password, name: name.trim() });
     } catch (err) {
-      Alert.alert('Sign up failed', err.message ?? 'Unknown error');
+      appAlert('Sign up failed', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }

@@ -6,7 +6,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import styles from '../styles/main_style';
-import { BackIcon, TrashIcon } from '../components/icons';
+import { RestoreIcon, TrashIcon } from '../components/icons';
+import { colors } from '../styles/theme';
 import {
   severityColor,
   severityLabel,
@@ -17,6 +18,8 @@ import {
 import AllergyChecklist from '../components/AllergyChecklist';
 import ConfirmModal from '../components/ConfirmModal';
 import OfflineBanner from '../components/OfflineBanner';
+import { EditHeader } from '../components/EditHeader';
+import { appAlert } from '../lib/dialog';
 import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
 import { alertSaveFailed } from '../lib/connectivity';
 
@@ -76,6 +79,45 @@ const EditAllergies = ({ navigation, route }) => {
     }
   };
 
+  // ⋯ menu. Both only change the working copy — nothing is saved until Save.
+  const confirmThen = (title, message, label, action) =>
+    appAlert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: label, style: 'destructive', onPress: action },
+    ]);
+  const menuActions = [
+    ...(items.length
+      ? [
+          {
+            key: 'removeAll',
+            label: 'Remove all',
+            icon: <TrashIcon size={18} />,
+            danger: true,
+            onPress: () =>
+              confirmThen(
+                'Remove all dietary needs?',
+                "They'll be removed when you tap Save.",
+                'Remove All',
+                () => setItems([])
+              ),
+          },
+        ]
+      : []),
+    ...(isDirty
+      ? [
+          {
+            key: 'discard',
+            label: 'Discard changes',
+            icon: <RestoreIcon color={colors.textSecondary} />,
+            onPress: () =>
+              confirmThen("Discard changes?", "Your edits haven't been saved.", 'Discard', () =>
+                setItems(initialAllergies)
+              ),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <ScrollView
       style={[styles.screen_base, styles.screen_cardPad]}
@@ -84,22 +126,12 @@ const EditAllergies = ({ navigation, route }) => {
       automaticallyAdjustKeyboardInsets
       maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
     >
-      {/* Back button */}
-      <TouchableOpacity
-        style={[styles.overlay_base, styles.overlay_topLeft_card]}
-        onPress={() => navigation.goBack()}
-      >
-        <BackIcon style={styles.overlayIcon_sm} />
-      </TouchableOpacity>
-
-      {/* Save button */}
-      <TouchableOpacity
-        style={[styles.overlay_base, styles.overlay_topRight_card]}
-        onPress={handleSave}
-        disabled={saving}
-      >
-        <Text style={styles.overlayText}>{saving ? 'Saving…' : 'Save'}</Text>
-      </TouchableOpacity>
+      <EditHeader
+        onBack={() => navigation.goBack()}
+        onSave={handleSave}
+        saving={saving}
+        menuActions={menuActions}
+      />
 
       <Text style={styles.header_card}>Edit Dietary Needs</Text>
       <OfflineBanner />

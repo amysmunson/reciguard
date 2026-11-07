@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import styles from '../styles/main_style';
 import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
 import { requestPasswordReset, verifyPasswordResetOtp, updatePassword } from '../lib/api/auth';
+import { appAlert } from '../lib/dialog';
 
 const ForgotPassword = ({ navigation }) => {
   // 'request' = collect email and send the code; 'reset' = enter code + new password.
@@ -16,16 +23,16 @@ const ForgotPassword = ({ navigation }) => {
 
   const handleSendCode = async () => {
     if (!email) {
-      Alert.alert('Missing info', 'Enter your email address.');
+      appAlert('Missing info', 'Enter your email address.');
       return;
     }
     try {
       setLoading(true);
       await requestPasswordReset({ email: email.trim() });
       setStep('reset');
-      Alert.alert('Check your email', 'We sent a 6-digit code to reset your password.');
+      appAlert('Check your email', 'We sent a 6-digit code to reset your password.');
     } catch (err) {
-      Alert.alert('Could not send code', err.message ?? 'Unknown error');
+      appAlert('Could not send code', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -33,15 +40,15 @@ const ForgotPassword = ({ navigation }) => {
 
   const handleResetPassword = async () => {
     if (!code || !password) {
-      Alert.alert('Missing info', 'Enter the code and a new password.');
+      appAlert('Missing info', 'Enter the code and a new password.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Passwords do not match', 'Please ensure passwords match exactly.');
+      appAlert('Passwords do not match', 'Please ensure passwords match exactly.');
       return;
     }
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(password)) {
-      Alert.alert('Weak password', 'Follow the password requirements.');
+      appAlert('Weak password', 'Follow the password requirements.');
       return;
     }
     try {
@@ -52,9 +59,9 @@ const ForgotPassword = ({ navigation }) => {
       await updatePassword({ password });
       // Verifying the code already signed the user in, so the auth listener
       // swaps in the app stack automatically
-      Alert.alert('Password updated', 'Your password has been reset.');
+      appAlert('Password updated', 'Your password has been reset.');
     } catch (err) {
-      Alert.alert('Reset failed', err.message ?? 'Unknown error');
+      appAlert('Reset failed', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }

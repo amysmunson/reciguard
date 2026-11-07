@@ -7,7 +7,7 @@
 // Two kinds of icons:
 //
 //   1. Custom SVG icons (one file each, in this directory):
-//      PlusIcon, SearchIcon, SortIcon, FilterIcon.
+//      PlusIcon, SearchIcon, SortIcon, FilterIcon, EditIcon, StarIcon.
 //
 //   2. Vector-icon wrappers (defined inline below) — each pins a semantic
 //      name (e.g. `BackIcon`) to a specific vendor icon string. Defaults
@@ -30,6 +30,7 @@ export { default as SearchIcon } from './SearchIcon';
 export { default as SortIcon } from './SortIcon';
 export { default as FilterIcon } from './FilterIcon';
 export { default as EditIcon } from './EditIcon';
+export { default as StarIcon } from './StarIcon';
 
 // --- Navigation / structure ----------------------------------------------
 
@@ -65,8 +66,33 @@ export const RemoveCircleIcon = ({ size = 22, color = colors.danger, style, ...r
   <Ionicons name="remove-circle-outline" size={size} color={color} style={style} {...rest} />
 );
 
+// Filled minus badge on the corner of an EditRecipe row's input (RemoveBadge).
+export const RemoveBadgeIcon = ({ size = 20, color = colors.danger, style, ...rest }) => (
+  <Ionicons name="remove-circle" size={size} color={color} style={style} {...rest} />
+);
+
 export const ShareIcon = ({ size = 18, color = colors.textOnPrimary, style, ...rest }) => (
   <Ionicons name="share-outline" size={size} color={color} style={style} {...rest} />
+);
+
+// "Make a copy" in the recipe actions menu.
+export const CopyIcon = ({ size = 18, color = colors.textSecondary, style, ...rest }) => (
+  <Ionicons name="copy-outline" size={size} color={color} style={style} {...rest} />
+);
+
+// Restore from Trash.
+export const RestoreIcon = ({ size = 18, color = colors.primary, style, ...rest }) => (
+  <Ionicons name="arrow-undo-outline" size={size} color={color} style={style} {...rest} />
+);
+
+// Drag handle on reorderable EditRecipe rows.
+export const DragHandleIcon = ({ size = 22, color = colors.iconInactive, style, ...rest }) => (
+  <Ionicons name="reorder-three-outline" size={size} color={color} style={style} {...rest} />
+);
+
+// Prep / cook / total times on RecipeCard.
+export const TimeIcon = ({ size = 16, color = colors.textSecondary, style, ...rest }) => (
+  <Ionicons name="time-outline" size={size} color={color} style={style} {...rest} />
 );
 
 // --- Linking / friend code -----------------------------------------------

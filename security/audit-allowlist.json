@@ -1,0 +1,4 @@
+{
+  "_comment": "Accepted npm audit advisories (production dependency tree). scripts/audit.js fails on any high/critical advisory NOT listed here, and on any entry here that npm no longer reports (so stale exceptions get removed). Each entry must explain why it's accepted. History: the node-forge / zod / @expo/cli highs listed on 2026-10-24 were fixed by `npm audit fix` on 2026-11-06 (expo 57.0.32, node-forge 1.4.3, zod 4.6.7), so the list is empty. Remaining moderates (glob / minimatch via @expo/fingerprint, build tooling; npm's only fix is downgrading Expo to SDK 52) don't block and are printed by the audit.",
+  "accepted": {}
+}
