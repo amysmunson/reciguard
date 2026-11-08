@@ -13,9 +13,11 @@ const palette = {
   tintBlue:    '#e8f0fa',    // palest blue — selected tile / info-row background
 
   // Surfaces (page backgrounds)
-  white:       '#ffffff',
-  black:       '#000000',
-  nearBlack:   '#0e1116',
+  white:          '#ffffff',
+  black:          '#000000',
+  nearBlack:      '#0e1116',
+  warningSurface: '#fca960',
+  warningSurfaceDark: '#914401',
 
   // Ink (body text)
   ink:         '#090909',
@@ -59,6 +61,18 @@ const palette = {
   shadowSubtle:  'rgba(0,0,0,0.15)',
   scrim:         'rgba(0,0,0,0.4)',
   overlayLight:  'rgba(255,255,255,0.05)',  // subtle wash over Landing background
+
+  // Dark-mode variants — lighter/brighter so they read on nearBlack.
+  // Contrast vs nearBlack: primaryBlueDark 4.7:1 (white text on it 4.0:1),
+  // linkBlueDark 6.1:1, redDark 5.1:1.
+  primaryBlueDark: '#0085cc',
+  linkBlueDark:    '#3a9ad9',
+  tileBlueDark:    '#1d3247',  // selected tile / info-row background
+  softBlueDark:    '#24476a',
+  redDark:         '#e5534b',
+  severityHighDark: '#e0476a',
+  severityNoneDark: '#6b9cc0',
+  borderInputDark:  '#4a525c',  // input outlines (visible on nearBlack)
 };
 
 // ---------------------------------------------------------------------------
@@ -82,6 +96,7 @@ const lightTheme = {
   primarySubtle: palette.tintBlue,    // selected/info-row background
   primarySoft:   palette.softBlue,    // soft prominent button fill
   link:          palette.primaryBlue,
+  favorite:      palette.primaryBlue,  // filled favorite star
 
   border:        palette.border,        // light divider (#eee)
   borderInput:   palette.borderInput,   // input outline (#ccc)
@@ -91,6 +106,7 @@ const lightTheme = {
 
   danger:        palette.red,
   warning:       palette.orange,
+  warningSurface: palette.warningSurface,
   caution:       palette.yellow,
   success:       palette.green,
 
@@ -113,6 +129,7 @@ const lightTheme = {
 const darkTheme = {
   background:    palette.nearBlack,
   surface:       palette.surfaceAltDark,
+  warningSurface: palette.warningSurfaceDark,
   text:          palette.inkInverse,
   textSecondary: palette.inkInverse,
   textTertiary:  palette.muted,
@@ -120,28 +137,29 @@ const darkTheme = {
   textLink:      palette.linkBlue,
   textOnPrimary: palette.white,
 
-  primary:       palette.primaryBlue,
+  primary:       palette.primaryBlueDark,
   secondary:     palette.secondaryBlue,
   tertiary:      palette.surfaceAltDark,
-  primarySubtle: palette.tintBlue,
-  primarySoft:   palette.softBlue,
-  link:          palette.linkBlue,
+  primarySubtle: palette.tileBlueDark,
+  primarySoft:   palette.softBlueDark,
+  link:          palette.linkBlueDark,
+  favorite:      palette.white,        // filled favorite star
 
   border:        palette.borderDark,
-  borderInput:   palette.borderDark,
+  borderInput:   palette.borderInputDark,
 
   iconInactive:  palette.iconInactive,
-  iconDisabled:  palette.iconDisabled,
+  iconDisabled:  palette.borderDark,
 
-  danger:        palette.red,
+  danger:        palette.redDark,
   warning:       palette.orange,
   caution:       palette.yellow,
   success:       palette.green,
 
-  severityHigh:     palette.severityHigh,
+  severityHigh:     palette.severityHighDark,
   severityMedium:   palette.severityMedium,
   severityLow:      palette.severityLow,
-  severityNone:     palette.severityNone,
+  severityNone:     palette.severityNoneDark,
   severityHighBg:   palette.severityHighBg,
   severityMediumBg: palette.severityMediumBg,
   severityLowBg:    palette.severityLowBg,
@@ -150,18 +168,25 @@ const darkTheme = {
   shadowColor:   palette.black,
   shadow:        palette.shadow,
   shadowSubtle:  palette.shadowSubtle,
-  scrim:         palette.scrim,
+  scrim:         'rgba(0,0,0,0.6)',
   overlayLight:  palette.overlayLight,
 };
 
 // ---------------------------------------------------------------------------
-// Default static export — usable inside StyleSheet.create() at module load
-// time. This is light mode. Use this for the existing shared StyleSheet.
+// The live token set every component reads: `colors.background`, etc. It
+// starts as light mode and is switched IN PLACE by setColorTokens() (called
+// from applyColorScheme in lib/app/theme-context.js), so existing
+// `import { colors }` call sites pick up dark mode without changes. Always
+// read tokens at render/build time — never copy one into a module-level
+// constant, or it won't follow the scheme.
 //
-//   import { colors } from '../styles/theme';
+//   import { colors } from './theme';
 //   StyleSheet.create({ box: { backgroundColor: colors.background } });
 // ---------------------------------------------------------------------------
-export const colors = lightTheme;
+export const colors = { ...lightTheme };
+
+export const setColorTokens = (scheme) =>
+  Object.assign(colors, scheme === 'dark' ? darkTheme : lightTheme);
 
 // ---------------------------------------------------------------------------
 // Hook for components that should respect system dark mode at runtime.

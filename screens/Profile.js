@@ -5,18 +5,23 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Share,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
-import { BackIcon, ShareIcon } from '../components/icons';
-import { useAuth } from '../lib/auth-context';
-import { getMyProfile, updateMyProfile } from '../lib/api/profile';
-import { getMyAllergies, severityColor, severityLabel } from '../lib/api/allergies';
+import { BackIcon, EditIcon, RestoreIcon, ShareIcon } from '../components/icons';
+import { useAuth } from '../lib/server/auth-context';
+import { getMyProfile, updateMyProfile } from '../lib/server/api/profile';
+import { readCachedResource } from '../lib/app/cache';
+import { getMyAllergies, severityColor, severityLabel } from '../lib/server/api/allergies';
 import ConfirmModal from '../components/ConfirmModal';
+import { EditHeader } from '../components/EditHeader';
+import SectionHeading from '../components/SectionHeading';
+import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { appAlert } from '../lib/app/dialog';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -28,7 +33,14 @@ const Profile = ({ navigation }) => {
   const [notes, setNotes] = useState('');
   const [friendCode, setFriendCode] = useState('');
   const [loading, setLoading] = useState(true);
-  const [allergies, setAllergies] = useState([]);
+  // null until the server responds — dietary needs aren't cached, so the
+  // section stays blank rather than flashing "None added."
+  const [allergies, setAllergies] = useState(null);
+  // The cached first paint is read-only: Edit appears once server data is in,
+  // so edits never start from (or save over) a stale copy.
+  const [serverLoaded, setServerLoaded] = useState(false);
+  const serverLoadedRef = useRef(false);
+  const cachedShownRef = useRef(false);
   const [isEditing, setIsEditing] = useState(false);
   const [baseline, setBaseline] = useState({ name: '', phone: '', about: '', notes: '' });
   const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
@@ -36,6 +48,26 @@ const Profile = ({ navigation }) => {
   const copyTimeoutRef = useRef(null);
 
   useEffect(() => () => clearTimeout(copyTimeoutRef.current), []);
+
+  // First paint from the cached profile (shared with Home/Settings) while
+  // load() below fetches from the server.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await readCachedResource('profile', user?.id);
+      if (cancelled || !cached || serverLoadedRef.current) return;
+      cachedShownRef.current = true;
+      setFriendCode(cached.friend_code ?? '');
+      setName(cached.name ?? '');
+      setPhone(cached.phone ?? '');
+      setAbout(cached.about ?? '');
+      setNotes(cached.notes ?? '');
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const load = useCallback(async ({ preserveEdits = false } = {}) => {
     try {
@@ -58,8 +90,13 @@ const Profile = ({ navigation }) => {
         setNotes(loaded.notes);
         setBaseline(loaded);
       }
+      serverLoadedRef.current = true;
+      setServerLoaded(true);
     } catch (err) {
-      Alert.alert('Could not load profile', err.message ?? 'Unknown error');
+      // Stay quiet if the cached copy is already on screen (e.g. offline).
+      if (!cachedShownRef.current) {
+        appAlert('Could not load profile', err.message ?? 'Unknown error');
+      }
     } finally {
       setLoading(false);
     }
@@ -70,6 +107,14 @@ const Profile = ({ navigation }) => {
     phone !== baseline.phone ||
     about !== baseline.about ||
     notes !== baseline.notes;
+
+  // The in-screen back button only leaves edit mode (handleBackPress below);
+  // this covers actually leaving the screen mid-edit — swipe back, Android
+  // back, or popping the stack from elsewhere.
+  const { discardModalProps } = useUnsavedChangesGuard({
+    navigation,
+    isDirty: isEditing && isDirty,
+  });
 
   // Refreshes on every focus (not just mount) so allergy edits made on
   // EditAllergies — which saves straight to the database itself — show up
@@ -99,13 +144,18 @@ const Profile = ({ navigation }) => {
     copyTimeoutRef.current = setTimeout(() => setCodeCopied(false), 1500);
   };
 
+  const [saving, setSaving] = useState(false);
   const handleSave = async () => {
+    if (saving) return;
     try {
+      setSaving(true);
       await updateMyProfile({ name, phone, about, notes });
       setIsEditing(false);
       setBaseline({ name, phone, about, notes });
     } catch (err) {
-      Alert.alert('Could not save', err.message ?? 'Unknown error');
+      alertSaveFailed(err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -149,16 +199,48 @@ const Profile = ({ navigation }) => {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
-        <BackIcon style={styles.overlayIcon_sm} />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.overlay_base, styles.overlay_topRight_card]}
-        onPress={isEditing ? handleSave : () => setIsEditing(true)}
-      >
-        <Text style={styles.overlayText}>{isEditing ? 'Save' : 'Edit'}</Text>
-      </TouchableOpacity>
+      {isEditing ? (
+        <EditHeader
+          onBack={handleBackPress}
+          onSave={handleSave}
+          saving={saving}
+          menuActions={[
+            ...(allergies
+              ? [
+                  {
+                    key: 'allergies',
+                    label: 'Edit dietary needs',
+                    icon: <EditIcon size={18} color={colors.textSecondary} />,
+                    onPress: () => navigation.navigate('EditAllergies', { allergies }),
+                  },
+                ]
+              : []),
+            ...(isDirty
+              ? [
+                  {
+                    key: 'discard',
+                    label: 'Discard changes',
+                    icon: <RestoreIcon color={colors.textSecondary} />,
+                    onPress: () => setConfirmDiscardVisible(true),
+                  },
+                ]
+              : []),
+          ]}
+        />
+      ) : (
+        <>
+          <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
+            <BackIcon style={styles.overlayIcon_sm} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.overlay_base, styles.overlay_topRight_card]}
+            onPress={() => setIsEditing(true)}
+            disabled={!serverLoaded}
+          >
+            <Text style={[styles.overlayText, !serverLoaded && { opacity: 0.4 }]}>Edit</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       {isEditing ? (
         <TextInput
@@ -238,9 +320,14 @@ const Profile = ({ navigation }) => {
         displayValue(notes)
       )}
 
-      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Dietary Needs</Text>
-      {allergies.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
-      {allergies.map((a) => (
+      <SectionHeading
+        title="My Dietary Needs"
+        actionLabel={isEditing && allergies ? 'Edit' : null}
+        onAction={() => navigation.navigate('EditAllergies', { allergies })}
+        accessibilityLabel="Edit dietary needs"
+      />
+      {allergies?.length === 0 && <Text style={styles.emptyText}>None added.</Text>}
+      {(allergies ?? []).map((a) => (
         <View key={a.id} style={styles.allergyRow}>
           <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
           <View style={styles.severityChip}>
@@ -249,16 +336,6 @@ const Profile = ({ navigation }) => {
           </View>
         </View>
       ))}
-      {isEditing && (
-        <TouchableOpacity
-          style={[styles.button_outline, styles.button_outline_link, { marginTop: 8 }]}
-          onPress={() => navigation.navigate('EditAllergies', { allergies })}
-        >
-          <Text style={[styles.buttonText_outline, { color: colors.primary }]}>
-            Edit Dietary Needs
-          </Text>
-        </TouchableOpacity>
-      )}
 
       <Text style={styles.spacing} />
 
@@ -271,6 +348,7 @@ const Profile = ({ navigation }) => {
         onConfirm={handleDiscard}
         onCancel={() => setConfirmDiscardVisible(false)}
       />
+      <ConfirmModal {...discardModalProps} />
     </ScrollView>
   );
 };

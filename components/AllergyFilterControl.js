@@ -1,12 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Pressable } from 'react-native';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Pressable,
+} from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { AllergyListIcon, CheckboxIcon, FilterIcon } from './icons';
-import { useAuth } from '../lib/auth-context';
-import { getFriends, friendDisplayName } from '../lib/api/friends';
-import { getMyProfile } from '../lib/api/profile';
-import { loadJson, saveJson, KEYS } from '../lib/storage';
+import { useAuth } from '../lib/server/auth-context';
+import { getFriends, friendDisplayName } from '../lib/server/api/friends';
+import { getMyProfile } from '../lib/server/api/profile';
+import { loadJson, saveJson, KEYS } from '../lib/app/storage';
+import AppModal from './AppModal';
 
 // Self-contained "Allergy warnings for" control — the FilterIcon trigger
 // (with its active-dot) plus the popup checklist, shared by Home and
@@ -39,7 +46,9 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
   const filterActive = includeSelf || selectedFriendIds.size > 0;
 
   const onSelectionChangeRef = useRef(onSelectionChange);
-  onSelectionChangeRef.current = onSelectionChange;
+  useLayoutEffect(() => {
+    onSelectionChangeRef.current = onSelectionChange;
+  });
 
   // Hydrate the persisted selection once on mount.
   useEffect(() => {
@@ -62,16 +71,6 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
     };
   }, [user?.id]);
 
-  // Returning from AllergyOverview's back button lands here with this
-  // param set — reopen the popup instead of leaving a bare screen.
-  useEffect(() => {
-    if (route.params?.reopenAllergyFilter) {
-      navigation.setParams({ reopenAllergyFilter: undefined });
-      openFilter();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route.params?.reopenAllergyFilter]);
-
   const openFilter = async () => {
     try {
       const [friendList, profile] = await Promise.all([getFriends(), getMyProfile()]);
@@ -84,6 +83,19 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
       // Best-effort — the icon just won't open a populated list this time.
     }
   };
+
+  // Returning from AllergyOverview's back button lands here with this
+  // param set — reopen the popup instead of leaving a bare screen.
+  useEffect(() => {
+    if (route.params?.reopenAllergyFilter) {
+      navigation.setParams({ reopenAllergyFilter: undefined });
+      // openFilter only sets state after awaiting its fetches, so this
+      // doesn't cascade renders the way the rule assumes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      openFilter();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.reopenAllergyFilter]);
 
   const toggleFriend = (id) => {
     setSelectedFriendIds((prev) => {
@@ -133,7 +145,7 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
         {filterActive && <View style={styles.home_actionBar_iconDot} />}
       </TouchableOpacity>
 
-      <Modal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
+      <AppModal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>
         <Pressable style={styles.modal_backdrop} onPress={dismissFilter}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>Filter on Profiles</Text>
@@ -183,7 +195,7 @@ const AllergyFilterControl = ({ navigation, route, returnTo, onSelectionChange }
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
     </>
   );
 };

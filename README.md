@@ -18,9 +18,15 @@ ReciGuard is a React Native + Expo app with a Supabase backend for storing recip
 
 ## Features
 
-- Create, edit, and delete recipes
+- Create, edit, copy, and delete recipes — deleted recipes go to a Recently Deleted folder and can be restored for 30 days
+- Star favorites; built-in Favorites and Recently Deleted folders
+- Prep / cook / total times, read from recipe links or entered by hand
+- Ingredient and instruction sections ("For the sauce"), from links or added by hand
+- Drag-and-drop reordering of ingredients and steps
+- Optional servings count per recipe ("Makes 4 servings") — read from the recipe link when available, or entered by hand; hidden when not filled in
+- Scale ingredient amounts and servings on a recipe (½×, 1×, 2×, 3×)
 - Add recipes by pasting a link (auto-parsed) or entering them manually
-- Organize recipes into folders, with rename and multi-select bulk delete
+- Organize recipes into folders, with rename and multi-select bulk delete; add a recipe to folders from its ⋯ menu
 - Search recipes and friends by name
 - Sort recipes and folders by date added, last edited, recently opened, or alphabetical — ascending or descending, persisted per-user per-screen
 - Track dietary needs for yourself and friends, each with its own severity level
@@ -28,10 +34,17 @@ ReciGuard is a React Native + Expo app with a Supabase backend for storing recip
 - Severity-aware dietary needs warnings inside recipes and in list
 - Friend profile linking via unique friend codes
 - High-contrast accessibility mode
+- Dark mode: follow the phone's setting, or choose Light or Dark in Settings
+- Choose whether recipes that conflict with your dietary filter are hidden or shown with warnings
 - Persistent per-user filters and preferences
-- Instant list loads with a stale-while-revalidate cache
+- Instant loads with a stale-while-revalidate cache: screens show cached data first, then quietly refresh from the server and update only if something changed. The cache is kept lightweight (the recipe list holds names and ingredients only)
+- On launch, other screens' caches are refreshed quietly in the background
+- Your 5 most recently opened recipes are cached in full, so they open instantly and stay readable offline — or turn off on-device copies entirely in Settings
+- Pull down to refresh on Home, Folders, a folder, Friends, and a recipe
 - Authentication with Supabase Auth
-- In-app feedback form (suggestions/questions submitted straight to the database)
+- In-app feedback form (submitted straight to the database; no replies)
+- "Discard changes?" prompt when leaving any recipe, dietary needs, profile, or folder edit without saving (back button, Android back, or swipe where available)
+- Offline banner when the server can't be reached, plus clear "your changes have not been saved" alerts when a save fails
 
 
 ## Dietary Needs System
@@ -87,10 +100,10 @@ A per-user high-contrast mode, toggled from the Accessibility screen and stored 
 ### Frontend
 
 - React Native
-- Expo SDK 54
+- Expo SDK 58
 - React Navigation
 - react-native-svg
-- react-native-vector-icons
+- @expo/vector-icons
 - expo-clipboard
 
 ### Backend
@@ -105,6 +118,7 @@ A per-user high-contrast mode, toggled from the Accessibility screen and stored 
     - Per-user filter persistence
     - Sort preferences
     - Cached list snapshots (recipes, folders, friends)
+    - Full copies of the 5 most recently opened recipes
     - Local storage keys are namespaced per-user.
 
 
@@ -114,11 +128,9 @@ A per-user high-contrast mode, toggled from the Accessibility screen and stored 
 recipes/
 ├── App.js
 ├── lib/
-│   ├── supabase.js
-│   ├── auth-context.js
-│   ├── storage.js
-│   ├── cache.js
-│   └── api/
+│   ├── server/          # network: Supabase client, auth, connectivity, link import
+│   │   └── api/         # per-table database functions
+│   └── app/             # on-device only: storage, caches, dialogs, theme, recipe helpers
 ├── screens/
 ├── components/
 ├── styles/
@@ -203,6 +215,16 @@ Run on iOS using the Expo Go app.
 <!-- - [ ] Re-enable Supabase email authentication on sign up
 - [ ] AI-assisted recipe import -->
 
+## Testing
+
+```bash
+npm run verify        # lint + unit tests + security tests + dependency audit + iOS bundle build
+npm test              # just the Jest suites
+npm run test:security # security checks + dependency audit
+```
+
+See [docs/TESTING.md](docs/TESTING.md) for what's covered, how to add tests, and the security fixes the suite found.
+
 ## Development Notes
 
 ### Visual Mockup
@@ -242,7 +264,7 @@ and FolderDetail (recipes inside a folder). They all share the same
 architecture so the sort UI, persistence, and ordering behave
 identically across the app:
 
-- **[`lib/sort.js`](lib/sort.js)** owns the sort options
+- **[`lib/app/sort.js`](lib/app/sort.js)** owns the sort options
   (`RECIPE_SORT_OPTIONS`, `FOLDER_SORT_OPTIONS`), the defaults, a
   `normalizeSort()` back-compat shim, and the pure `sortRecipes` /
   `sortFolders` helpers. Sort math lives here; screens just call into it.
@@ -261,7 +283,7 @@ result through `sortRecipes` / `sortFolders` before rendering. A small
 primary-colored dot on the sort icon signals a non-default selection.
 
 To add a sort key, add an entry to the relevant options array in
-`lib/sort.js` and a branch in `recipeKey()` / `folderKey()` — every
+`lib/app/sort.js` and a branch in `recipeKey()` / `folderKey()` — every
 consumer screen picks it up automatically. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#sorting-home-folders-folderdetail)
 ### Icons
@@ -270,7 +292,7 @@ Every icon used in the app is exported from a single registry at
 [`components/icons/index.js`](components/icons/index.js). Screens import
 semantic, named components (`<BackIcon>`, `<TrashIcon>`,
 `<CheckboxIcon checked />`, etc.) from `'../components/icons'` — no
-screen or shared component imports `react-native-vector-icons` directly.
+screen or shared component imports `@expo/vector-icons` directly.
 
 The registry contains three flavors:
 

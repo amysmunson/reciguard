@@ -1,34 +1,19 @@
-import React, { useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import React from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+} from 'react-native';
 import styles from '../styles/main_style';
 import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
-import { useAuth } from '../lib/auth-context';
-import { getMyProfile, updateMyProfile } from '../lib/api/profile';
-import { mutateCachedResource, useCachedResource } from '../lib/cache';
+import { useContrastSetting } from '../lib/server/useContrastSetting';
 
 const Accessibility = ({ navigation }) => {
-  const { user } = useAuth();
-  const { data: profile, loading } = useCachedResource({
-    resource: 'profile',
-    userId: user?.id,
-    fetcher: getMyProfile,
-  });
-
-  const contrast = !!profile?.contrast;
-
-  const handleToggleContrast = useCallback(async () => {
-    const nextProfile = { ...(profile ?? {}), contrast: !contrast };
-    try {
-      await mutateCachedResource('profile', user?.id, nextProfile);
-      await updateMyProfile({ contrast: !contrast });
-    } catch (err) {
-      if (profile) {
-        await mutateCachedResource('profile', user?.id, profile);
-      }
-      Alert.alert('Could not update accessibility', err.message ?? 'Unknown error');
-    }
-  }, [contrast, profile, user?.id]);
+  // Also on Settings → Display; both use the same shared setting.
+  const { contrast, loading, toggleContrast } = useContrastSetting();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -48,7 +33,7 @@ const Accessibility = ({ navigation }) => {
           </View>
           <Switch
             value={contrast}
-            onValueChange={handleToggleContrast}
+            onValueChange={toggleContrast}
             disabled={loading}
             trackColor={{ false: colors.borderInput, true: colors.primary }}
             thumbColor={contrast ? colors.surface : colors.background}

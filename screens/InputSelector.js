@@ -6,14 +6,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Modal,
   Platform,
 } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
-import { fetchRecipeFromUrl } from '../lib/recipeUrlParser';
-import { createRecipe } from '../lib/api/recipes';
+import { fetchRecipeFromUrl } from '../lib/server/recipeUrlParser';
+import { createRecipe } from '../lib/server/api/recipes';
 import { BackIcon, EditIcon, LinkOutlineIcon } from '../components/icons';
+import AppModal from '../components/AppModal';
 
 // Error messages the parser throws when the page loaded fine but no
 // usable recipe data could be extracted. These trigger the "create
@@ -78,7 +78,10 @@ const InputSelector = ({ navigation }) => {
         name: prefill.name,
         ingredients: prefill.ingredients,
         steps: prefill.steps,
-        authorNotes: [],
+        servings: prefill.servings,
+        prepMinutes: prefill.prepMinutes,
+        cookMinutes: prefill.cookMinutes,
+        totalMinutes: prefill.totalMinutes,
         userNotes: [],
         source: prefill.source,
         extLink: prefill.extLink,
@@ -107,7 +110,6 @@ const InputSelector = ({ navigation }) => {
         name: '',
         ingredients: [],
         steps: [],
-        authorNotes: [],
         userNotes: [],
         source: hostnameFromUrl(url),
         extLink: url.trim(),
@@ -178,7 +180,7 @@ const InputSelector = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <Modal
+        <AppModal
           visible={noRecipeModalOpen}
           transparent
           animationType="fade"
@@ -207,7 +209,7 @@ const InputSelector = ({ navigation }) => {
               </View>
             </View>
           </View>
-        </Modal>
+        </AppModal>
       </KeyboardAvoidingView>
     );
   }

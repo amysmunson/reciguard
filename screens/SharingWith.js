@@ -2,13 +2,14 @@
 // This is who you are currently sharing your info and allergies with
 
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
-import { getSharingWith, revokeMyAccess, blockUser } from '../lib/api/friends';
+import { getSharingWith, revokeMyAccess, blockUser } from '../lib/server/api/friends';
 import ConfirmModal from '../components/ConfirmModal';
+import { appAlert } from '../lib/app/dialog';
 
 const relativeTime = (iso) => {
   if (!iso) return '';
@@ -31,7 +32,7 @@ const SharingWith = ({ navigation }) => {
     try {
       setPeople(await getSharingWith());
     } catch (err) {
-      Alert.alert('Could not load', err.message ?? 'Unknown error');
+      appAlert('Could not load', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ const SharingWith = ({ navigation }) => {
       else await blockUser(person.sharerId);
       load();
     } catch (err) {
-      Alert.alert(
+      appAlert(
         action === 'remove' ? 'Could not remove' : 'Could not block',
         err.message ?? 'Unknown error'
       );

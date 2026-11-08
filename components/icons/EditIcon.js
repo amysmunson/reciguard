@@ -2,14 +2,8 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../styles/theme';
 
-// Edit / pencil icon (Heroicons-style).
-//
-// Usage:
-//   <EditIcon size={22} color={colors.primary} />
-//
-// Like the vector-icon wrappers in ./index, it also honors a `style` prop's
-// fontSize/color so it can sit alongside text-styled icons (e.g.
-// InputSelector passes style={styles.inputButtonText}).
+// Usage: <EditIcon size={22} color={colors.primary} />
+
 const EditIcon = ({ size = 24, color = colors.text, strokeWidth = 1.5, style }) => {
   const resolvedSize = style?.fontSize ?? size;
   const resolvedColor = style?.color ?? color;

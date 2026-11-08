@@ -4,8 +4,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Alert,
-  Modal,
   TextInput,
   Pressable,
 } from 'react-native';
@@ -20,16 +18,18 @@ import {
   SearchIcon,
   LinkOutlineIcon,
 } from '../components/icons';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/server/auth-context';
 import {
-  getFriends,
+  getFriendsWithMyName,
   addFriend,
   addFriendByCode,
   friendDisplayName,
-} from '../lib/api/friends';
-import { getMyProfile } from '../lib/api/profile';
-import { useCachedResource } from '../lib/cache';
-import { startNewRecipe } from '../components/utils/addRecipe';
+} from '../lib/server/api/friends';
+import { useCachedResource } from '../lib/app/cache';
+import { usePullToRefresh } from '../lib/server/usePullToRefresh';
+import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { appAlert } from '../lib/app/dialog';
+import AppModal from '../components/AppModal';
 
 // Strip non-alphanumeric, uppercase, max 8 chars.
 const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -38,14 +38,12 @@ const Friends = ({ navigation }) => {
   const { user } = useAuth();
   const fallbackName = user?.email || 'you';
 
-  const { data } = useCachedResource({
+  const { data, refresh: refreshFriends } = useCachedResource({
     resource: 'friends',
     userId: user?.id,
-    fetcher: async () => {
-      const [list, profile] = await Promise.all([getFriends(), getMyProfile()]);
-      return { list, myName: profile?.name?.trim() || fallbackName };
-    },
+    fetcher: () => getFriendsWithMyName(fallbackName),
   });
+  const refreshControl = usePullToRefresh(refreshFriends);
   const friends = data?.list ?? [];
   const myName = data?.myName || fallbackName;
 
@@ -81,19 +79,32 @@ const Friends = ({ navigation }) => {
     setModalVisible(false);
   };
 
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
+  useRegisterUnsaved(
+    modalVisible &&
+      ((modalStep === 'manual' && !!nameInput.trim()) || (modalStep === 'code' && !!codeInput))
+  );
+
+  // Backdrop tap / Android back — ask first if a name or code has been typed.
+  const dismissModal = () =>
+    confirmDiscard(
+      (modalStep === 'manual' && !!nameInput.trim()) || (modalStep === 'code' && !!codeInput),
+      closeModal
+    );
+
   const handleAddByCode = async () => {
     const code = normalizeCode(codeInput);
     if (code.length !== 8) {
-      Alert.alert('Bad code', 'A friend code is 8 characters.');
+      appAlert('Bad code', 'A friend code is 8 characters.');
       return;
     }
     try {
       setBusy(true);
       const friend = await addFriendByCode(code);
       closeModal();
-      Alert.alert('Added', `Linked to ${friendDisplayName(friend)}.`);
+      appAlert('Added', `Linked to ${friendDisplayName(friend)}.`);
     } catch (err) {
-      Alert.alert('Could not add by code', err.message ?? 'Unknown error');
+      appAlert('Could not add by code', err.message ?? 'Unknown error');
     } finally {
       setBusy(false);
     }
@@ -106,14 +117,10 @@ const Friends = ({ navigation }) => {
       await addFriend({ friendName: nameInput.trim() });
       closeModal();
     } catch (err) {
-      Alert.alert('Could not add friend', err.message ?? 'Unknown error');
+      appAlert('Could not add friend', err.message ?? 'Unknown error');
     } finally {
       setBusy(false);
     }
-  };
-
-  const handleAddRecipe = () => {
-    startNewRecipe({ navigation });
   };
 
   return (
@@ -157,6 +164,7 @@ const Friends = ({ navigation }) => {
       <FlatList
         style={styles.list_marginless}
         data={displayedFriends}
+        refreshControl={refreshControl}
         ListHeaderComponent={
           <TouchableOpacity
             style={[styles.row, styles.friends_meRow]}
@@ -195,13 +203,13 @@ const Friends = ({ navigation }) => {
         }
       />
 
-      <Modal
+      <AppModal
         visible={modalVisible}
         transparent
         animationType="fade"
-        onRequestClose={closeModal}
+        onRequestClose={dismissModal}
       >
-        <Pressable style={styles.modal_backdrop} onPress={closeModal}>
+        <Pressable style={styles.modal_backdrop} onPress={dismissModal}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             {modalStep === 'choose' && (
               <>
@@ -301,9 +309,9 @@ const Friends = ({ navigation }) => {
             )}
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
 
-      <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
+      <NavigationBar navigation={navigation} />
     </View>
   );
 };

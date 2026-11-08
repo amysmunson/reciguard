@@ -1,32 +1,41 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
-  Modal,
   Pressable,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
-import { BackIcon, LinkIcon, TrashIcon } from '../components/icons';
+import { BackIcon, CopyIcon, EditIcon, LinkIcon, RestoreIcon, TrashIcon } from '../components/icons';
 import {
   getFriend,
+  getCachedFriendIdentity,
+  cacheFriendIdentity,
+  uncacheFriendIdentity,
   updateFriend,
   deleteFriend,
+  duplicateFriend,
   linkFriendByCode,
   unlinkFriend,
-} from '../lib/api/friends';
+} from '../lib/server/api/friends';
 import {
   getFriendAllergies,
   getLinkedUserAllergies,
   severityColor,
   severityLabel,
-} from '../lib/api/allergies';
+} from '../lib/server/api/allergies';
 import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../lib/server/auth-context';
+import { EditHeader } from '../components/EditHeader';
+import SectionHeading from '../components/SectionHeading';
+import { useUnsavedChangesGuard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { appAlert } from '../lib/app/dialog';
+import AppModal from '../components/AppModal';
 
 const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 
@@ -34,51 +43,106 @@ const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
 const FriendProfile = ({ route, navigation }) => {
   const { friendshipId } = route.params;
+  const { user } = useAuth();
+  const userId = user?.id;
   const [friend, setFriend] = useState(null);
+  // Edit is enabled only once server data is in.
+  const [serverLoaded, setServerLoaded] = useState(false);
+  const serverLoadedRef = useRef(false);
+  // Cached { id, name } shown until the full profile arrives.
+  const [identity, setIdentity] = useState(null);
+  const identityShownRef = useRef(false);
+  // The server couldn't be reached and only the cached name is showing.
+  const [detailsFailed, setDetailsFailed] = useState(false);
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
 
-  const [allergies, setAllergies] = useState([]);
-
-  const [theirAllergies, setTheirAllergies] = useState([]);
+  // Your dietary-need notes for this friend, and their own public ones.
+  // null until loaded, so the sections stay blank rather than flashing "None".
+  const [allergies, setAllergies] = useState(null);
+  const [theirAllergies, setTheirAllergies] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [codeInput, setCodeInput] = useState('');
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
+  useRegisterUnsaved(linkModalOpen && !!codeInput);
   const [busy, setBusy] = useState(false);
   const [baseline, setBaseline] = useState({ name: '', notes: '' });
   const [confirmDiscardVisible, setConfirmDiscardVisible] = useState(false);
 
+  // Shows a full profile snapshot ({ friend, allergies, theirAllergies }) in
+  // one go, so the screen never fills in piece by piece.
+  const applyProfile = useCallback(({ friend: f, allergies: mine, theirAllergies: theirs }, preserveEdits) => {
+    setFriend(f);
+    // While actively editing, a focus-triggered reload (e.g. returning
+    // from EditAllergies) should only refresh the allergy lists, not
+    // clobber whatever's currently typed into the name/notes fields.
+    if (!preserveEdits) {
+      setName(f.friendName ?? '');
+      setNotes(f.friendNotes ?? '');
+      setBaseline({ name: f.friendName ?? '', notes: f.friendNotes ?? '' });
+    }
+    setAllergies(mine);
+    setTheirAllergies(theirs);
+  }, []);
+
+  // Only the friend's identity ({ id, name }) is cached — enough to show the
+  // right name instantly. Everything else (notes, both dietary-needs lists)
+  // always comes from the server.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await getCachedFriendIdentity(userId, friendshipId);
+      if (cancelled || !cached || serverLoadedRef.current) return;
+      identityShownRef.current = true;
+      setIdentity(cached);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, friendshipId]);
+
+  // Always fetches the full profile from the server (on open and each focus,
+  // quietly) and refreshes the cached name. A failure with the name already
+  // on screen just says details need a connection; with nothing to show, it
+  // alerts.
   const load = useCallback(async ({ preserveEdits = false } = {}) => {
     try {
       const f = await getFriend(friendshipId);
-      setFriend(f);
-      // While actively editing, a focus-triggered reload (e.g. returning
-      // from EditAllergies) should only refresh the allergy lists, not
-      // clobber whatever's currently typed into the name/notes fields.
-      if (!preserveEdits) {
-        setName(f.friendName ?? '');
-        setNotes(f.friendNotes ?? '');
-        setBaseline({ name: f.friendName ?? '', notes: f.friendNotes ?? '' });
-      }
-      const mine = await getFriendAllergies(friendshipId);
-      setAllergies(mine);
-      if (f.linkedProfile?.id) {
-        try {
-          const theirs = await getLinkedUserAllergies(f.linkedProfile.id);
-          setTheirAllergies(theirs);
-        } catch {
-          setTheirAllergies([]);
-        }
-      } else {
-        setTheirAllergies([]);
-      }
+      const [mine, theirs] = await Promise.all([
+        getFriendAllergies(friendshipId),
+        f.linkedProfile?.id ? getLinkedUserAllergies(f.linkedProfile.id).catch(() => []) : [],
+      ]);
+      serverLoadedRef.current = true;
+      applyProfile({ friend: f, allergies: mine, theirAllergies: theirs }, preserveEdits);
+      setServerLoaded(true);
+      setDetailsFailed(false);
+      cacheFriendIdentity(userId, f);
     } catch (err) {
-      Alert.alert('Could not load friend', err.message ?? 'Unknown error');
+      if (err?.message === 'Friend not found') {
+        uncacheFriendIdentity(userId, friendshipId);
+        appAlert('Friend not found', 'This friend may have been removed.');
+        return;
+      }
+      if (serverLoadedRef.current) return; // keep what's on screen
+      if (identityShownRef.current) {
+        setDetailsFailed(true);
+        return;
+      }
+      appAlert('Could not load friend', err.message ?? 'Unknown error');
     }
-  }, [friendshipId]);
+  }, [friendshipId, userId, applyProfile]);
 
   const isDirty = name !== baseline.name || notes !== baseline.notes;
+
+  // The in-screen back button only leaves edit mode (handleBackPress below);
+  // this covers actually leaving the screen mid-edit — swipe back, Android
+  // back, or popping the stack from elsewhere.
+  const { discardModalProps, leaveWithoutPrompt } = useUnsavedChangesGuard({
+    navigation,
+    isDirty: isEditing && isDirty,
+  });
 
   // Refreshes on every focus (not just mount) so allergy edits made on
   // EditAllergies — which saves straight to the database itself — show up
@@ -89,8 +153,11 @@ const FriendProfile = ({ route, navigation }) => {
     }, [load, isEditing])
   );
 
+  const [saving, setSaving] = useState(false);
   const handleSave = async () => {
+    if (saving) return;
     try {
+      setSaving(true);
       const updated = await updateFriend(friendshipId, {
         friendName: name,
         friendNotes: notes,
@@ -99,7 +166,9 @@ const FriendProfile = ({ route, navigation }) => {
       setIsEditing(false);
       setBaseline({ name, notes });
     } catch (err) {
-      Alert.alert('Could not save', err.message ?? 'Unknown error');
+      alertSaveFailed(err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -124,7 +193,7 @@ const FriendProfile = ({ route, navigation }) => {
   const handleLink = async () => {
     const code = normalizeCode(codeInput);
     if (code.length !== 8) {
-      Alert.alert('Bad code', 'A friend code is 8 characters.');
+      appAlert('Bad code', 'A friend code is 8 characters.');
       return;
     }
     try {
@@ -136,14 +205,14 @@ const FriendProfile = ({ route, navigation }) => {
       setCodeInput('');
       load();
     } catch (err) {
-      Alert.alert('Could not link', err.message ?? 'Unknown error');
+      appAlert('Could not link', err.message ?? 'Unknown error');
     } finally {
       setBusy(false);
     }
   };
 
   const handleUnlink = () => {
-    Alert.alert(
+    appAlert(
       'Unlink this friend?',
       "Their profile data won't update for you anymore, but your notes and dietary needs stay.",
       [
@@ -157,7 +226,7 @@ const FriendProfile = ({ route, navigation }) => {
               setFriend(updated);
               setTheirAllergies([]);
             } catch (err) {
-              Alert.alert('Could not unlink', err.message ?? 'Unknown error');
+              appAlert('Could not unlink', err.message ?? 'Unknown error');
             }
           },
         },
@@ -166,7 +235,7 @@ const FriendProfile = ({ route, navigation }) => {
   };
 
   const handleDeleteFriend = () => {
-    Alert.alert('Remove friend?', 'This deletes your notes and dietary needs for them.', [
+    appAlert('Remove friend?', 'This deletes your notes and dietary needs for them.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
@@ -174,19 +243,35 @@ const FriendProfile = ({ route, navigation }) => {
         onPress: async () => {
           try {
             await deleteFriend(friendshipId);
-            navigation.goBack();
+            leaveWithoutPrompt(() => navigation.goBack());
           } catch (err) {
-            Alert.alert('Could not remove friend', err.message ?? 'Unknown error');
+            appAlert('Could not remove friend', err.message ?? 'Unknown error');
           }
         },
       },
     ]);
   };
 
+  // Before the full profile arrives: the cached name (if any) plus a status
+  // line — never a stale copy of their notes or dietary needs.
   if (!friend) {
     return (
       <View style={[styles.screen_base, styles.screen_cardPad]}>
-        <Text style={[styles.emptyText, { marginTop: 100 }]}>Loading…</Text>
+        <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
+          <BackIcon style={styles.overlayIcon_sm} />
+        </TouchableOpacity>
+        {identity ? (
+          <>
+            <Text style={styles.header_card}>{identity.name}</Text>
+            <Text style={styles.emptyText}>
+              {detailsFailed
+                ? "Couldn't load their notes and dietary needs. Connect to the internet and try again."
+                : 'Loading details…'}
+            </Text>
+          </>
+        ) : (
+          <Text style={[styles.emptyText, { marginTop: 100 }]}>Loading…</Text>
+        )}
       </View>
     );
   }
@@ -196,6 +281,65 @@ const FriendProfile = ({ route, navigation }) => {
   // A linked friend who set their own name overrides the user's local name
   // and can't be edited here. Otherwise the name behaves like Profile's.
   const friendSetOwnName = (friend.linkedProfile?.name ?? '').trim().length > 0;
+
+  // ⋯ → Duplicate friend: a new, unlinked friend with what's on screen (name,
+  // notes — unsaved edits included) plus the dietary needs you track for them.
+  const makeDuplicate = async () => {
+    try {
+      const base = friendSetOwnName ? friend.linkedProfile.name : name.trim() || 'Unnamed Friend';
+      const copy = await duplicateFriend(friendshipId, {
+        friendName: `${base} (copy)`,
+        friendNotes: notes,
+      });
+      leaveWithoutPrompt(() => navigation.replace('FriendProfile', { friendshipId: copy.id }));
+    } catch (err) {
+      alertSaveFailed(err, 'Could not duplicate friend');
+    }
+  };
+
+  const handleDuplicate = () => {
+    const what = isDirty
+      ? 'The copy will include your unsaved edits; this friend stays as last saved.'
+      : 'The copy gets your notes and the dietary needs you track for them.';
+    const linkNote = isLinked
+      ? " It won't be linked to their account, and their own shared dietary needs aren't copied."
+      : '';
+    appAlert('Duplicate friend?', what + linkNote, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Duplicate', onPress: makeDuplicate },
+    ]);
+  };
+
+  const menuActions = [
+    ...(allergies
+      ? [
+          {
+            key: 'allergies',
+            label: 'Edit dietary needs',
+            icon: <EditIcon size={18} color={colors.textSecondary} />,
+            onPress: () => navigation.navigate('EditAllergies', { allergies, friendId: friendshipId }),
+          },
+        ]
+      : []),
+    { key: 'duplicate', label: 'Duplicate friend', icon: <CopyIcon />, onPress: handleDuplicate },
+    ...(isDirty
+      ? [
+          {
+            key: 'discard',
+            label: 'Discard changes',
+            icon: <RestoreIcon color={colors.textSecondary} />,
+            onPress: () => setConfirmDiscardVisible(true),
+          },
+        ]
+      : []),
+    {
+      key: 'remove',
+      label: 'Remove friend',
+      icon: <TrashIcon size={18} />,
+      onPress: handleDeleteFriend,
+      danger: true,
+    },
+  ];
 
   const displayValue = (val) =>
     val && val.trim().length > 0 ? (
@@ -211,16 +355,27 @@ const FriendProfile = ({ route, navigation }) => {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
-        <BackIcon style={styles.overlayIcon_sm} />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.overlay_base, styles.overlay_topRight_card]}
-        onPress={isEditing ? handleSave : () => setIsEditing(true)}
-      >
-        <Text style={styles.overlayText}>{isEditing ? 'Save' : 'Edit'}</Text>
-      </TouchableOpacity>
+      {isEditing ? (
+        <EditHeader
+          onBack={handleBackPress}
+          onSave={handleSave}
+          saving={saving}
+          menuActions={menuActions}
+        />
+      ) : (
+        <>
+          <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
+            <BackIcon style={styles.overlayIcon_sm} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.overlay_base, styles.overlay_topRight_card]}
+            onPress={() => setIsEditing(true)}
+            disabled={!serverLoaded}
+          >
+            <Text style={[styles.overlayText, !serverLoaded && { opacity: 0.4 }]}>Edit</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       {friendSetOwnName ? (
         <Text style={styles.header_card}>{friend.linkedProfile.name}</Text>
@@ -293,7 +448,7 @@ const FriendProfile = ({ route, navigation }) => {
         <>
           <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Their Dietary Needs</Text>
           <Text style={styles.readOnly_hint}>From their profile.</Text>
-          {theirAllergies.length === 0 ? (
+          {theirAllergies === null ? null : theirAllergies.length === 0 ? (
             <Text style={styles.emptyText}>They haven&apos;t added any.</Text>
           ) : (
             theirAllergies.map((a) => (
@@ -314,7 +469,14 @@ const FriendProfile = ({ route, navigation }) => {
         </>
       )}
 
-      <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>My Dietary Need Notes</Text>
+      <SectionHeading
+        title="My Dietary Need Notes"
+        actionLabel={isEditing && allergies ? 'Edit' : null}
+        onAction={() =>
+          navigation.navigate('EditAllergies', { allergies, friendId: friendshipId })
+        }
+        accessibilityLabel="Edit dietary need notes"
+      />
       {linkedAlive ? (
         <Text style={styles.readOnly_hint}>
           Dietary needs you want to track for this friend.
@@ -325,8 +487,8 @@ const FriendProfile = ({ route, navigation }) => {
         </Text>
       )}
 
-      {allergies.length === 0 && !isEditing && <Text style={[styles.display_fieldValue, styles.display_fieldEmpty]}>None</Text>}
-      {allergies.map((a) => (
+      {allergies?.length === 0 && !isEditing && <Text style={[styles.display_fieldValue, styles.display_fieldEmpty]}>None</Text>}
+      {(allergies ?? []).map((a) => (
         <View key={a.id} style={styles.allergyRow}>
           <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
           <View style={styles.severityChip}>
@@ -340,39 +502,10 @@ const FriendProfile = ({ route, navigation }) => {
           </View>
         </View>
       ))}
-      {isEditing && (
-        <TouchableOpacity
-          style={[styles.button_outline, styles.button_outline_link, { marginVertical: 4 }]}
-          onPress={() =>
-            navigation.navigate('EditAllergies', { allergies, friendId: friendshipId })
-          }
-        >
-          <Text style={[styles.buttonText_outline, { color: colors.primary }]}>
-            Edit Dietary Needs
-          </Text>
-        </TouchableOpacity>
-      )}
 
-      {isEditing && (
-        <>
-          {/* Expands to fill any leftover height so short content still
-              pins the footer to the bottom of the screen; collapses to
-              nothing once content is tall enough to need scrolling. */}
-          <View style={{ flex: 1 }} />
-          <View style={styles.friendProfile_dangerFooter}>
-            <TouchableOpacity
-              style={[styles.button_outline, styles.button_outline_danger]}
-              onPress={handleDeleteFriend}
-            >
-              <TrashIcon size={18} />
-              <Text style={[styles.buttonText_outline, { color: colors.danger }]}>Remove Friend</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
 
       {/* Link-by-code modal */}
-      <Modal
+      <AppModal
         visible={linkModalOpen}
         transparent
         animationType="fade"
@@ -424,7 +557,7 @@ const FriendProfile = ({ route, navigation }) => {
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
 
       <ConfirmModal
         visible={confirmDiscardVisible}
@@ -435,6 +568,7 @@ const FriendProfile = ({ route, navigation }) => {
         onConfirm={handleDiscard}
         onCancel={() => setConfirmDiscardVisible(false)}
       />
+      <ConfirmModal {...discardModalProps} />
     </ScrollView>
   );
 };

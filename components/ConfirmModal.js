@@ -1,38 +1,36 @@
 import React from 'react';
-import { Modal, Pressable, Text, View, TouchableOpacity } from 'react-native';
+import { Pressable } from 'react-native';
 import styles from '../styles/main_style';
-import { colors } from '../styles/theme';
+import AppModal from './AppModal';
+import DialogCard from './DialogCard';
 
-// Generic custom confirm dialog for unified modals
+// Declarative confirm dialog (e.g. "Discard changes?"), for screens that
+// keep the open/closed state themselves. Same card as appAlert() in
+// lib/app/dialog.js — use that for one-off alerts and confirms.
+// confirmStyle: 'destructive' (default, red) or 'default' (blue).
 const ConfirmModal = ({
   visible,
   title,
   message,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
+  confirmStyle = 'destructive',
   onConfirm,
   onCancel,
 }) => (
-  <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+  <AppModal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
     <Pressable style={styles.modal_backdrop} onPress={onCancel}>
-      <Pressable style={styles.surface_modal} onPress={() => {}}>
-        <Text style={styles.header_modal}>{title}</Text>
-        {!!message && (
-          <Text style={[styles.readOnly_hint, { marginBottom: 12 }]}>{message}</Text>
-        )}
-        <View style={styles.modal_button_right}>
-          <TouchableOpacity style={styles.modal_button} onPress={onCancel}>
-            <Text style={styles.modal_buttonText}>{cancelLabel}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.modal_button} onPress={onConfirm}>
-            <Text style={[styles.modal_buttonText, { color: colors.danger, fontWeight: 'bold' }]}>
-              {confirmLabel}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </Pressable>
+      <DialogCard
+        title={title}
+        message={message}
+        buttons={[
+          { text: cancelLabel, style: 'cancel', onPress: onCancel },
+          { text: confirmLabel, style: confirmStyle, onPress: onConfirm },
+        ]}
+        onPressButton={(b) => b.onPress?.()}
+      />
     </Pressable>
-  </Modal>
+  </AppModal>
 );
 
 export default ConfirmModal;

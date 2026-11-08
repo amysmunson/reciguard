@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { useNavigationState } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { TabIcon } from './icons';
+import { reportNavBarOffset } from '../lib/app/navBarOffset';
 
 // Extends each tab's touch target into the otherwise-dead bar around it
 // without changing layout: vertical reaches the bar's padded edges (10px,
@@ -11,27 +12,41 @@ import { TabIcon } from './icons';
 // meet and a near-miss still lands on a button rather than the inert bar.
 const TAB_HIT_SLOP = { top: 10, bottom: 10, left: 24, right: 24 };
 
-// Route names match the screen names registered in the navigator; the
-// per-route icon glyph is mapped in components/icons/index.js (TAB_GLYPHS).
+// Tab names match the screen names registered in the navigator, except Add,
+// which opens InputSelector (`route`) to start a new recipe. Nothing is saved
+// until Save in EditRecipe. The per-tab icon glyph is mapped in
+// components/icons/index.js (TAB_GLYPHS).
 const TABS = [
   { name: 'Home', label: 'Home' },
   { name: 'Folders', label: 'Folders' },
-  { name: 'Add', label: 'Add' },
+  { name: 'Add', label: 'Add', route: 'InputSelector' },
   { name: 'Friends', label: 'Friends' },
   { name: 'Settings', label: 'Settings' },
 ];
 
-const NavigationBar = ({ navigation, onAddPress, onHomePress }) => {
-  const activeRoute = useNavigationState((state) => state?.routes?.[state.index]?.name);
+// Screens that show this bar. App.js uses it to lift the offline banner
+// above the bar on these screens.
+export const TAB_ROUTES = new Set(TABS.filter((t) => !t.route).map((t) => t.name));
 
-  const go = (name) => {
-    if (name === 'Add') return onAddPress?.();
-    if (name === 'Home') onHomePress?.();
-    navigation.navigate(name);
+const NavigationBar = ({ navigation, onHomePress }) => {
+  const activeRoute = useNavigationState((state) => state?.routes?.[state.index]?.name);
+  const barRef = useRef(null);
+
+  // Tell the offline banner where the bar's top edge is, measured from the
+  // bottom of the screen, so it sits right on top of the bar. Measured in
+  // window coordinates so any padding below the bar is included.
+  const reportPosition = () =>
+    barRef.current?.measureInWindow((x, y) => {
+      if (y > 0) reportNavBarOffset(Math.round(Dimensions.get('window').height - y));
+    });
+
+  const go = (tab) => {
+    if (tab.name === 'Home') onHomePress?.();
+    navigation.navigate(tab.route ?? tab.name);
   };
 
   return (
-    <View style={styles.bottomNav}>
+    <View ref={barRef} style={styles.bottomNav} onLayout={reportPosition}>
       {TABS.map((tab) => {
         const isActive = activeRoute === tab.name;
         return (
@@ -39,7 +54,7 @@ const NavigationBar = ({ navigation, onAddPress, onHomePress }) => {
             key={tab.name}
             style={styles.navButton}
             hitSlop={TAB_HIT_SLOP}
-            onPress={() => go(tab.name)}
+            onPress={() => go(tab)}
           >
             <TabIcon
               name={tab.name}

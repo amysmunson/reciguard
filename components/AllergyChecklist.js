@@ -1,7 +1,7 @@
 // Inline allergy picker used on EditAllergies. Checking a group or an
 // individual allergen adds it immediately. Severity is set afterward
 
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
@@ -82,8 +82,12 @@ const AllergyChecklist = ({ existingNames = [], onAdd, onRemove }) => {
   // Reading through a ref (same pattern as onSelectionChangeRef in
   // AllergyFilterControl.js) keeps togglePreset/toggleGroup's identity fixed
   // across renders while still seeing current existingLower.
-  const latestRef = useRef();
-  latestRef.current = { existingLower, onAdd, onRemove };
+  // Synced in a layout effect rather than during render (react-hooks/refs);
+  // it runs before any tap can reach the toggles below.
+  const latestRef = useRef({ existingLower, onAdd, onRemove });
+  useLayoutEffect(() => {
+    latestRef.current = { existingLower, onAdd, onRemove };
+  });
 
   // Filter groups based on the query
   const visibleGroups = useMemo(

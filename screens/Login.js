@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import styles from '../styles/main_style';
 import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
-import { signIn } from '../lib/api/auth';
+import { signIn } from '../lib/server/api/auth';
+import { appAlert } from '../lib/app/dialog';
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -12,14 +19,14 @@ const Login = ({ navigation }) => {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert('Missing info', 'Enter an email and password.');
+      appAlert('Missing info', 'Enter an email and password.');
       return;
     }
     try {
       setLoading(true);
       await signIn({ email: email.trim(), password });
     } catch (err) {
-      Alert.alert('Sign in failed', err.message ?? 'Unknown error');
+      appAlert('Sign in failed', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }

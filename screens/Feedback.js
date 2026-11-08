@@ -1,30 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
-import { submitFeedback } from '../lib/api/feedback';
+import { submitFeedback, FEEDBACK_MAX_LENGTH } from '../lib/server/api/feedback';
+import ConfirmModal from '../components/ConfirmModal';
+import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
+import { appAlert } from '../lib/app/dialog';
 
-const TYPES = [
-  { id: 'suggestion', label: 'Suggestion' },
-  { id: 'question', label: 'Question' },
-];
+// Feedback only — no questions, since submissions aren't replied to. Every
+// row is saved with type 'suggestion' (an existing allowed value of
+// feedback_submissions.type, so no database change).
+const FEEDBACK_TYPE = 'suggestion';
 
 const Feedback = ({ navigation }) => {
-  const [type, setType] = useState('suggestion');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { discardModalProps, leaveWithoutPrompt } = useUnsavedChangesGuard({
+    navigation,
+    isDirty: message.trim().length > 0,
+  });
 
   const handleSubmit = async () => {
     if (!message.trim() || submitting) return;
     try {
       setSubmitting(true);
-      await submitFeedback({ type, message: message.trim() });
-      Alert.alert('Thanks!', 'Your feedback has been sent.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+      await submitFeedback({ type: FEEDBACK_TYPE, message: message.trim() });
+      appAlert('Thanks!', 'Your feedback has been sent.', [
+        { text: 'OK', onPress: () => leaveWithoutPrompt(() => navigation.goBack()) },
       ]);
     } catch (err) {
-      Alert.alert('Could not send feedback', err.message ?? 'Unknown error');
+      appAlert('Could not send feedback', err.message ?? 'Unknown error');
     } finally {
       setSubmitting(false);
     }
@@ -41,42 +47,18 @@ const Feedback = ({ navigation }) => {
 
       <Text style={styles.header_card}>Send Feedback</Text>
       <Text style={[styles.readOnly_hint, { marginBottom: 12 }]}>
-        Have a suggestion or a question? Send it straight to us.
+        Have an idea, or found something that isn&apos;t working? Let us know. We read
+        everything, but we can&apos;t reply to individual messages.
       </Text>
-
-      <View style={{ flexDirection: 'row', marginBottom: 16 }}>
-        {TYPES.map((t) => {
-          const selected = type === t.id;
-          return (
-            <TouchableOpacity
-              key={t.id}
-              onPress={() => setType(t.id)}
-              style={[
-                styles.button_outline,
-                styles.button_outline_link,
-                { flex: 1, marginRight: t.id === 'suggestion' ? 8 : 0 },
-                selected && { backgroundColor: colors.primary },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.buttonText_outline,
-                  { color: selected ? colors.textOnPrimary : colors.primary, marginLeft: 0 },
-                ]}
-              >
-                {t.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
 
       <TextInput
         style={[styles.input_base, { minHeight: 120 }]}
         value={message}
         onChangeText={setMessage}
         multiline
-        placeholder={type === 'suggestion' ? "What's your idea?" : 'What would you like to know?'}
+        placeholder="What's your feedback?"
+        maxLength={FEEDBACK_MAX_LENGTH}
+        placeholderTextColor={colors.textMuted}
       />
 
       <TouchableOpacity
@@ -94,6 +76,8 @@ const Feedback = ({ navigation }) => {
           {submitting ? 'Sending…' : 'Send'}
         </Text>
       </TouchableOpacity>
+
+      <ConfirmModal {...discardModalProps} />
     </ScrollView>
   );
 };

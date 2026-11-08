@@ -2,8 +2,8 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../styles/theme';
 
-// Three-slider / adjustments icon (Heroicons "AdjustmentsHorizontal" style).
-// Used as the sort button on Home, sitting alongside the funnel filter.
+// Usage: <SortIcon size={24} color={colors.textSecondary} />
+
 const SortIcon = ({ size = 24, color = colors.textSecondary, strokeWidth = 1.5 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path 

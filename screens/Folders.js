@@ -4,32 +4,35 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Alert,
-  Modal,
   TextInput,
   Pressable,
 } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import { getFolders, createFolder, deleteFolders } from '../lib/api/folders';
-import { getMyProfile } from '../lib/api/profile';
-import { useCachedResource } from '../lib/cache';
-import { useAuth } from '../lib/auth-context';
-import { startNewRecipe } from '../components/utils/addRecipe';
-import { PlusIcon, SearchIcon, SelectCircleIcon, SortIcon, TrashIcon } from '../components/icons';
+import { getFolders, createFolder, deleteFolders } from '../lib/server/api/folders';
+import { getMyProfile } from '../lib/server/api/profile';
+import { useCachedResource } from '../lib/app/cache';
+import { usePullToRefresh } from '../lib/server/usePullToRefresh';
+import { useAuth } from '../lib/server/auth-context';
+import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { PlusIcon, SearchIcon, SelectCircleIcon, SortIcon, StarIcon, TrashIcon } from '../components/icons';
+import { SYSTEM_FOLDERS } from './FolderDetail';
 import SortMenu from '../components/SortMenu';
-import { loadJson, saveJson, KEYS } from '../lib/storage';
+import { loadJson, saveJson, KEYS } from '../lib/app/storage';
 import {
   FOLDER_SORT_OPTIONS,
   DEFAULT_FOLDER_SORT,
   normalizeSort,
   sortFolders,
-} from '../lib/sort';
+} from '../lib/app/sort';
+import { appAlert } from '../lib/app/dialog';
+import AppModal from '../components/AppModal';
 
 const Folders = ({ navigation }) => {
   const { user } = useAuth();
-  const { data: foldersData } = useCachedResource({
+  const { data: foldersData, refresh: refreshFolders } = useCachedResource({
     resource: 'folders',
     userId: user?.id,
     fetcher: getFolders,
@@ -40,6 +43,7 @@ const Folders = ({ navigation }) => {
     fetcher: getMyProfile,
   });
   const contrast = !!profile?.contrast;
+  const refreshControl = usePullToRefresh(refreshFolders);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -85,13 +89,20 @@ const Folders = ({ navigation }) => {
       setNewName('');
       setCreating(false);
     } catch (err) {
-      Alert.alert('Could not create folder', err.message ?? 'Unknown error');
+      alertSaveFailed(err, 'Could not create folder');
     }
   };
 
-  const handleAddRecipe = () => {
-    startNewRecipe({ navigation });
+  const closeCreate = () => {
+    setCreating(false);
+    setNewName('');
   };
+
+  // Backdrop tap / Android back — easy to hit by accident, so ask first if
+  // a name has been typed. The Cancel button discards straight away.
+  const dismissCreate = () => confirmDiscard(!!newName.trim(), closeCreate);
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
+  useRegisterUnsaved(creating && !!newName.trim());
 
   // --- Selection helpers --------------------------------------------------
   const toggleSelect = (id) => {
@@ -114,14 +125,26 @@ const Folders = ({ navigation }) => {
   };
 
   const handleTilePress = (item) => {
+    if (item.system) {
+      // Built-in folders can't be selected; tapping one in select mode is a no-op.
+      if (!selectMode) navigation.navigate('FolderDetail', { systemFolder: item.system });
+      return;
+    }
     if (selectMode) toggleSelect(item.id);
     else navigation.navigate('FolderDetail', { folderId: item.id, folderName: item.name });
   };
 
+  // Built-in folders: Favorites always first, Recently Deleted always last,
+  // unaffected by sort, never selectable.
+  const query = searchQuery.trim().toLowerCase();
+  const systemTiles = Object.entries(SYSTEM_FOLDERS)
+    .map(([key, { name }]) => ({ id: `system:${key}`, system: key, name }))
+    .filter((t) => !query || t.name.toLowerCase().includes(query));
+
   const handleBulkDelete = () => {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    Alert.alert(
+    appAlert(
       'Delete folders?',
       `${ids.length} will be permanently deleted. Recipes inside are not deleted.`,
       [
@@ -134,7 +157,7 @@ const Folders = ({ navigation }) => {
               await deleteFolders(ids);
               exitSelect();
             } catch (err) {
-              Alert.alert('Could not delete', err.message ?? 'Unknown error');
+              appAlert('Could not delete', err.message ?? 'Unknown error');
             }
           },
         },
@@ -190,9 +213,36 @@ const Folders = ({ navigation }) => {
       )}
 
       <FlatList
-        data={displayedFolders}
+        data={[
+          ...systemTiles.filter((t) => t.system === 'favorites'),
+          ...displayedFolders,
+          ...systemTiles.filter((t) => t.system === 'trash'),
+        ]}
         numColumns={2}
+        refreshControl={refreshControl}
         renderItem={({ item }) => {
+          if (item.system) {
+            return (
+              <TouchableOpacity
+                onPress={() => handleTilePress(item)}
+                disabled={selectMode}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.name} folder`}
+              >
+                {/* Same tile as any folder, with a small icon inline before the name. */}
+                <View style={[styles.tile, selectMode && { opacity: 0.4 }]}>
+                  <View style={styles.tile_labelRow}>
+                    {item.system === 'favorites' ? (
+                      <StarIcon filled size={16} />
+                    ) : (
+                      <TrashIcon size={16} color={colors.text} />
+                    )}
+                    <Text style={styles.tileText}>{item.name}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }
           const isSelected = selectedIds.has(item.id);
           return (
             <TouchableOpacity
@@ -213,31 +263,24 @@ const Folders = ({ navigation }) => {
         }}
         keyExtractor={(item) => item.id}
         extraData={{ searchQuery, selectMode, selectedIds }}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {searchQuery.trim()
-              ? `No folders match "${searchQuery}".`
-              : 'No folders yet. Tap + to create one.'}
-          </Text>
+        ListFooterComponent={
+          displayedFolders.length === 0 ? (
+            <Text style={styles.emptyText}>
+              {searchQuery.trim()
+                ? `No folders match "${searchQuery}".`
+                : 'No folders of your own yet. Tap + to create one.'}
+            </Text>
+          ) : null
         }
       />
 
-      <Modal
+      <AppModal
         visible={creating}
         transparent
         animationType="fade"
-        onRequestClose={() => {
-          setCreating(false);
-          setNewName('');
-        }}
+        onRequestClose={dismissCreate}
       >
-        <Pressable
-          style={styles.modal_backdrop}
-          onPress={() => {
-            setCreating(false);
-            setNewName('');
-          }}
-        >
+        <Pressable style={styles.modal_backdrop} onPress={dismissCreate}>
           <Pressable style={styles.surface_modal} onPress={() => {}}>
             <Text style={styles.header_modal}>New Folder</Text>
             <TextInput
@@ -248,13 +291,7 @@ const Folders = ({ navigation }) => {
               autoFocus
             />
             <View style={styles.modal_button_right}>
-              <TouchableOpacity
-                style={styles.modal_button}
-                onPress={() => {
-                  setCreating(false);
-                  setNewName('');
-                }}
-              >
+              <TouchableOpacity style={styles.modal_button} onPress={closeCreate}>
                 <Text style={styles.modal_buttonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modal_button} onPress={handleCreate}>
@@ -265,7 +302,7 @@ const Folders = ({ navigation }) => {
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
 
       <SortMenu
         visible={sortOpen}
@@ -275,7 +312,7 @@ const Folders = ({ navigation }) => {
         onChange={applySort}
       />
 
-      <NavigationBar navigation={navigation} onAddPress={handleAddRecipe} />
+      <NavigationBar navigation={navigation} />
     </View>
   );
 };
