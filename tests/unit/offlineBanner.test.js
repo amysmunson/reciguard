@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, render, screen } from '@testing-library/react-native';
-import OfflineBanner, { reportNavBarHeight } from '../../components/OfflineBanner';
+import OfflineBanner from '../../components/OfflineBanner';
+import { reportNavBarOffset } from '../../lib/app/navBarOffset';
 
 let mockOnline = false;
 jest.mock('../../lib/server/connectivity', () => ({ useIsOnline: () => mockOnline }));
@@ -24,21 +25,25 @@ test('renders nothing while online', async () => {
   expect(screen.queryByText(MESSAGE)).toBeNull();
 });
 
-test('pinned to the bottom edge, padded past the home indicator, letting touches through', async () => {
+test('pinned to the bottom edge, text clear of the home indicator, letting touches through', async () => {
   await render(<OfflineBanner />);
   const style = bannerStyle();
   expect(style.position).toBe('absolute');
   expect(style.bottom).toBe(0);
-  expect(style.paddingBottom).toBe(8 + 34);
+  // EDGE_TEXT_CLEARANCE is tunable; it just has to beat the plain 8 pt
+  // padding without padding the whole 34 pt home-indicator inset on top.
+  expect(style.paddingBottom).toBeGreaterThanOrEqual(8);
+  expect(style.paddingBottom).toBeLessThan(8 + 34);
   expect(banner().props.pointerEvents).toBe('none');
 });
 
 test('sits right on top of the nav bar on tab screens', async () => {
-  await act(() => reportNavBarHeight(64));
+  // 64 pt bar + 20 pt of screen padding under it.
+  await act(() => reportNavBarOffset(84));
   await render(<OfflineBanner aboveNavBar />);
-  expect(bannerStyle().bottom).toBe(64);
+  expect(bannerStyle().bottom).toBe(84);
 
-  // Follows the bar if its height changes (e.g. larger text).
-  await act(() => reportNavBarHeight(72));
-  expect(bannerStyle().bottom).toBe(72);
+  // Follows the bar if it moves (e.g. larger text makes it taller).
+  await act(() => reportNavBarOffset(92));
+  expect(bannerStyle().bottom).toBe(92);
 });

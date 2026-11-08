@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { useNavigationState } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { TabIcon } from './icons';
-import { reportNavBarHeight } from './OfflineBanner';
+import { reportNavBarOffset } from '../lib/app/navBarOffset';
 
 // Extends each tab's touch target into the otherwise-dead bar around it
 // without changing layout: vertical reaches the bar's padded edges (10px,
@@ -30,6 +30,15 @@ export const TAB_ROUTES = new Set(TABS.filter((t) => !t.route).map((t) => t.name
 
 const NavigationBar = ({ navigation, onHomePress }) => {
   const activeRoute = useNavigationState((state) => state?.routes?.[state.index]?.name);
+  const barRef = useRef(null);
+
+  // Tell the offline banner where the bar's top edge is, measured from the
+  // bottom of the screen, so it sits right on top of the bar. Measured in
+  // window coordinates so any padding below the bar is included.
+  const reportPosition = () =>
+    barRef.current?.measureInWindow((x, y) => {
+      if (y > 0) reportNavBarOffset(Math.round(Dimensions.get('window').height - y));
+    });
 
   const go = (tab) => {
     if (tab.name === 'Home') onHomePress?.();
@@ -37,10 +46,7 @@ const NavigationBar = ({ navigation, onHomePress }) => {
   };
 
   return (
-    <View
-      style={styles.bottomNav}
-      onLayout={(e) => reportNavBarHeight(e.nativeEvent.layout.height)}
-    >
+    <View ref={barRef} style={styles.bottomNav} onLayout={reportPosition}>
       {TABS.map((tab) => {
         const isActive = activeRoute === tab.name;
         return (

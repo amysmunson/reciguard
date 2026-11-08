@@ -13,9 +13,11 @@ const palette = {
   tintBlue:    '#e8f0fa',    // palest blue — selected tile / info-row background
 
   // Surfaces (page backgrounds)
-  white:       '#ffffff',
-  black:       '#000000',
-  nearBlack:   '#0e1116',
+  white:          '#ffffff',
+  black:          '#000000',
+  nearBlack:      '#0e1116',
+  warningSurface: '#fca960',
+  warningSurfaceDark: '#914401',
 
   // Ink (body text)
   ink:         '#090909',
@@ -104,6 +106,7 @@ const lightTheme = {
 
   danger:        palette.red,
   warning:       palette.orange,
+  warningSurface: palette.warningSurface,
   caution:       palette.yellow,
   success:       palette.green,
 
@@ -126,6 +129,7 @@ const lightTheme = {
 const darkTheme = {
   background:    palette.nearBlack,
   surface:       palette.surfaceAltDark,
+  warningSurface: palette.warningSurfaceDark,
   text:          palette.inkInverse,
   textSecondary: palette.inkInverse,
   textTertiary:  palette.muted,

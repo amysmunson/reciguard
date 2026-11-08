@@ -76,6 +76,7 @@ recipes/
 │       ├── recipeCache.js          # Full-recipe cache for the 5 most recently opened recipes (offline/instant RecipeCard)
 │       ├── dialog.js               # appAlert(title, message, buttons) — Alert.alert replacement; dialog queue + host stack
 │       ├── unsavedChanges.js       # useUnsavedChangesGuard() (leave-screen prompt) + confirmDiscard() (modals)
+│       ├── navBarOffset.js         # Where the nav bar's top edge is, so the offline banner can sit on it
 │       ├── theme-context.js        # ThemeProvider/useTheme: System/Light/Dark preference, applyColorScheme()
 │       ├── useHideUnsafe.js        # Settings "hide recipes with dietary conflicts": useHideUnsafe(), applyDietaryVisibility()
 │       ├── sort.js                 # Shared sort options + sortRecipes/sortFolders + normalizeSort
@@ -354,8 +355,8 @@ own: its `route` is `InputSelector`, the start of the add-recipe flow. No
 recipe row exists until Save in EditRecipe. Home passes `onHomePress` to clear
 its search when Home is tapped again.
 
-It reports its measured height to [components/OfflineBanner.js](components/OfflineBanner.js)
-(`reportNavBarHeight`) and exports `TAB_ROUTES`, so App.js can float the
+It reports its position through [lib/app/navBarOffset.js](lib/app/navBarOffset.js)
+(`reportNavBarOffset`: the distance from the screen bottom to the bar's top edge, via `measureInWindow`, so padding under the bar counts) and exports `TAB_ROUTES`, so App.js can float the
 offline banner right on top of the bar on these screens.
 
 ### `components/SortMenu.js`
@@ -1428,7 +1429,7 @@ the foreground. Concurrent checks share one request.
   hard-code their top spacing. It also has `pointerEvents="none"`, so the
   list under it still scrolls and taps pass through. On the four tab screens
   (`TAB_ROUTES`, picked by App.js's current route name) it sits flush on top
-  of the NavigationBar, using the bar's measured height. Everywhere else it's
+  of the NavigationBar, using the bar's measured position. Everywhere else it's
   pinned to the bottom edge and padded past the home indicator. While typing,
   the keyboard covers it, and a failed save still shows `alertSaveFailed`.
 - `alertSaveFailed(err, title)` replaces the plain error alert on recipe,

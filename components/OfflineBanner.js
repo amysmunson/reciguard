@@ -1,8 +1,9 @@
-import React, { useSyncExternalStore } from 'react';
+import React from 'react';
 import { View, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import styles from '../styles/main_style';
 import { useIsOnline } from '../lib/server/connectivity';
+import { useNavBarOffset } from '../lib/app/navBarOffset';
 
 // Warning strip shown while the server can't be reached, so users know
 // before they edit that changes won't save. Renders nothing while online.
@@ -15,37 +16,39 @@ import { useIsOnline } from '../lib/server/connectivity';
 // screens it sits right on top of the NavigationBar; elsewhere it's pinned
 // to the bottom edge.
 
-// NavigationBar's measured height, reported from its onLayout. Every tab
-// screen renders the same bar, so one value covers them all.
-let navBarHeight = 0;
-const listeners = new Set();
-export const reportNavBarHeight = (height) => {
-  if (height === navBarHeight) return;
-  navBarHeight = height;
-  for (const fn of listeners) fn();
-};
-const subscribe = (fn) => {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-};
-const useNavBarHeight = () => useSyncExternalStore(subscribe, () => navBarHeight);
+// --- Spacing you can tweak ---------------------------------------------
+// Gap between the banner and the top edge of the nav bar (tab screens).
+const NAV_BAR_GAP = 0;
+// Screens without a nav bar: how far the banner's text sits above the very
+// bottom of the screen. The home indicator line is about 13 pt tall
+// including its own margin, so keep this above ~16 on Face ID iPhones.
+const EDGE_TEXT_CLEARANCE = 10;
+// The banner's own top padding and text size are in styles/main_style.js
+// (offlineBanner, offlineBanner_text).
+// ------------------------------------------------------------------------
 
 const OfflineBanner = ({ aboveNavBar = false }) => {
   const isOnline = useIsOnline();
   const { bottom } = useSafeAreaInsets();
-  const barHeight = useNavBarHeight();
+  const barTop = useNavBarOffset();
   if (isOnline) return null;
 
-  const onBar = aboveNavBar && barHeight > 0;
+  const onBar = aboveNavBar && barTop > 0;
   return (
     <View
       pointerEvents="none"
       style={[
         styles.offlineBanner,
         onBar
-          ? { bottom: barHeight }
-          // Pinned to the bottom edge: pad past the home indicator.
-          : { bottom: 0, paddingBottom: styles.offlineBanner.paddingVertical + bottom },
+          ? { bottom: barTop + NAV_BAR_GAP }
+          // Pinned to the bottom edge. On phones without a home indicator
+          // (bottom inset 0) this is just the normal padding.
+          : {
+              bottom: 0,
+              paddingBottom: bottom
+                ? Math.max(EDGE_TEXT_CLEARANCE, styles.offlineBanner.paddingVertical)
+                : styles.offlineBanner.paddingVertical,
+            },
       ]}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"

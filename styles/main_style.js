@@ -1462,7 +1462,7 @@ const buildStyles = () => StyleSheet.create({
     right: 0,
     zIndex: 900,
     elevation: 900,
-    backgroundColor: colors.warning,
+    backgroundColor: colors.warningSurface,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
