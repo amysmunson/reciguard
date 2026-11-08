@@ -1,4 +1,4 @@
-jest.mock('../../lib/supabase', () => require('../helpers/fakeSupabase').module);
+jest.mock('../../lib/server/supabase', () => require('../helpers/fakeSupabase').module);
 import * as fake from '../helpers/fakeSupabase';
 import {
   getRecipes,
@@ -8,7 +8,7 @@ import {
   restoreRecipes,
   duplicateRecipe,
   setRecipesFavorite,
-} from '../../lib/api/recipes';
+} from '../../lib/server/api/recipes';
 
 const row = (overrides = {}) => ({
   id: 'r1',

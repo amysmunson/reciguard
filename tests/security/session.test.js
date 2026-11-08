@@ -7,8 +7,8 @@ jest.mock('react-native-url-polyfill/auto', () => ({}));
 test('Supabase client stores the session in SecureStore and ignores session URLs', () => {
   jest.isolateModules(() => {
     const { createClient } = require('@supabase/supabase-js');
-    const { SecureStoreAdapter } = require('../../lib/secureStoreAdapter');
-    require('../../lib/supabase');
+    const { SecureStoreAdapter } = require('../../lib/server/secureStoreAdapter');
+    require('../../lib/server/supabase');
     const [url, , options] = createClient.mock.calls[0];
     expect(url).toMatch(/^https:\/\//);
     expect(options.auth.storage).toBe(SecureStoreAdapter);
@@ -20,7 +20,7 @@ test('Supabase client stores the session in SecureStore and ignores session URLs
 
 test('SecureStore adapter round-trips a large session in chunks and removes every chunk', async () => {
   const SecureStore = require('expo-secure-store');
-  const { SecureStoreAdapter } = require('../../lib/secureStoreAdapter');
+  const { SecureStoreAdapter } = require('../../lib/server/secureStoreAdapter');
   const big = 'x'.repeat(5000);
   await SecureStoreAdapter.setItem('sb-session', big);
   expect(await SecureStoreAdapter.getItem('sb-session')).toBe(big);

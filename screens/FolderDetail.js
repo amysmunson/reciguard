@@ -11,7 +11,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/server/auth-context';
 import {
   getFolder,
   getRecipesInFolder,
@@ -19,7 +19,7 @@ import {
   updateFolder,
   removeRecipesFromFolder,
   addRecipesToFolder,
-} from '../lib/api/folders';
+} from '../lib/server/api/folders';
 import {
   getRecipes,
   getTrashedRecipes,
@@ -28,14 +28,14 @@ import {
   deleteRecipesForever,
   emptyTrash,
   TRASH_RETENTION_DAYS,
-} from '../lib/api/recipes';
-import { useHideUnsafe, applyDietaryVisibility } from '../lib/useHideUnsafe';
+} from '../lib/server/api/recipes';
+import { useHideUnsafe, applyDietaryVisibility } from '../lib/app/useHideUnsafe';
 import {
   getActiveAllergyDetails,
   dotsForRecipe,
   severityColor,
-} from '../lib/api/allergies';
-import { getMyProfile } from '../lib/api/profile';
+} from '../lib/server/api/allergies';
+import { getMyProfile } from '../lib/server/api/profile';
 import {
   BackIcon,
   CheckboxIcon,
@@ -50,21 +50,20 @@ import {
   StarIcon,
   TrashIcon,
 } from '../components/icons';
-import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
-import { readCachedResource, useCachedResource } from '../lib/cache';
-import { usePullToRefresh } from '../lib/usePullToRefresh';
+import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/app/storage';
+import { readCachedResource, useCachedResource } from '../lib/app/cache';
+import { usePullToRefresh } from '../lib/server/usePullToRefresh';
 import AllergyFilterControl from '../components/AllergyFilterControl';
 import SortMenu from '../components/SortMenu';
-import OfflineBanner from '../components/OfflineBanner';
-import { confirmDiscard, useRegisterUnsaved } from '../lib/unsavedChanges';
-import { alertSaveFailed } from '../lib/connectivity';
+import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
 import {
   RECIPE_SORT_OPTIONS,
   DEFAULT_RECIPE_SORT,
   normalizeSort,
   sortRecipes,
-} from '../lib/sort';
-import { appAlert } from '../lib/dialog';
+} from '../lib/app/sort';
+import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 
 const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -424,7 +423,7 @@ const FolderDetail = ({ route, navigation }) => {
     );
   const dismissPicker = () =>
     confirmDiscard(pickerSelected.size > 0, () => setPickerOpen(false));
-  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
   useRegisterUnsaved(
     (renameModalOpen && renameValue.trim() !== (folder?.name ?? '').trim()) ||
       (pickerOpen && pickerSelected.size > 0)
@@ -481,7 +480,6 @@ const FolderDetail = ({ route, navigation }) => {
       )}
 
       <Text style={styles.header_tab}>{folder?.name || 'Folder'}</Text>
-      <OfflineBanner />
       {isTrash && (
         <Text style={styles.trashFolder_hint}>
           Recipes here are deleted for good {TRASH_RETENTION_DAYS} days after you delete them.

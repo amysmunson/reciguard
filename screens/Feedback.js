@@ -3,10 +3,10 @@ import { Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
-import { submitFeedback, FEEDBACK_MAX_LENGTH } from '../lib/api/feedback';
+import { submitFeedback, FEEDBACK_MAX_LENGTH } from '../lib/server/api/feedback';
 import ConfirmModal from '../components/ConfirmModal';
-import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
-import { appAlert } from '../lib/dialog';
+import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
+import { appAlert } from '../lib/app/dialog';
 
 // Feedback only — no questions, since submissions aren't replied to. Every
 // row is saved with type 'suggestion' (an existing allowed value of

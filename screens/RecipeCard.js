@@ -19,7 +19,7 @@ import {
 import { colors } from '../styles/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/server/auth-context';
 import {
   getRecipe,
   setRecipeFavorite,
@@ -29,7 +29,7 @@ import {
   deleteRecipesForever,
   trashPurgeDate,
   TRASH_RETENTION_DAYS,
-} from '../lib/api/recipes';
+} from '../lib/server/api/recipes';
 import {
   getActiveAllergyDetails,
   ingredientAllergyInfo,
@@ -37,21 +37,20 @@ import {
   severityBackground,
   severityColor,
   severityLabel,
-} from '../lib/api/allergies';
-import { getMyProfile } from '../lib/api/profile';
-import { loadJson, KEYS, recordRecipeOpened } from '../lib/storage';
-import { cacheRecentRecipe, getCachedRecipe } from '../lib/recipeCache';
-import { useCachedResource } from '../lib/cache';
-import { usePullToRefresh } from '../lib/usePullToRefresh';
-import { alertSaveFailed } from '../lib/connectivity';
-import { normalizeRecipe } from '../lib/recipeItems';
-import { formatMinutes } from '../lib/recipeTimes';
-import { isSafeWebUrl } from '../lib/safeUrl';
-import OfflineBanner from '../components/OfflineBanner';
+} from '../lib/server/api/allergies';
+import { getMyProfile } from '../lib/server/api/profile';
+import { loadJson, KEYS, recordRecipeOpened } from '../lib/app/storage';
+import { cacheRecentRecipe, getCachedRecipe } from '../lib/app/recipeCache';
+import { useCachedResource } from '../lib/app/cache';
+import { usePullToRefresh } from '../lib/server/usePullToRefresh';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { normalizeRecipe } from '../lib/app/recipeItems';
+import { formatMinutes } from '../lib/app/recipeTimes';
+import { isSafeWebUrl } from '../lib/app/safeUrl';
 import ActionMenu from '../components/ActionMenu';
 import FolderPickerModal from '../components/FolderPickerModal';
-import { MULTIPLIERS, formatAmount, scaleIngredient } from '../lib/scaleIngredient';
-import { appAlert } from '../lib/dialog';
+import { MULTIPLIERS, formatAmount, scaleIngredient } from '../lib/app/scaleIngredient';
+import { appAlert } from '../lib/app/dialog';
 
 const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -410,7 +409,6 @@ const RecipeCard = ({ route, navigation }) => {
       <View style={styles.card_headerRow}>
         <Text style={styles.header_card}>{name || 'Untitled'}</Text>
       </View>
-      <OfflineBanner />
 
       {inTrash && (
         <View style={styles.trashBanner}>

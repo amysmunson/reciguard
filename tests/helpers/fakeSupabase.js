@@ -1,11 +1,11 @@
-// Minimal stand-in for the Supabase client used by lib/api/*. Every
+// Minimal stand-in for the Supabase client used by lib/server/api/*. Every
 // supabase.from(table) chain is recorded in `log` as { table, ops: [[method,
 // ...args]] } and resolves to whatever `respond(entry)` returns, so tests can
 // assert which queries were sent and feed back rows.
 //
 // Use from a test with:
-//   jest.mock('../../lib/supabase', () => require('../helpers/fakeSupabase').module);
-//   const fake = require('../helpers/fakeSupabase');
+//   jest.mock('../../lib/server/supabase', () => require('./fakeSupabase').module);
+//   const fake = require('./fakeSupabase');
 const METHODS = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'is', 'not', 'in', 'lt', 'order', 'single'];
 
 const state = {

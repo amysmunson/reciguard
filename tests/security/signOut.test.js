@@ -1,10 +1,10 @@
-jest.mock('../../lib/supabase', () => require('../helpers/fakeSupabase').module);
+jest.mock('../../lib/server/supabase', () => require('../helpers/fakeSupabase').module);
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { signOut, deleteAccount } from '../../lib/api/auth';
-import { updateCachedResource } from '../../lib/cache';
-import { cacheRecentRecipe } from '../../lib/recipeCache';
-import { recordRecipeOpened, saveJson, KEYS } from '../../lib/storage';
-import { setCachingEnabled } from '../../lib/cachePreference';
+import { signOut, deleteAccount } from '../../lib/server/api/auth';
+import { updateCachedResource } from '../../lib/app/cache';
+import { cacheRecentRecipe } from '../../lib/app/recipeCache';
+import { recordRecipeOpened, saveJson, KEYS } from '../../lib/app/storage';
+import { setCachingEnabled } from '../../lib/app/cachePreference';
 import * as fake from '../helpers/fakeSupabase';
 
 const U = fake.state.userId;

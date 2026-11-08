@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigationState } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { TabIcon } from './icons';
-import OfflineBanner from './OfflineBanner';
+import { reportNavBarHeight } from './OfflineBanner';
 
 // Extends each tab's touch target into the otherwise-dead bar around it
 // without changing layout: vertical reaches the bar's padded edges (10px,
@@ -24,6 +24,10 @@ const TABS = [
   { name: 'Settings', label: 'Settings' },
 ];
 
+// Screens that show this bar. App.js uses it to lift the offline banner
+// above the bar on these screens.
+export const TAB_ROUTES = new Set(TABS.filter((t) => !t.route).map((t) => t.name));
+
 const NavigationBar = ({ navigation, onHomePress }) => {
   const activeRoute = useNavigationState((state) => state?.routes?.[state.index]?.name);
 
@@ -32,32 +36,31 @@ const NavigationBar = ({ navigation, onHomePress }) => {
     navigation.navigate(tab.route ?? tab.name);
   };
 
-  // The offline banner sits just above the bar so every tab screen gets it.
   return (
-    <>
-      <OfflineBanner />
-      <View style={styles.bottomNav}>
-        {TABS.map((tab) => {
-          const isActive = activeRoute === tab.name;
-          return (
-            <TouchableOpacity
-              key={tab.name}
-              style={styles.navButton}
-              hitSlop={TAB_HIT_SLOP}
-              onPress={() => go(tab)}
-            >
-              <TabIcon
-                name={tab.name}
-                style={[styles.navButtonIcon, isActive && styles.navButtonIconActive]}
-              />
-              <Text style={[styles.navButtonText, isActive && styles.navButtonTextActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </>
+    <View
+      style={styles.bottomNav}
+      onLayout={(e) => reportNavBarHeight(e.nativeEvent.layout.height)}
+    >
+      {TABS.map((tab) => {
+        const isActive = activeRoute === tab.name;
+        return (
+          <TouchableOpacity
+            key={tab.name}
+            style={styles.navButton}
+            hitSlop={TAB_HIT_SLOP}
+            onPress={() => go(tab)}
+          >
+            <TabIcon
+              name={tab.name}
+              style={[styles.navButtonIcon, isActive && styles.navButtonIconActive]}
+            />
+            <Text style={[styles.navButtonText, isActive && styles.navButtonTextActive]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
   );
 };
 

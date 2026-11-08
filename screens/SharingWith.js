@@ -7,9 +7,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
-import { getSharingWith, revokeMyAccess, blockUser } from '../lib/api/friends';
+import { getSharingWith, revokeMyAccess, blockUser } from '../lib/server/api/friends';
 import ConfirmModal from '../components/ConfirmModal';
-import { appAlert } from '../lib/dialog';
+import { appAlert } from '../lib/app/dialog';
 
 const relativeTime = (iso) => {
   if (!iso) return '';

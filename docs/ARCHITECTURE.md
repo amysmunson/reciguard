@@ -1,26 +1,35 @@
 # Architecture
 
-Recipes is a React Native + Expo (SDK 54) app backed by Supabase (Postgres + Auth).
+Recipes is a React Native + Expo (SDK 58) app backed by Supabase (Postgres + Auth).
 The app stores per-user recipes, organizes them into folders, tracks friends and
 their allergies, and is built to expand into sharing and allergy-aware recipe
 filtering.
 
 **Terminology note:** user-facing text says "dietary needs" (screen titles,
 hints, alerts), but this is a UI-copy-only rename — every identifier in the
-codebase still says "allergy": the `allergies` table/columns, `lib/api/allergies.js`,
+codebase still says "allergy": the `allergies` table/columns, `lib/server/api/allergies.js`,
 `AllergyChecklist`/`AllergyFilterControl`/`AllergyOverview`/`EditAllergies`
 file, component, and route names, `KEYS.homeAllergyFilter`, etc. Don't infer
 from the code's naming that a rename is pending — it isn't; keep new
 identifiers consistent with the existing "allergy" naming and only adjust
 user-visible strings.
 
-The codebase is organized in three layers:
+The codebase is organized in four layers:
 
 1. **Screens** (`screens/`) — what the user sees. Stateless about data
-   persistence; they call into `lib/api/*` and render results.
-2. **Data layer** (`lib/`) — the only place Supabase is touched. Exposes a
-   small set of functions (`getRecipes()`, `createFolder()`, `signOut()`, ...)
-   that screens consume. Screens **never** import `supabase` directly.
+   persistence; they call into `lib/server/api/*` and render results.
+2. **Logic** (`lib/`) — no UI, in two folders:
+   - `lib/server/` — everything that makes a network request: the Supabase
+     client and session, the per-table functions in `lib/server/api/`
+     (`getRecipes()`, `createFolder()`, `signOut()`, ...), the connectivity
+     ping, recipe-link import, and the hooks that load or save through them.
+     The only place Supabase is touched; screens **never** import `supabase`
+     directly.
+   - `lib/app/` — on-device only, never a server call: local storage and
+     caches, dialogs, the unsaved-changes guard, theme, sorting, and the pure
+     recipe helpers (scaling, times, items, safe links). A file belongs here
+     only if nothing in it reaches the network; it may still be handed a
+     server function to call (e.g. `useCachedResource`'s `fetcher`).
 3. **Shared components** (`components/`) — the `NavigationBar` and small
    utilities.
 4. **Styles** (`styles/`) — the single shared `StyleSheet` for the whole app.
@@ -42,36 +51,38 @@ recipes/
 ├── package.json                    # Dependencies (Expo, RN, Supabase, etc.)
 ├── .env.example                    # EXPO_PUBLIC_SUPABASE_URL / _PUBLISHABLE_KEY
 │
-├── lib/                            # Data layer — the ONLY place Supabase is used
-│   ├── supabase.js                 # Single createClient() instance (SecureStore session storage + URL polyfill)
-│   ├── secureStoreAdapter.js       # Chunked expo-secure-store adapter used as the auth session storage above
-│   ├── auth-context.js             # AuthProvider + useAuth() hook (session, user, loading)
-│   ├── storage.js                  # AsyncStorage helpers (loadJson, saveJson) + KEYS registry
-│   ├── cache.js                    # Stale-while-revalidate cache: useCachedResource() + mutateCachedResource() + invalidate()
-│   ├── safeUrl.js                  # isSafeWebUrl(): only http(s) links may be opened from recipe data
-│   ├── cachePreference.js          # Settings "Keep copies on this device": the on/off switch + gated loadCached/saveCached
-│   ├── recipeCache.js              # Full-recipe cache for the 5 most recently opened recipes (offline/instant RecipeCard)
-│   ├── dialog.js                   # appAlert(title, message, buttons) — Alert.alert replacement; dialog queue + host stack
-│   ├── usePullToRefresh.js         # usePullToRefresh(refresh) → <RefreshControl> for lists / ScrollViews
-│   ├── useCacheWarmup.js           # On launch/sign-in: quietly refresh folders, folder memberships, friends, cached recipes
-│   ├── sort.js                     # Shared sort options + sortRecipes/sortFolders + normalizeSort
-│   ├── unsavedChanges.js           # useUnsavedChangesGuard() (leave-screen prompt) + confirmDiscard() (modals)
-│   ├── connectivity.js             # Server ping: useIsOnline(), checkConnection(), alertSaveFailed()
-│   ├── scaleIngredient.js          # Ingredient amount multiplier: scaleIngredient(), formatAmount(), MULTIPLIERS
-│   ├── recipeUrlParser.js          # fetchRecipeFromUrl(): schema.org Recipe JSON-LD → name/ingredients/steps/servings/times (+ sections)
-│   ├── recipeItems.js              # { text, isHeader } ingredient/step items: toItem, normalizeItems, itemTexts, normalizeRecipe
-│   ├── recipeTimes.js              # parseDuration (ISO 8601 → minutes), formatMinutes, resolveTotalMinutes
-│   ├── theme-context.js            # ThemeProvider/useTheme: System/Light/Dark preference, applyColorScheme()
-│   ├── useContrastSetting.js       # High-contrast mode toggle shared by Accessibility + Settings → Display
-│   ├── useHideUnsafe.js            # Settings "hide recipes with dietary conflicts": useHideUnsafe(), applyDietaryVisibility()
-│   └── api/                        # Per-domain functions screens import
-│       ├── auth.js                 # signUp, signIn, signOut, deleteAccount
-│       ├── recipes.js              # recipes CRUD, favorites, duplicate, Trash (trash/restore/delete forever/empty)
-│       ├── folders.js              # folders CRUD + recipe-folder mapping
-│       ├── friends.js              # friendships CRUD + block/revoke shared access
-│       ├── profile.js              # profile read/update
-│       ├── allergies.js            # per-user and per-friend allergy CRUD
-│       └── feedback.js             # submitFeedback (submit-only)
+├── lib/                            # Logic with no UI, split by whether it talks to a server
+│   ├── server/                     # Anything that makes a network request (the ONLY place Supabase is used)
+│   │   ├── supabase.js             # Single createClient() instance (SecureStore session storage + URL polyfill)
+│   │   ├── secureStoreAdapter.js   # Chunked expo-secure-store adapter used as the auth session storage above
+│   │   ├── auth-context.js         # AuthProvider + useAuth() hook (session, user, loading)
+│   │   ├── connectivity.js         # Server ping: useIsOnline(), checkConnection(), alertSaveFailed()
+│   │   ├── recipeUrlParser.js      # fetchRecipeFromUrl(): downloads a recipe page → name/ingredients/steps/servings/times (+ sections)
+│   │   ├── useCacheWarmup.js       # On launch/sign-in: quietly refresh folders, folder memberships, friends, cached recipes
+│   │   ├── useContrastSetting.js   # High-contrast mode toggle (saved to the profile) shared by Accessibility + Settings → Display
+│   │   ├── usePullToRefresh.js     # usePullToRefresh(refresh) → <RefreshControl>; also re-pings the server
+│   │   └── api/                    # Per-table database functions screens import
+│   │       ├── auth.js             # signUp, signIn, signOut, deleteAccount
+│   │       ├── recipes.js          # recipes CRUD, favorites, duplicate, Trash (trash/restore/delete forever/empty)
+│   │       ├── folders.js          # folders CRUD + recipe-folder mapping
+│   │       ├── friends.js          # friendships CRUD + block/revoke shared access
+│   │       ├── profile.js          # profile read/update
+│   │       ├── allergies.js        # per-user and per-friend allergy CRUD
+│   │       └── feedback.js         # submitFeedback (submit-only)
+│   └── app/                        # On-device only: never makes a server call
+│       ├── storage.js              # AsyncStorage helpers (loadJson, saveJson) + KEYS registry
+│       ├── cache.js                # Stale-while-revalidate cache: useCachedResource() + mutateCachedResource() + invalidate()
+│       ├── cachePreference.js      # Settings "Keep copies on this device": the on/off switch + gated loadCached/saveCached
+│       ├── recipeCache.js          # Full-recipe cache for the 5 most recently opened recipes (offline/instant RecipeCard)
+│       ├── dialog.js               # appAlert(title, message, buttons) — Alert.alert replacement; dialog queue + host stack
+│       ├── unsavedChanges.js       # useUnsavedChangesGuard() (leave-screen prompt) + confirmDiscard() (modals)
+│       ├── theme-context.js        # ThemeProvider/useTheme: System/Light/Dark preference, applyColorScheme()
+│       ├── useHideUnsafe.js        # Settings "hide recipes with dietary conflicts": useHideUnsafe(), applyDietaryVisibility()
+│       ├── sort.js                 # Shared sort options + sortRecipes/sortFolders + normalizeSort
+│       ├── scaleIngredient.js      # Ingredient amount multiplier: scaleIngredient(), formatAmount(), MULTIPLIERS
+│       ├── recipeItems.js          # { text, isHeader } ingredient/step items: toItem, normalizeItems, itemTexts, normalizeRecipe
+│       ├── recipeTimes.js          # parseDuration (ISO 8601 → minutes), formatMinutes, resolveTotalMinutes
+│       └── safeUrl.js              # isSafeWebUrl(): only http(s) links may be opened from recipe data
 │
 ├── screens/                        # Stack screens — one file per route
 │   │
@@ -101,9 +112,9 @@ recipes/
 │   └── Accessibility.js            # High-contrast mode toggle tied to profile settings
 │
 ├── components/                     # Shared UI + utilities (NOT screens)
-│   ├── NavigationBar.js            # Bottom tab bar with active-tab highlight (+ OfflineBanner above it)
+│   ├── NavigationBar.js            # Bottom tab bar with active-tab highlight
 │   ├── StatusBarBackdrop.js        # Fixed strip behind the status bar (safe-area top inset); hidden on Landing
-│   ├── OfflineBanner.js            # "You're offline" strip; renders nothing while the server is reachable
+│   ├── OfflineBanner.js            # Floating "You're offline" strip (App.js + AppModal); nothing while online
 │   ├── AllergyChecklist.js         # Group/individual/custom allergen picker — instant add/remove, used by EditAllergies
 │   ├── AllergyFilterControl.js     # Shared "which profiles' allergies matter" trigger+popup (Home, FolderDetail)
 │   ├── ConfirmModal.js             # Declarative confirm dialog (discard prompts) — built on DialogCard
@@ -181,10 +192,10 @@ be safely removed if/when you confirm nothing pulls it in.
 | `react-native` | Native primitives (View, Text, ScrollView, etc.). |
 | `@react-navigation/native` | Navigator root + hooks (`useFocusEffect`, etc.) in [App.js](App.js) and screens. |
 | `@react-navigation/native-stack` | Auth stack and app stack in [App.js](App.js) (`createNativeStackNavigator`) — native platform transitions and swipe-back via `react-native-screens`. Replaced `@react-navigation/stack`, whose JS card animations call React Native's deprecated `InteractionManager` on every transition ("InteractionManager has been deprecated" warning; still present in its latest 7.x). Supports everything the app uses: `headerShown: false`, `animation: 'none'` (tab screens), `gestureEnabled: false` (EditRecipe and the four nav-bar screens — `TAB_SCREEN_OPTIONS`), and `usePreventRemove` (it blocks the iOS swipe natively via `preventNativeDismiss`). |
-| `@supabase/supabase-js` | The Postgres + Auth client — initialized once in [lib/supabase.js](lib/supabase.js). |
-| `@react-native-async-storage/async-storage` | Storage for the non-sensitive per-user filter/sort persistence in [lib/storage.js](lib/storage.js) (recipe caches, sort order, allergy-filter selections) — not the auth session, see `expo-secure-store` below. |
-| `expo-secure-store` | Backs [lib/secureStoreAdapter.js](lib/secureStoreAdapter.js), the Supabase auth session storage adapter — puts the access/refresh token in the OS Keychain (iOS) / encrypted storage (Android) instead of plain AsyncStorage. Values are chunked across multiple SecureStore items since a single item is capped around 2048 bytes and a full session (tokens + user metadata) can exceed that. |
-| `react-native-url-polyfill` | Side-effect import in [lib/supabase.js](lib/supabase.js) — Supabase needs URL globals that RN doesn't ship. |
+| `@supabase/supabase-js` | The Postgres + Auth client — initialized once in [lib/server/supabase.js](lib/server/supabase.js). |
+| `@react-native-async-storage/async-storage` | Storage for the non-sensitive per-user filter/sort persistence in [lib/app/storage.js](lib/app/storage.js) (recipe caches, sort order, allergy-filter selections) — not the auth session, see `expo-secure-store` below. |
+| `expo-secure-store` | Backs [lib/server/secureStoreAdapter.js](lib/server/secureStoreAdapter.js), the Supabase auth session storage adapter — puts the access/refresh token in the OS Keychain (iOS) / encrypted storage (Android) instead of plain AsyncStorage. Values are chunked across multiple SecureStore items since a single item is capped around 2048 bytes and a full session (tokens + user metadata) can exceed that. |
+| `react-native-url-polyfill` | Side-effect import in [lib/server/supabase.js](lib/server/supabase.js) — Supabase needs URL globals that RN doesn't ship. |
 | `react-native-svg` | Used by `components/LandingCard*.js` for the decorative title shapes and by `components/icons/*.js` for the custom Heroicons-style glyphs (Plus / Search / Sort). |
 | `@expo/vector-icons` | Provides the `Ionicons` and `FontAwesome` font sets, imported as `@expo/vector-icons/Ionicons` and `/FontAwesome`. Direct imports are confined to [components/icons/index.js](components/icons/index.js); every screen consumes semantic wrappers (e.g. `<TrashIcon>`, `<BackIcon>`) from the registry instead. (The registry used to import `react-native-vector-icons`, but Expo's Metro config and `jest-expo` both silently redirect that name to `@expo/vector-icons`, so that package was never actually loaded. It was removed 2026-11-07.) |
 | `expo-clipboard` | `setStringAsync` — long-press-to-copy on the friend code in `Profile.js`. |
@@ -197,7 +208,8 @@ be safely removed if/when you confirm nothing pulls it in.
 |---|---|
 | `react-native-screens` | Peer of `@react-navigation/native-stack` (native screen primitives and swipe-back). |
 | `react-native-safe-area-context` | Peer of `@react-navigation/native-stack`; also used directly by `App.js` and `StatusBarBackdrop`. |
-| `expo-font` | Peer of `@expo/vector-icons` (loads the icon fonts). |
+| `expo-font` | Peer of `@expo/vector-icons` (loads the icon fonts). Listed in `app.json` plugins (re-added by the SDK 58 upgrade). |
+| `expo-asset` | Required by `expo-font` 58. Installed directly because npm otherwise nests it inside `expo/`, where `expo-font` can't resolve it (Jest failed with "Cannot find module 'expo-asset'"). Also in `app.json` plugins. |
 | `expo-splash-screen` | Splash image, configured as a plugin in `app.json`. |
 | `expo-system-ui` | Needed for `userInterfaceStyle: "automatic"` on Android, and sets the root background color. |
 
@@ -206,7 +218,7 @@ be safely removed if/when you confirm nothing pulls it in.
 These came from `npx create-expo-app` or earlier versions of the app, and
 nothing imported them. They were uninstalled, and their `app.json` plugins
 dropped (`expo-sqlite`, `expo-web-browser`, `expo-image`, plus the no-op
-`expo-font` entry). If you need one again, add it with `npx expo install`.
+`expo-font` entry, which the SDK 58 upgrade later added back). If you need one again, add it with `npx expo install`.
 
 | Package | Why it was unused |
 |---|---|
@@ -234,7 +246,7 @@ dropped (`expo-sqlite`, `expo-web-browser`, `expo-image`, plus the no-op
 
 ### Upgrade discipline
 
-- Always install or update packages via `npx expo install <pkg>` — never `npm install <pkg>` for anything Expo-aware. Expo picks the SDK-54-compatible version, which avoids subtle runtime issues from version drift.
+- Always install or update packages via `npx expo install <pkg>` — never `npm install <pkg>` for anything Expo-aware. Expo picks the SDK-compatible version, which avoids subtle runtime issues from version drift.
 - `npx expo install --check` periodically; `npx expo install --fix` to bring everything to expected versions when the SDK gets a patch bump.
 - Never bundle the Supabase **service-role key**. Only `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the anon key) go in the client. The service-role key in `.env.local` is for tooling/scripts only, never imported into app code.
 
@@ -242,19 +254,19 @@ dropped (`expo-sqlite`, `expo-web-browser`, `expo-image`, plus the no-op
 
 ## Layer responsibilities
 
-### `lib/supabase.js` — the client
+### `lib/server/supabase.js` — the client
 
 One file, one `createClient()` call, configured for React Native:
 
-- Uses [lib/secureStoreAdapter.js](lib/secureStoreAdapter.js) (backed by `expo-secure-store`, not `AsyncStorage`) to persist the session across app restarts, so the access/refresh token sit in the OS Keychain/encrypted storage rather than a plain on-disk file.
+- Uses [lib/server/secureStoreAdapter.js](lib/server/secureStoreAdapter.js) (backed by `expo-secure-store`, not `AsyncStorage`) to persist the session across app restarts, so the access/refresh token sit in the OS Keychain/encrypted storage rather than a plain on-disk file.
 - Imports `react-native-url-polyfill/auto` (required for Supabase in RN).
 - Reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
   from `.env.local`.
 
 Nothing else in the app should import `@supabase/supabase-js` — they import
-from `lib/api/*` instead.
+from `lib/server/api/*` instead.
 
-### `lib/auth-context.js` — session state
+### `lib/server/auth-context.js` — session state
 
 Wraps the whole app in `<AuthProvider>`. Exposes `useAuth()` returning
 `{ session, user, loading }`. Subscribes to `supabase.auth.onAuthStateChange`
@@ -263,7 +275,7 @@ the entire app re-renders against the new session state. That re-render is
 what flips the navigator between `AuthStack` and `AppStack` automatically —
 there is no manual `navigation.navigate('Home')` after sign-in.
 
-### `lib/api/*` — per-domain data functions
+### `lib/server/api/*` — per-domain data functions
 
 Each file is a flat set of async functions. They:
 
@@ -278,14 +290,14 @@ Each file is a flat set of async functions. They:
 - **Bust the cache after mutations.** Every write (`createFolder`,
   `updateRecipe`, `deleteFriend`, …) calls a small `bust*Caches()` helper after
   the DB succeeds, which calls `invalidate(resource, userId)` from
-  [lib/cache.js](lib/cache.js). This forces any mounted `useCachedResource`
+  [lib/app/cache.js](lib/app/cache.js). This forces any mounted `useCachedResource`
   hooks for that resource to refetch and drops the stale on-disk snapshot. The
   profile flow also uses `mutateCachedResource('profile', userId, nextValue)`
   so the Accessibility toggle updates instantly before the Supabase write
   completes. The resource keys in use today are `'recipes'`, `'folders'`,
   `'friends'`, and `'profile'`.
-- **One exception to "call `lib/api/*` directly per action":**
-  [lib/api/allergies.js](lib/api/allergies.js)'s `syncAllergies({ original,
+- **One exception to "call `lib/server/api/*` directly per action":**
+  [lib/server/api/allergies.js](lib/server/api/allergies.js)'s `syncAllergies({ original,
   updated, friendId })`. The EditAllergies screen (see Feature notes) edits
   a local, unsaved copy of the allergy list; `syncAllergies` diffs that
   local copy against what was originally loaded and, when the user hits
@@ -307,7 +319,7 @@ Each file is a flat set of async functions. They:
   that check even though the row already exists.
 
 When you need a new piece of data, add a function to the appropriate file (or
-a new file under `lib/api/`). Don't query Supabase from a screen.
+a new file under `lib/server/api/`). Don't query Supabase from a screen.
 
 ### `screens/*` — the UI
 
@@ -315,20 +327,20 @@ Each screen is a default-exported React component that:
 
 - Reads params via `route.params` (e.g. `recipeId`, `folderId`, `friendshipId`).
 - Reads list data through the `useCachedResource()` hook from
-  [lib/cache.js](lib/cache.js) where a cached, focus-refreshed snapshot is
+  [lib/app/cache.js](lib/app/cache.js) where a cached, focus-refreshed snapshot is
   wanted (Home → recipes, Folders → folders, Friends → friends + profile name).
   The hook owns the fetch/refresh/invalidation lifecycle, so these screens no
   longer keep their own `useState` list + manual `load()` in `useFocusEffect`.
-- Still calls `lib/api/*` directly inside `useFocusEffect`/`useEffect` for data
+- Still calls `lib/server/api/*` directly inside `useFocusEffect`/`useEffect` for data
   that isn't cache-backed (e.g. Home's opened-map and active-allergy details).
 - The Accessibility screen also uses the profile cache, but writes the
   `contrast` field optimistically so the switch responds immediately before the
   Supabase update finishes.
 - Renders styles from `styles/main_style.js`.
 - Calls `navigation.navigate(...)` for transitions.
-- Uses `appAlert()` ([lib/dialog.js](lib/dialog.js)) for errors and confirms —
+- Uses `appAlert()` ([lib/app/dialog.js](lib/app/dialog.js)) for errors and confirms —
   never the native `Alert` (see "Dialogs"). Failed **saves** go through
-  `alertSaveFailed()` from [lib/connectivity.js](lib/connectivity.js) instead
+  `alertSaveFailed()` from [lib/server/connectivity.js](lib/server/connectivity.js) instead
   (see "Offline banner & failed saves").
 
 Screens never import `supabase`.
@@ -342,9 +354,9 @@ own: its `route` is `InputSelector`, the start of the add-recipe flow. No
 recipe row exists until Save in EditRecipe. Home passes `onHomePress` to clear
 its search when Home is tapped again.
 
-It also renders [components/OfflineBanner.js](components/OfflineBanner.js)
-directly above the bar, so every tab screen gets the offline warning without
-each screen adding it.
+It reports its measured height to [components/OfflineBanner.js](components/OfflineBanner.js)
+(`reportNavBarHeight`) and exports `TAB_ROUTES`, so App.js can float the
+offline banner right on top of the bar on these screens.
 
 ### `components/SortMenu.js`
 
@@ -359,7 +371,7 @@ Props (small, intentionally generic):
 |---|---|---|
 | `visible` | `boolean` | whether the menu is shown |
 | `onClose` | `() => void` | called on backdrop tap |
-| `options` | `[{ id, label }]` | the sort keys to render — pass `RECIPE_SORT_OPTIONS` or `FOLDER_SORT_OPTIONS` from [lib/sort.js](../lib/sort.js), or a custom list |
+| `options` | `[{ id, label }]` | the sort keys to render — pass `RECIPE_SORT_OPTIONS` or `FOLDER_SORT_OPTIONS` from [lib/app/sort.js](../lib/app/sort.js), or a custom list |
 | `sort` | `{ by, dir }` | current selection |
 | `onChange` | `(next) => void` | called when the user picks a row or flips the direction |
 | `popdownStyle` | object | optional style override (FolderDetail uses this to anchor the popdown to its own action button) |
@@ -427,7 +439,7 @@ variant (dramatic concave dips approaching the top/bottom peaks).
 points and convex curves throughout). Swap one for the other by changing a
 single import in [screens/Landing.js](screens/Landing.js).
 
-### `lib/storage.js`
+### `lib/app/storage.js`
 
 AsyncStorage helpers. `loadJson`, `saveJson`, `removeKey` are generic
 wrappers. `KEYS` is the registry of per-user storage keys — all currently
@@ -446,13 +458,13 @@ state:
 - `KEYS.homeSort(userId)` — last-chosen sort selection for Home, stored as
   a `{ by, dir }` object (e.g. `{ by: 'opened_at', dir: 'desc' }`). Legacy
   installs that saved a bare string (`"created_at"`) are migrated lazily
-  by `normalizeSort()` in [lib/sort.js](../lib/sort.js).
+  by `normalizeSort()` in [lib/app/sort.js](../lib/app/sort.js).
 - `KEYS.foldersSort(userId)` — same shape, for the **Folders** grid.
 - `KEYS.folderRecipesSort(userId)` — same shape, applied to recipes
   rendered **inside** any folder on FolderDetail.
 - `KEYS.recipeOpenedAt(userId)` — map of `{ recipeId: ISO timestamp }`
   for the "Recently opened" sort. Also decides which recipes
-  [lib/recipeCache.js](lib/recipeCache.js) keeps.
+  [lib/app/recipeCache.js](lib/app/recipeCache.js) keeps.
 
 Plus two domain helpers built on the generic ones:
 
@@ -463,7 +475,7 @@ Plus two domain helpers built on the generic ones:
 - `getRecipeOpenedMap(userId)` — read the full map. Called from Home on
   focus.
 
-### `lib/sort.js` — shared sort logic
+### `lib/app/sort.js` — shared sort logic
 
 Pure-JS module that owns everything about how lists are sorted on Home,
 Folders, and FolderDetail. Screens import options + a `sortRecipes` /
@@ -500,10 +512,10 @@ Adding a new sort option is one entry in `RECIPE_SORT_OPTIONS` or
 `FOLDER_SORT_OPTIONS` plus a branch in the matching `recipeKey` /
 `folderKey` helper inside this file. Screens pick it up automatically.
 
-### `lib/cache.js` — stale-while-revalidate cache
+### `lib/app/cache.js` — stale-while-revalidate cache
 
 A small client-side cache that lets list screens paint instantly from the last
-known data while a fresh fetch runs in the background. Built on `lib/storage.js`
+known data while a fresh fetch runs in the background. Built on `lib/app/storage.js`
 (AsyncStorage) for the persisted snapshot plus an in-memory pub/sub registry for
 live invalidation. Two exports:
 
@@ -524,7 +536,7 @@ live invalidation. Two exports:
   an inline async closure (e.g. Friends fetches friends + profile in one
   `Promise.all`) without re-subscribing on every render.
 
-- **`invalidate(resource, userId)`** — called by the `lib/api/*` write helpers
+- **`invalidate(resource, userId)`** — called by the `lib/server/api/*` write helpers
   after a mutation. Removes the on-disk snapshot (so a cold start doesn't flash
   deleted data) and notifies every mounted hook for that resource to refetch.
 
@@ -548,7 +560,7 @@ Two non-hook helpers:
   background; only if the data changed, save it and push it to mounted
   hooks. Throws on failure (callers stay quiet).
 
-**Launch warm-up** — [lib/useCacheWarmup.js](lib/useCacheWarmup.js) runs
+**Launch warm-up** — [lib/server/useCacheWarmup.js](lib/server/useCacheWarmup.js) runs
 once per signed-in session from `AppStack` in [App.js](App.js). It
 prefetches `folders`, `folderMembers`, and `friends` (Home already fetches
 `recipes` and `profile` itself) and calls `refreshAllCachedRecipes()` so the
@@ -561,7 +573,7 @@ are silent; every screen still refetches when opened.
 |---|---|---|
 | FolderDetail | cached `recipes` list filtered by cached `folderMembers` (`{ folderId: [recipeId] }`, ids only, from `getFolderMemberships()`) | `getFolder` + `getRecipesInFolder`; state only replaced if different |
 | Profile | cached `profile` | `getMyProfile` + `getMyAllergies` |
-| RecipeCard | `lib/recipeCache.js` (5 most recent) | `getRecipe`; only re-renders if different |
+| RecipeCard | `lib/app/recipeCache.js` (5 most recent) | `getRecipe`; only re-renders if different |
 
 Profile shows the cached copy **read-only**: the Edit button is disabled
 until server data arrives, so edits never start from (or save over) a stale
@@ -575,7 +587,7 @@ name, else your name for them) — enough to open the right friend and show
 their name instantly. Notes, your dietary-need notes for them, and their own
 shared dietary needs are **never cached**; they always come from the server.
 
-- On open, `getCachedFriendIdentity()` ([lib/api/friends.js](lib/api/friends.js))
+- On open, `getCachedFriendIdentity()` ([lib/server/api/friends.js](lib/server/api/friends.js))
   supplies the name — from `friendNames`, or, for a friend not opened before,
   from the cached friends list — and the screen shows it with "Loading
   details…" while `getFriend` + the allergy lists load. Every open and focus
@@ -593,7 +605,7 @@ EditRecipe deliberately loads from the server only — editing a
 cached copy could save over newer changes.
 
 `folderMembers` is invalidated by every folder/mapping mutation in
-[lib/api/folders.js](lib/api/folders.js) (via `bustFolderCaches`).
+[lib/server/api/folders.js](lib/server/api/folders.js) (via `bustFolderCaches`).
 
 **Keeping the recipe list light.** The `recipes` resource (Home) is
 `getRecipes()`, which selects only `id`, `name`, `photo`, `is_favorite`,
@@ -609,15 +621,15 @@ excluded.
 
 Settings → Data → **Keep copies on this device** (default on; stored per
 device as `app.cachingEnabled`, kept across sign-out).
-[lib/cachePreference.js](lib/cachePreference.js) is the single switch:
+[lib/app/cachePreference.js](lib/app/cachePreference.js) is the single switch:
 
 - `loadCached` / `saveCached` replace `loadJson` / `saveJson` for every
-  cache key in `lib/cache.js` and `lib/recipeCache.js`. With caching off,
+  cache key in `lib/app/cache.js` and `lib/app/recipeCache.js`. With caching off,
   reads return the fallback and writes are skipped (checked at write time,
   so a fetch finishing after the switch flips writes nothing). Hooks still
   fetch and share data in memory, so screens work normally — they just
   always load from the server.
-- `applyCachingPreference(enabled, userId)` in `lib/cache.js` sets the flag
+- `applyCachingPreference(enabled, userId)` in `lib/app/cache.js` sets the flag
   and, when turning it off, calls `clearUserCache(userId)` immediately.
 - `useCacheWarmup` does nothing while it's off.
 - Reads wait for the saved setting to load at startup, so a cache-off device
@@ -628,7 +640,7 @@ device as `app.cachingEnabled`, kept across sign-out).
   server answers, FriendProfile has nothing to fall back to after 2 s, and
   recipes can't be opened offline.
 
-### `lib/recipeCache.js` — recently opened recipes
+### `lib/app/recipeCache.js` — recently opened recipes
 
 Full recipes are cached only for the **5 most recently opened**
 (`RECENT_RECIPE_LIMIT`), ranked by the `KEYS.recipeOpenedAt` map. Each is its
@@ -649,7 +661,7 @@ sign-out don't have to scan all keys. Index updates run one at a time.
   ids from the opens map. Favoriting refreshes cached copies.
 - **Older cached copies** (from before section headers/times) hold plain
   string ingredients/steps; RecipeCard passes them through
-  `normalizeRecipe()` ([lib/recipeItems.js](lib/recipeItems.js)) first.
+  `normalizeRecipe()` ([lib/app/recipeItems.js](lib/app/recipeItems.js)) first.
 - **Sign-out / account deletion** — `clearUserCache()` calls
   `clearCachedRecipes()`.
 
@@ -659,7 +671,7 @@ show up on the next successful fetch.
 ### Pull to refresh
 
 Cached data is only what paints first: every screen still calls the server
-when it opens/regains focus, and [lib/usePullToRefresh.js](lib/usePullToRefresh.js)
+when it opens/regains focus, and [lib/server/usePullToRefresh.js](lib/server/usePullToRefresh.js)
 adds a manual pull-down refetch on top. `usePullToRefresh(refresh)` returns a
 `<RefreshControl>` for a FlatList/ScrollView's `refreshControl` prop; the
 spinner runs until `refresh()` settles, and `checkConnection()` runs
@@ -800,7 +812,7 @@ Home's top region is a single inline action bar sitting **below** the
   the native iOS × inside the input for one-tap clear.
 - **Sort** opens the shared `SortMenu` popdown (not a centered modal)
   anchored below the sort button. The available options come from
-  `RECIPE_SORT_OPTIONS` in [lib/sort.js](../lib/sort.js): *Date added*
+  `RECIPE_SORT_OPTIONS` in [lib/app/sort.js](../lib/app/sort.js): *Date added*
   (`created_at`), *Last edited* (`updated_at`), *Recently opened*
   (`opened_at`), *Alphabetical* (`name`). A divider below the options
   separates the ascending/descending direction toggle, so any sort key
@@ -813,7 +825,7 @@ Home's top region is a single inline action bar sitting **below** the
   + severity-aware warnings" below).
 
 **Sort logic.** All ordering math lives in
-[lib/sort.js](../lib/sort.js); the screens just call
+[lib/app/sort.js](../lib/app/sort.js); the screens just call
 `sortRecipes(recipesData, sort, openedMap)` and render the result.
 `createdAt` / `updatedAt` come straight off the Supabase row;
 `opened_at` is looked up from the in-memory copy of
@@ -843,14 +855,14 @@ visual is a single-file edit.
 
 The pieces:
 
-- **[lib/sort.js](../lib/sort.js)** owns options, defaults, the
+- **[lib/app/sort.js](../lib/app/sort.js)** owns options, defaults, the
   `normalizeSort()` back-compat shim, and the pure `sortRecipes` /
   `sortFolders` functions. See the layer-responsibilities section above
   for the full API.
 - **[components/SortMenu.js](../components/SortMenu.js)** is the
   pop-down UI. It's stateless about persistence — the parent screen
   owns `useState`.
-- **AsyncStorage keys** (in [lib/storage.js](../lib/storage.js)) keep
+- **AsyncStorage keys** (in [lib/app/storage.js](../lib/app/storage.js)) keep
   each screen's selection per-user:
   - `KEYS.homeSort(userId)` — Home recipes
   - `KEYS.foldersSort(userId)` — Folders grid
@@ -874,7 +886,7 @@ popdown correctly.
 **Adding a new sort key** (e.g. "Most ingredients" on recipes):
 
 1. Add `{ id: 'ingredient_count', label: 'Most ingredients' }` to
-   `RECIPE_SORT_OPTIONS` in `lib/sort.js`.
+   `RECIPE_SORT_OPTIONS` in `lib/app/sort.js`.
 2. Add a branch to `recipeKey()` returning the value to compare on.
 3. Done — Home and FolderDetail pick it up automatically; the
    AsyncStorage migration is also automatic.
@@ -891,7 +903,7 @@ selection mode:
   modal — picks one folder and adds all selected recipes via
   `addRecipesToFolder`) and "Move to Trash" (bulk `trashRecipes`).
 - On **Folders**: the bulk action is "Delete" (bulk `deleteFolders` from
-  [lib/api/folders.js](lib/api/folders.js)) — the confirm alert calls out
+  [lib/server/api/folders.js](lib/server/api/folders.js)) — the confirm alert calls out
   that recipes inside the deleted folders are not deleted, only the
   folders and their recipe-folder mappings.
 - On **FolderDetail**: the bulk action is "Remove from folder" via
@@ -912,7 +924,7 @@ actions on the folder currently being viewed:
 - **Rename folder** — opens a `surface_modal` prompt (same shape as
   Folders' "New Folder" modal) pre-filled with the current name. Save
   calls `updateFolder(folderId, { name })` from
-  [lib/api/folders.js](lib/api/folders.js) and updates local `folder`
+  [lib/server/api/folders.js](lib/server/api/folders.js) and updates local `folder`
   state immediately so the header reflects the new name without waiting
   on a refetch. Disabled while the trimmed input is empty.
 - **Delete folder** — confirm-and-delete via `deleteFolder`, then
@@ -952,7 +964,7 @@ screen (see "Editing allergies" below) via a 4-way per-row choice, not
 inline on Profile/FriendProfile anymore. Severity rank is
 `severe > moderate > mild > unknown`, and colors are red / orange / yellow
 / gray respectively (see `severityColor()` in
-[lib/api/allergies.js](lib/api/allergies.js)).
+[lib/server/api/allergies.js](lib/server/api/allergies.js)).
 
 **Data flow.** `getActiveAllergyDetails({ includeSelf, friendshipIds, myName })`
 returns one row per `(profile, allergy)`:
@@ -1058,7 +1070,7 @@ plain `goBack()`.
 
 The Accessibility screen and Settings → Display both toggle
 `profiles.contrast` on and off, through one shared hook,
-[lib/useContrastSetting.js](lib/useContrastSetting.js), so the two switches
+[lib/server/useContrastSetting.js](lib/server/useContrastSetting.js), so the two switches
 always agree. That value is
 cached in the `profile` resource, so the switch updates immediately by mutating
 the cached profile first and then syncing the change to Supabase.
@@ -1089,7 +1101,7 @@ current allergy list and (for FriendProfile) the `friendId`:
 local working copy (`items` state) seeded from `route.params.allergies`;
 adding, removing, or changing a severity only touches that local copy.
 Hitting Save (top right) calls `syncAllergies({ original:
-initialAllergies, updated: items, friendId })` (see the `lib/api/*` note
+initialAllergies, updated: items, friendId })` (see the `lib/server/api/*` note
 above) — which does the actual Supabase writes — then `goBack()`. Leaving
 any other way (back button, swipe, Android back) with a changed list shows
 the "Discard changes?" prompt — see "Unsaved-changes guard". Dirty is an
@@ -1282,7 +1294,7 @@ When a friendship is linked:
   time so the row has a label even if the linked profile later disappears.
 - The display name resolves as: live `linkedProfile.name` →
   snapshot `friend_name` → "Unnamed" (see `friendDisplayName()` in
-  `lib/api/friends.js`).
+  `lib/server/api/friends.js`).
 - The friend's public `profile.notes` becomes readable to the user.
 - The friend's own personal allergies are unioned into the Home allergy
   filter when that friend is selected.
@@ -1366,14 +1378,14 @@ only missing piece was a client-side way to resolve a friend code to a user
 id without going through an existing friendship first. `BlockedUsers.js`'s
 "Block by Code" button opens a modal (same shape as `Friends.js`'s
 add-by-code step) and calls a new `blockUserByCode(code)` in
-[lib/api/friends.js](lib/api/friends.js), which resolves the code via the
+[lib/server/api/friends.js](lib/server/api/friends.js), which resolves the code via the
 same `lookupProfileByFriendCode`/`lookup_friend_code` RPC `addFriendByCode`
 uses, then calls `blockUser(profile.id)` directly — no friendship, no prior
 sharing, no `SharedWith`/`SharingWith` entry required first.
 
 ### Unsaved-changes guard
 
-[lib/unsavedChanges.js](lib/unsavedChanges.js) has two helpers:
+[lib/app/unsavedChanges.js](lib/app/unsavedChanges.js) has two helpers:
 
 - **`useUnsavedChangesGuard({ navigation, isDirty })`** — for stack screens.
   Built on React Navigation's `usePreventRemove`, so it catches *every* way a
@@ -1397,7 +1409,7 @@ sharing, no `SharedWith`/`SharingWith` entry required first.
 
 ### Offline banner & failed saves
 
-[lib/connectivity.js](lib/connectivity.js) tracks server reachability
+[lib/server/connectivity.js](lib/server/connectivity.js) tracks server reachability
 app-wide by pinging Supabase's `/auth/v1/health` (5 s timeout). Any HTTP
 response below 500 counts as online; a network error, timeout, or 5xx
 counts as offline. Polling runs only while something is subscribed via
@@ -1405,16 +1417,27 @@ counts as offline. Polling runs only while something is subscribed via
 banner clears quickly — plus an immediate check whenever the app returns to
 the foreground. Concurrent checks share one request.
 
-- [components/OfflineBanner.js](components/OfflineBanner.js) renders above
-  the bottom nav (all tab screens) and under the title on RecipeCard,
-  EditRecipe, EditAllergies, Profile, FriendProfile, and FolderDetail.
+- [components/OfflineBanner.js](components/OfflineBanner.js) is mounted in
+  only two places, so no screen or popup has to add it:
+  - **App.js**, over the whole navigator. Every screen gets it, including
+    auth screens, InputSelector, Feedback, and SharingWith.
+  - **AppModal**, inside every popup, because a native modal covers the root
+    one. This is the same reason AppModal mounts its own `DialogHost`.
+
+  It floats over the content instead of taking layout space, since screens
+  hard-code their top spacing. It also has `pointerEvents="none"`, so the
+  list under it still scrolls and taps pass through. On the four tab screens
+  (`TAB_ROUTES`, picked by App.js's current route name) it sits flush on top
+  of the NavigationBar, using the bar's measured height. Everywhere else it's
+  pinned to the bottom edge and padded past the home indicator. While typing,
+  the keyboard covers it, and a failed save still shows `alertSaveFailed`.
 - `alertSaveFailed(err, title)` replaces the plain error alert on recipe,
   dietary needs, profile, and folder saves. It always says the changes were
   **not** saved; if the error looks like a network failure *or* a fresh ping
   fails, it shows "You're offline … stay on this page and try again once
   you're reconnected" instead. The re-ping matters because offline failures
   don't always look like network errors — `requireUser()` in
-  `lib/api/recipes.js` surfaces a failed auth check as "Not signed in".
+  `lib/server/api/recipes.js` surfaces a failed auth check as "Not signed in".
 
 ### Servings
 
@@ -1424,7 +1447,7 @@ NULL means not filled in: the recipe card doesn't show it, and the multiplier
 works as if it were 1 (amounts scale; there's just no servings line).
 
 - **Link import** — `parseServings()` in
-  [lib/recipeUrlParser.js](lib/recipeUrlParser.js) reads schema.org
+  [lib/server/recipeUrlParser.js](lib/server/recipeUrlParser.js) reads schema.org
   `recipeYield`, which sites publish as a number, a string ("Serves 4-6"), an
   array (`["4", "4 servings"]`), or a `QuantitativeValue`. It takes the first
   count (a range uses its low end, decimals round), preferring an array entry
@@ -1441,7 +1464,7 @@ works as if it were 1 (amounts scale; there's just no servings line).
 ### Ingredient amount multiplier
 
 RecipeCard shows ½× / 1× / 2× / 3× chips beside the Ingredients header.
-[lib/scaleIngredient.js](lib/scaleIngredient.js) scales only the **leading**
+[lib/app/scaleIngredient.js](lib/app/scaleIngredient.js) scales only the **leading**
 amount of each line — integers, decimals, `1/2`, mixed `1 1/2`, unicode `½` /
 `1½`, and ranges (`2-3`, `2 to 3`) — and formats results as common cooking
 fractions (⅛ ⅙ ¼ ⅓ ⅜ ½ ⅝ ⅔ ¾ ⅚ ⅞) or a 2-place decimal. Lines without a
@@ -1506,7 +1529,7 @@ Ingredients and steps can be split into sections ("For the sauce"). A
 header is a normal row in `recipe_ingredients` / `recipe_steps` with
 `is_header = true`; its text is the section name and its position orders
 it. Full recipes carry `{ text, isHeader }` items
-([lib/recipeItems.js](lib/recipeItems.js)); list summaries drop headers so
+([lib/app/recipeItems.js](lib/app/recipeItems.js)); list summaries drop headers so
 they never trigger allergy dots.
 
 - **Manual** — EditRecipe has an "Add Section" button next to "Add
@@ -1548,7 +1571,7 @@ what's on screen.
 ### Cooking times
 
 `prep_minutes`, `cook_minutes`, `total_minutes` (whole minutes).
-`parseDuration()` ([lib/recipeTimes.js](lib/recipeTimes.js)) reads schema.org
+`parseDuration()` ([lib/app/recipeTimes.js](lib/app/recipeTimes.js)) reads schema.org
 `prepTime` / `cookTime` / `totalTime` (ISO 8601, e.g. `PT1H30M`, with a
 plain-text fallback); zero counts as unset. EditRecipe has Prep / Cook /
 Total minute fields; Total defaults to prep + cook (`resolveTotalMinutes`)
@@ -1561,7 +1584,7 @@ Settings → "Hide recipes with dietary conflicts" (`KEYS.hideUnsafeRecipes`,
 per user, default off). Off: recipes matching the active dietary filter show
 warning dots (the original behavior). On: Home, folders, and Favorites leave
 those recipes out (`applyDietaryVisibility()` in
-[lib/useHideUnsafe.js](lib/useHideUnsafe.js)) and say how many were hidden.
+[lib/app/useHideUnsafe.js](lib/app/useHideUnsafe.js)) and say how many were hidden.
 It only applies while a dietary filter is active, and never in Trash.
 `useHideUnsafe()` re-reads the setting on focus, so a change applies as soon
 as you return to a list.
@@ -1570,7 +1593,7 @@ as you return to a list.
 
 Settings → Appearance: **System** (follow the phone), **Light**, or
 **Dark**; stored per device (`app.themePreference`, kept across sign-out).
-[lib/theme-context.js](lib/theme-context.js):
+[lib/app/theme-context.js](lib/app/theme-context.js):
 
 - `ThemeProvider` (wraps the app in App.js) loads the preference before the
   first paint, resolves the scheme (system → `useColorScheme()`), and calls
@@ -1594,7 +1617,7 @@ Settings → Appearance: **System** (follow the phone), **Light**, or
   screens, it would wipe anything typed but not saved — e.g. the phone
   switching to dark at sunset, or from Control Center, mid-edit. So
   `ThemeProvider` keeps the current scheme while `useHasUnsavedChanges()`
-  ([lib/unsavedChanges.js](lib/unsavedChanges.js)) is true, and applies the
+  ([lib/app/unsavedChanges.js](lib/app/unsavedChanges.js)) is true, and applies the
   new one as soon as the edit is saved or discarded. What registers as
   unsaved: every `useUnsavedChangesGuard` screen (automatically — EditRecipe,
   EditAllergies, Profile / FriendProfile while editing with changes,
@@ -1643,7 +1666,7 @@ in edit mode — uses the same chrome from
   \* only while there are unsaved edits; confirms first, then reverts to the
   last saved values (Profile/FriendProfile also leave edit mode).
 - **Duplicate friend** — `duplicateFriend()` in
-  [lib/api/friends.js](lib/api/friends.js) creates a new unlinked friend
+  [lib/server/api/friends.js](lib/server/api/friends.js) creates a new unlinked friend
   named "<name> (copy)" from what's on screen (unsaved edits included, after
   a confirm) and copies the dietary needs you track for them (via
   `syncAllergies`). A linked friend's own shared dietary needs aren't
@@ -1666,7 +1689,7 @@ Every alert and confirm in the app uses one look — the card from the
 - [components/DialogCard.js](components/DialogCard.js) draws it: title,
   optional message, right-aligned buttons (`cancel` plain, `destructive`
   bold red, default bold blue).
-- **`appAlert(title, message?, buttons?)`** ([lib/dialog.js](lib/dialog.js))
+- **`appAlert(title, message?, buttons?)`** ([lib/app/dialog.js](lib/app/dialog.js))
   takes the same arguments as `Alert.alert` (buttons default to one "OK"),
   so it's a drop-in replacement. Dialogs queue: one opened from another's
   button shows next. Backdrop tap / Android back presses the cancel button,
@@ -1691,7 +1714,7 @@ Every alert and confirm in the app uses one look — the card from the
 [screens/Feedback.js](screens/Feedback.js) is a simple submit-only form
 (a single message box — feedback only, no questions, since submissions
 aren't replied to; the screen says so) backed by
-[lib/api/feedback.js](lib/api/feedback.js)'s `submitFeedback({ type,
+[lib/server/api/feedback.js](lib/server/api/feedback.js)'s `submitFeedback({ type,
 message })` with `type` always `'suggestion'` (an existing allowed value, so
 the table didn't change; older rows may still be `'question'`), a plain
 authenticated insert into `feedback_submissions` (no
@@ -1752,7 +1775,7 @@ add a check in `tests/security/` too.
 
 ### A new data operation
 
-1. Pick the right file in `lib/api/` (or create a new domain file).
+1. Pick the right file in `lib/server/api/` (or create a new domain file).
 2. Add an async function. Reshape DB rows into a camelCase object before
    returning. Throw on error.
 3. Import it from your screen. Don't import `supabase` directly.
@@ -1761,7 +1784,7 @@ add a check in `tests/security/` too.
 
 1. Add the table in Supabase (SQL editor or dashboard).
 2. Enable RLS and add an owner policy (`user_id = auth.uid()` or similar).
-3. Add a corresponding file under `lib/api/` exposing CRUD functions.
+3. Add a corresponding file under `lib/server/api/` exposing CRUD functions.
 4. Wire it into the relevant screen(s).
 
 ---

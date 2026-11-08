@@ -9,7 +9,7 @@ import {
 import styles from '../styles/main_style';
 import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
-import { useContrastSetting } from '../lib/useContrastSetting';
+import { useContrastSetting } from '../lib/server/useContrastSetting';
 
 const Accessibility = ({ navigation }) => {
   // Also on Settings → Display; both use the same shared setting.

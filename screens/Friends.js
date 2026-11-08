@@ -18,17 +18,17 @@ import {
   SearchIcon,
   LinkOutlineIcon,
 } from '../components/icons';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/server/auth-context';
 import {
   getFriendsWithMyName,
   addFriend,
   addFriendByCode,
   friendDisplayName,
-} from '../lib/api/friends';
-import { useCachedResource } from '../lib/cache';
-import { usePullToRefresh } from '../lib/usePullToRefresh';
-import { confirmDiscard, useRegisterUnsaved } from '../lib/unsavedChanges';
-import { appAlert } from '../lib/dialog';
+} from '../lib/server/api/friends';
+import { useCachedResource } from '../lib/app/cache';
+import { usePullToRefresh } from '../lib/server/usePullToRefresh';
+import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 
 // Strip non-alphanumeric, uppercase, max 8 chars.
@@ -79,7 +79,7 @@ const Friends = ({ navigation }) => {
     setModalVisible(false);
   };
 
-  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
   useRegisterUnsaved(
     modalVisible &&
       ((modalStep === 'manual' && !!nameInput.trim()) || (modalStep === 'code' && !!codeInput))

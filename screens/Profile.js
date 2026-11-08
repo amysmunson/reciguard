@@ -12,17 +12,16 @@ import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon, EditIcon, RestoreIcon, ShareIcon } from '../components/icons';
-import { useAuth } from '../lib/auth-context';
-import { getMyProfile, updateMyProfile } from '../lib/api/profile';
-import { readCachedResource } from '../lib/cache';
-import { getMyAllergies, severityColor, severityLabel } from '../lib/api/allergies';
+import { useAuth } from '../lib/server/auth-context';
+import { getMyProfile, updateMyProfile } from '../lib/server/api/profile';
+import { readCachedResource } from '../lib/app/cache';
+import { getMyAllergies, severityColor, severityLabel } from '../lib/server/api/allergies';
 import ConfirmModal from '../components/ConfirmModal';
-import OfflineBanner from '../components/OfflineBanner';
 import { EditHeader } from '../components/EditHeader';
 import SectionHeading from '../components/SectionHeading';
-import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
-import { alertSaveFailed } from '../lib/connectivity';
-import { appAlert } from '../lib/dialog';
+import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { appAlert } from '../lib/app/dialog';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -253,7 +252,6 @@ const Profile = ({ navigation }) => {
       ) : (
         <Text style={styles.header_card}>{name || "Your Profile"}</Text>
       )}
-      <OfflineBanner />
 
       <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>Your Friend Code</Text>
       <Text style={styles.readOnly_hint}>Share this with friends so they can link your profile to theirs. Tap the code to copy it.</Text>

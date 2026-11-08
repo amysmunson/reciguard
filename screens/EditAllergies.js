@@ -14,14 +14,13 @@ import {
   normalizeSeverity,
   makeLocalAllergyId,
   syncAllergies,
-} from '../lib/api/allergies';
+} from '../lib/server/api/allergies';
 import AllergyChecklist from '../components/AllergyChecklist';
 import ConfirmModal from '../components/ConfirmModal';
-import OfflineBanner from '../components/OfflineBanner';
 import { EditHeader } from '../components/EditHeader';
-import { appAlert } from '../lib/dialog';
-import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
-import { alertSaveFailed } from '../lib/connectivity';
+import { appAlert } from '../lib/app/dialog';
+import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -134,7 +133,6 @@ const EditAllergies = ({ navigation, route }) => {
       />
 
       <Text style={styles.header_card}>Edit Dietary Needs</Text>
-      <OfflineBanner />
 
       {/* Legend to explain severity colors */}
       <View style={styles.severityLegend_row}>

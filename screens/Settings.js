@@ -9,15 +9,15 @@ import {
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import { signOut, deleteAccount } from '../lib/api/auth';
-import { useAuth } from '../lib/auth-context';
-import { loadJson, saveJson, KEYS } from '../lib/storage';
-import { THEME_PREFERENCES, useTheme } from '../lib/theme-context';
-import { useCachingEnabled } from '../lib/cachePreference';
-import { useContrastSetting } from '../lib/useContrastSetting';
-import { applyCachingPreference } from '../lib/cache';
-import { alertSaveFailed } from '../lib/connectivity';
-import { appAlert } from '../lib/dialog';
+import { signOut, deleteAccount } from '../lib/server/api/auth';
+import { useAuth } from '../lib/server/auth-context';
+import { loadJson, saveJson, KEYS } from '../lib/app/storage';
+import { THEME_PREFERENCES, useTheme } from '../lib/app/theme-context';
+import { useCachingEnabled } from '../lib/app/cachePreference';
+import { useContrastSetting } from '../lib/server/useContrastSetting';
+import { applyCachingPreference } from '../lib/app/cache';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { appAlert } from '../lib/app/dialog';
 
 const Row = ({ label, onPress, danger }) => (
   <TouchableOpacity style={styles.row} onPress={onPress}>
@@ -34,7 +34,7 @@ const SectionHeader = ({ label }) => (
 const Settings = ({ navigation }) => {
   const { user } = useAuth();
   const { preference, setPreference } = useTheme();
-  // Same setting as the Accessibility screen (lib/useContrastSetting.js).
+  // Same setting as the Accessibility screen (lib/server/useContrastSetting.js).
   const { contrast, loading: contrastLoading, toggleContrast } = useContrastSetting();
 
   // Hide vs warn for recipes that conflict with the active dietary filter.
@@ -51,7 +51,7 @@ const Settings = ({ navigation }) => {
     };
   }, [user?.id]);
 
-  // Data → keep copies on this device (lib/cachePreference.js). Off clears
+  // Data → keep copies on this device (lib/app/cachePreference.js). Off clears
   // the stored copies immediately.
   const cachingEnabled = useCachingEnabled();
   const handleToggleCaching = async (next) => {

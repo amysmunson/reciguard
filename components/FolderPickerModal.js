@@ -15,9 +15,9 @@ import {
   createFolder,
   addRecipesToFolder,
   removeRecipesFromFolder,
-} from '../lib/api/folders';
-import { alertSaveFailed } from '../lib/connectivity';
-import { confirmDiscard, useRegisterUnsaved } from '../lib/unsavedChanges';
+} from '../lib/server/api/folders';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
 import { CheckboxIcon, PlusIcon } from './icons';
 import AppModal from './AppModal';
 
@@ -70,7 +70,7 @@ const FolderPickerModal = ({ visible, onClose, recipeId }) => {
   };
   // Backdrop tap / Android back — ask first if a new folder name is typed.
   const dismiss = () => confirmDiscard(creating && !!newName.trim(), close);
-  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
   useRegisterUnsaved(visible && creating && !!newName.trim());
 
   const toggle = async (folderId) => {

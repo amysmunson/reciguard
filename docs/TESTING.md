@@ -61,6 +61,7 @@ security/
 | `unsavedChanges.test.js` | App-wide unsaved-edit registry (holds theme switches), `confirmDiscard` |
 | `dialog.test.js` | `appAlert` card, button handling, queued dialogs |
 | `components.test.js` | Drag-and-drop accessibility Move up / Move down, `EditHeader` |
+| `offlineBanner.test.js` | Offline banner: hidden online, pinned to the bottom edge past the home indicator, on top of the nav bar on tab screens, lets touches through |
 
 ### Security (`tests/security`)
 
@@ -89,15 +90,15 @@ As of 2026-11-06 the allowlist is **empty**. The `node-forge` / `zod` / `@expo/c
 
 | Finding | Fix |
 |---|---|
-| Recipe source links opened with **any** URL scheme (`tel:`, `sms:`, another app's scheme, …), handed straight to `Linking.openURL` | `lib/safeUrl.js` `isSafeWebUrl()`. RecipeCard opens only `http(s)` links and otherwise shows "Cannot open link". |
+| Recipe source links opened with **any** URL scheme (`tel:`, `sms:`, another app's scheme, …), handed straight to `Linking.openURL` | `lib/app/safeUrl.js` `isSafeWebUrl()`. RecipeCard opens only `http(s)` links and otherwise shows "Cannot open link". |
 | Feedback had **no length limit**, and the API accepted any `type` | `FEEDBACK_MAX_LENGTH` (2000) enforced on the form (`maxLength`) and in `submitFeedback`, which also rejects empty messages and unknown types. |
-| Turning off **Keep copies on this device** left the cached full recipes on the phone. The cleanup read its index through the now-disabled cache. | Cleanup reads the index directly (`loadIndexForCleanup` in `lib/recipeCache.js`), and `applyCachingPreference` clears before switching off. |
+| Turning off **Keep copies on this device** left the cached full recipes on the phone. The cleanup read its index through the now-disabled cache. | Cleanup reads the index directly (`loadIndexForCleanup` in `lib/app/recipeCache.js`), and `applyCachingPreference` clears before switching off. |
 | Vulnerable dependencies: 14 advisories, 1 critical | `npm audit fix` (non-breaking, lockfile only), plus an `overrides` pin of `brace-expansion` 1.1.21 under ESLint's `minimatch@3`. The 5 build-time Expo tooling highs left over were fixed by a later `npm audit fix` (2026-11-06, Expo 57.0.32), so no exceptions remain. |
 | Invalid saved sort values were accepted as-is (found by the unit tests) | `normalizeSort` only accepts real sort fields and falls back otherwise. |
 
 ## Adding tests
 
 - Put app-behavior tests in `tests/unit/<area>.test.js` and security checks in `tests/security/`.
-- For API code, mock Supabase with `jest.mock('../../lib/supabase', () => require('../helpers/fakeSupabase').module)`. Then assert on `fake.state.log` and feed back rows with `fake.state.respond`.
+- For API code, mock Supabase with `jest.mock('../../lib/server/supabase', () => require('../helpers/fakeSupabase').module)`. Then assert on `fake.state.log` and feed back rows with `fake.state.respond`.
 - React Native Testing Library v14 is async: `await render(...)`, `await fireEvent.press(...)`, `await renderHook(...)`.
 - New native modules may need an in-memory mock in `tests/setup.js`.

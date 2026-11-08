@@ -13,7 +13,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 // ESLint problems that predate the test suite (React Compiler
-// "preserve-manual-memoization" and lib/cache.js hook rules after the SDK 57
+// "preserve-manual-memoization" and lib/app/cache.js hook rules after the SDK 57
 // upgrade). verify fails if the count goes ABOVE this; lower it as they're fixed.
 const LINT_BASELINE = 6;
 

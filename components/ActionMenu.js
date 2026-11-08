@@ -4,9 +4,8 @@ import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import AppModal from './AppModal';
 
-// Pop-down overflow menu (the "⋯" button). Same surface as SortMenu and
-// FolderDetail's folder menu. `actions` is a list of
-//   { key, label, icon?: ReactNode, onPress, danger?: boolean }
+// ... Action Menu in upper right corner
+// `actions` is a list of { key, label, icon?: ReactNode, onPress, danger?: boolean }
 // and `anchorStyle` positions the card (e.g. styles.recipeMenu_card).
 // The menu closes before running the chosen action.
 const ActionMenu = ({ visible, onClose, actions, anchorStyle }) => (

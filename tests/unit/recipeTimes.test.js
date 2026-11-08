@@ -1,4 +1,4 @@
-import { parseDuration, formatMinutes, resolveTotalMinutes } from '../../lib/recipeTimes';
+import { parseDuration, formatMinutes, resolveTotalMinutes } from '../../lib/app/recipeTimes';
 
 describe('parseDuration', () => {
   test.each([

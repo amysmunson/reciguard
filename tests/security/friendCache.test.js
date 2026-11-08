@@ -1,14 +1,14 @@
 // FriendProfile caches only who a friend is ({ id, name }) — never their
 // notes or dietary needs, which always come from the server.
-jest.mock('../../lib/supabase', () => require('../helpers/fakeSupabase').module);
+jest.mock('../../lib/server/supabase', () => require('../helpers/fakeSupabase').module);
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   cacheFriendIdentity,
   getCachedFriendIdentity,
   purgeLegacyFriendProfiles,
-} from '../../lib/api/friends';
-import { readCachedResource, updateCachedResource } from '../../lib/cache';
-import { setCachingEnabled } from '../../lib/cachePreference';
+} from '../../lib/server/api/friends';
+import { readCachedResource, updateCachedResource } from '../../lib/app/cache';
+import { setCachingEnabled } from '../../lib/app/cachePreference';
 
 const U = 'user-1';
 const fullFriend = {

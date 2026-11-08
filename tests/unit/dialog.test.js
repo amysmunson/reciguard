@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react-native';
-import { appAlert } from '../../lib/dialog';
+import { appAlert } from '../../lib/app/dialog';
 import DialogHost from '../../components/DialogHost';
 
 jest.useFakeTimers();

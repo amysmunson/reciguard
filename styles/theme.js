@@ -171,12 +171,12 @@ const darkTheme = {
 // ---------------------------------------------------------------------------
 // The live token set every component reads: `colors.background`, etc. It
 // starts as light mode and is switched IN PLACE by setColorTokens() (called
-// from applyColorScheme in lib/theme-context.js), so existing
+// from applyColorScheme in lib/app/theme-context.js), so existing
 // `import { colors }` call sites pick up dark mode without changes. Always
 // read tokens at render/build time — never copy one into a module-level
 // constant, or it won't follow the scheme.
 //
-//   import { colors } from '../styles/theme';
+//   import { colors } from './theme';
 //   StyleSheet.create({ box: { backgroundColor: colors.background } });
 // ---------------------------------------------------------------------------
 export const colors = { ...lightTheme };

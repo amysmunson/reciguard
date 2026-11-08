@@ -21,21 +21,20 @@ import {
   duplicateFriend,
   linkFriendByCode,
   unlinkFriend,
-} from '../lib/api/friends';
+} from '../lib/server/api/friends';
 import {
   getFriendAllergies,
   getLinkedUserAllergies,
   severityColor,
   severityLabel,
-} from '../lib/api/allergies';
+} from '../lib/server/api/allergies';
 import ConfirmModal from '../components/ConfirmModal';
-import { useAuth } from '../lib/auth-context';
-import OfflineBanner from '../components/OfflineBanner';
+import { useAuth } from '../lib/server/auth-context';
 import { EditHeader } from '../components/EditHeader';
 import SectionHeading from '../components/SectionHeading';
-import { useUnsavedChangesGuard, useRegisterUnsaved } from '../lib/unsavedChanges';
-import { alertSaveFailed } from '../lib/connectivity';
-import { appAlert } from '../lib/dialog';
+import { useUnsavedChangesGuard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 
 const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -66,7 +65,7 @@ const FriendProfile = ({ route, navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [codeInput, setCodeInput] = useState('');
-  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
   useRegisterUnsaved(linkModalOpen && !!codeInput);
   const [busy, setBusy] = useState(false);
   const [baseline, setBaseline] = useState({ name: '', notes: '' });
@@ -264,7 +263,6 @@ const FriendProfile = ({ route, navigation }) => {
         {identity ? (
           <>
             <Text style={styles.header_card}>{identity.name}</Text>
-            <OfflineBanner />
             <Text style={styles.emptyText}>
               {detailsFailed
                 ? "Couldn't load their notes and dietary needs. Connect to the internet and try again."
@@ -391,7 +389,6 @@ const FriendProfile = ({ route, navigation }) => {
       ) : (
         <Text style={styles.header_card}>{name || 'Unnamed Friend'}</Text>
       )}
-      <OfflineBanner />
 
       {isLinked ? (
         <View style={[styles.surface_sm, styles.surface_tinted, { flexDirection: 'row', alignItems: 'center', marginVertical: 4 }]}>

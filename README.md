@@ -100,7 +100,7 @@ A per-user high-contrast mode, toggled from the Accessibility screen and stored 
 ### Frontend
 
 - React Native
-- Expo SDK 54
+- Expo SDK 58
 - React Navigation
 - react-native-svg
 - @expo/vector-icons
@@ -128,11 +128,9 @@ A per-user high-contrast mode, toggled from the Accessibility screen and stored 
 recipes/
 ├── App.js
 ├── lib/
-│   ├── supabase.js
-│   ├── auth-context.js
-│   ├── storage.js
-│   ├── cache.js
-│   └── api/
+│   ├── server/          # network: Supabase client, auth, connectivity, link import
+│   │   └── api/         # per-table database functions
+│   └── app/             # on-device only: storage, caches, dialogs, theme, recipe helpers
 ├── screens/
 ├── components/
 ├── styles/
@@ -266,7 +264,7 @@ and FolderDetail (recipes inside a folder). They all share the same
 architecture so the sort UI, persistence, and ordering behave
 identically across the app:
 
-- **[`lib/sort.js`](lib/sort.js)** owns the sort options
+- **[`lib/app/sort.js`](lib/app/sort.js)** owns the sort options
   (`RECIPE_SORT_OPTIONS`, `FOLDER_SORT_OPTIONS`), the defaults, a
   `normalizeSort()` back-compat shim, and the pure `sortRecipes` /
   `sortFolders` helpers. Sort math lives here; screens just call into it.
@@ -285,7 +283,7 @@ result through `sortRecipes` / `sortFolders` before rendering. A small
 primary-colored dot on the sort icon signals a non-default selection.
 
 To add a sort key, add an entry to the relevant options array in
-`lib/sort.js` and a branch in `recipeKey()` / `folderKey()` — every
+`lib/app/sort.js` and a branch in `recipeKey()` / `folderKey()` — every
 consumer screen picks it up automatically. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#sorting-home-folders-folderdetail)
 ### Icons

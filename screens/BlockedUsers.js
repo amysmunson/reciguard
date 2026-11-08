@@ -13,11 +13,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
-import { getMyBlocks, unblockUser, blockUserByCode } from '../lib/api/friends';
+import { getMyBlocks, unblockUser, blockUserByCode } from '../lib/server/api/friends';
 import ConfirmModal from '../components/ConfirmModal';
-import { appAlert } from '../lib/dialog';
+import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
-import { useRegisterUnsaved } from '../lib/unsavedChanges';
+import { useRegisterUnsaved } from '../lib/app/unsavedChanges';
 
 // Strip non-alphanumeric, uppercase, max 8 chars — same normalization as
 // the friend-code inputs in Friends.js/FriendProfile.js.
@@ -77,7 +77,7 @@ const BlockedUsers = ({ navigation }) => {
   // prior sharing required, so you can preempt ever sharing with them.
   const [codeModalVisible, setCodeModalVisible] = useState(false);
   const [codeInput, setCodeInput] = useState('');
-  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
   useRegisterUnsaved(codeModalVisible && !!codeInput);
   const [busy, setBusy] = useState(false);
 

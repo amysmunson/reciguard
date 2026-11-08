@@ -1,4 +1,4 @@
-import { fetchRecipeFromUrl } from '../../lib/recipeUrlParser';
+import { fetchRecipeFromUrl } from '../../lib/server/recipeUrlParser';
 
 const ld = {
   '@context': 'https://schema.org',

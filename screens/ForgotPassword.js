@@ -9,8 +9,8 @@ import {
 import styles from '../styles/main_style';
 import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
-import { requestPasswordReset, verifyPasswordResetOtp, updatePassword } from '../lib/api/auth';
-import { appAlert } from '../lib/dialog';
+import { requestPasswordReset, verifyPasswordResetOtp, updatePassword } from '../lib/server/api/auth';
+import { appAlert } from '../lib/app/dialog';
 
 const ForgotPassword = ({ navigation }) => {
   // 'request' = collect email and send the code; 'reset' = enter code + new password.

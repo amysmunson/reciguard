@@ -1,9 +1,9 @@
 // Untrusted input: links pasted or imported by users, and text sent to the
 // database.
-jest.mock('../../lib/supabase', () => require('../helpers/fakeSupabase').module);
-import { isSafeWebUrl } from '../../lib/safeUrl';
-import { fetchRecipeFromUrl } from '../../lib/recipeUrlParser';
-import { submitFeedback, FEEDBACK_MAX_LENGTH } from '../../lib/api/feedback';
+jest.mock('../../lib/server/supabase', () => require('../helpers/fakeSupabase').module);
+import { isSafeWebUrl } from '../../lib/app/safeUrl';
+import { fetchRecipeFromUrl } from '../../lib/server/recipeUrlParser';
+import { submitFeedback, FEEDBACK_MAX_LENGTH } from '../../lib/server/api/feedback';
 import * as fake from '../helpers/fakeSupabase';
 const { read } = require('../helpers/repoFiles');
 

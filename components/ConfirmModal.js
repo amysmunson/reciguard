@@ -6,7 +6,7 @@ import DialogCard from './DialogCard';
 
 // Declarative confirm dialog (e.g. "Discard changes?"), for screens that
 // keep the open/closed state themselves. Same card as appAlert() in
-// lib/dialog.js — use that for one-off alerts and confirms.
+// lib/app/dialog.js — use that for one-off alerts and confirms.
 // confirmStyle: 'destructive' (default, red) or 'default' (blue).
 const ConfirmModal = ({
   visible,

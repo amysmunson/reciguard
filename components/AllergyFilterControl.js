@@ -9,10 +9,10 @@ import {
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { AllergyListIcon, CheckboxIcon, FilterIcon } from './icons';
-import { useAuth } from '../lib/auth-context';
-import { getFriends, friendDisplayName } from '../lib/api/friends';
-import { getMyProfile } from '../lib/api/profile';
-import { loadJson, saveJson, KEYS } from '../lib/storage';
+import { useAuth } from '../lib/server/auth-context';
+import { getFriends, friendDisplayName } from '../lib/server/api/friends';
+import { getMyProfile } from '../lib/server/api/profile';
+import { loadJson, saveJson, KEYS } from '../lib/app/storage';
 import AppModal from './AppModal';
 
 // Self-contained "Allergy warnings for" control — the FilterIcon trigger

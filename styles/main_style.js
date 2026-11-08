@@ -9,7 +9,7 @@ const numColumns = 2;
 const itemSize = (screenWidth - (itemMargin * (numColumns + 1))) / numColumns;
 
 // Built by a function so the whole sheet can be rebuilt from the current
-// theme tokens when the color scheme changes (lib/theme-context.js). Styles
+// theme tokens when the color scheme changes (lib/app/theme-context.js). Styles
 // read `colors` at build time, so every color must come from a token.
 const buildStyles = () => StyleSheet.create({
   // === Containers ======================================================
@@ -1454,12 +1454,17 @@ const buildStyles = () => StyleSheet.create({
 
   //   Offline Banner (components/OfflineBanner.js) — inline under a screen's
   //   title, or above the bottom nav on tab screens.
+  // Floats over the bottom of the screen (see components/OfflineBanner.js);
+  // `bottom` is set there: on top of the nav bar, or at the screen edge.
   offlineBanner: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 900,
+    elevation: 900,
     backgroundColor: colors.warning,
-    borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    marginVertical: 8,
   },
   offlineBanner_text: {
     color: colors.text,

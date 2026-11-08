@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { updateCachedResource, readCachedResource, clearUserCache, applyCachingPreference } from '../../lib/cache';
-import { cacheRecentRecipe, getCachedRecipe, removeCachedRecipes, RECENT_RECIPE_LIMIT } from '../../lib/recipeCache';
-import { recordRecipeOpened } from '../../lib/storage';
-import { isCachingEnabled, setCachingEnabled } from '../../lib/cachePreference';
+import { updateCachedResource, readCachedResource, clearUserCache, applyCachingPreference } from '../../lib/app/cache';
+import { cacheRecentRecipe, getCachedRecipe, removeCachedRecipes, RECENT_RECIPE_LIMIT } from '../../lib/app/recipeCache';
+import { recordRecipeOpened } from '../../lib/app/storage';
+import { isCachingEnabled, setCachingEnabled } from '../../lib/app/cachePreference';
 
 const U = 'user-1';
 

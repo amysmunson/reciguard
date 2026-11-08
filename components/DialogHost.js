@@ -8,7 +8,7 @@ import {
   registerDialogHost,
   resolveDialog,
   useDialogState,
-} from '../lib/dialog';
+} from '../lib/app/dialog';
 
 // iOS can't present a modal while another is still animating closed, so a
 // host that just became the top one (e.g. the folder picker closed and an
@@ -17,7 +17,7 @@ import {
 const AFTER_MODAL_CLOSE_MS = 400;
 
 // Draws the current appAlert() dialog when it's the topmost host (see
-// lib/dialog.js). One sits at the app root; AppModal adds one inside each
+// lib/app/dialog.js). One sits at the app root; AppModal adds one inside each
 // in-app modal.
 const DialogHost = () => {
   const [hostId] = useState(allocateDialogHostId);

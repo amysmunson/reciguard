@@ -10,17 +10,17 @@ import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import { BackIcon, CheckboxIcon, FilterIcon } from '../components/icons';
-import { useAuth } from '../lib/auth-context';
-import { getFriends, friendDisplayName } from '../lib/api/friends';
-import { getMyProfile } from '../lib/api/profile';
+import { useAuth } from '../lib/server/auth-context';
+import { getFriends, friendDisplayName } from '../lib/server/api/friends';
+import { getMyProfile } from '../lib/server/api/profile';
 import {
   getActiveAllergyDetails,
   severityColor,
   severityLabel,
   SEVERITY_RANK,
-} from '../lib/api/allergies';
-import { loadJson, saveJson, KEYS } from '../lib/storage';
-import { appAlert } from '../lib/dialog';
+} from '../lib/server/api/allergies';
+import { loadJson, saveJson, KEYS } from '../lib/app/storage';
+import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');

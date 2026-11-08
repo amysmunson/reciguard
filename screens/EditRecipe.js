@@ -19,7 +19,7 @@ import {
   trashRecipe,
   duplicateRecipe,
   TRASH_RETENTION_DAYS,
-} from '../lib/api/recipes';
+} from '../lib/server/api/recipes';
 import {
   CheckIcon,
   CopyIcon,
@@ -34,12 +34,11 @@ import { EditHeader } from '../components/EditHeader';
 import FolderPickerModal from '../components/FolderPickerModal';
 import ReorderableList from '../components/ReorderableList';
 import RemoveBadge from '../components/RemoveBadge';
-import OfflineBanner from '../components/OfflineBanner';
-import { useUnsavedChangesGuard } from '../lib/unsavedChanges';
-import { alertSaveFailed } from '../lib/connectivity';
-import { toItem } from '../lib/recipeItems';
-import { resolveTotalMinutes } from '../lib/recipeTimes';
-import { appAlert } from '../lib/dialog';
+import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
+import { toItem } from '../lib/app/recipeItems';
+import { resolveTotalMinutes } from '../lib/app/recipeTimes';
+import { appAlert } from '../lib/app/dialog';
 
 // nativeID linking the multiline inputs to the iOS "Done" accessory bar.
 const DONE_ACCESSORY_ID = 'editRecipeDone';
@@ -471,7 +470,6 @@ const EditRecipe = ({ route, navigation }) => {
           placeholder={isNew ? 'New recipe name' : 'Recipe name'}
           placeholderTextColor={colors.textMuted}
         />
-        <OfflineBanner />
 
         <View style={styles.servings_row}>
           <Text style={[styles.text_body, styles.servings_label]}>Makes</Text>

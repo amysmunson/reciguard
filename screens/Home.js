@@ -12,21 +12,21 @@ import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
 import AllergyFilterControl from '../components/AllergyFilterControl';
-import { getRecipes, trashRecipes, TRASH_RETENTION_DAYS } from '../lib/api/recipes';
-import { useHideUnsafe, applyDietaryVisibility } from '../lib/useHideUnsafe';
-import { getFolders, createFolder, addRecipesToFolder } from '../lib/api/folders';
-import { getMyProfile } from '../lib/api/profile';
+import { getRecipes, trashRecipes, TRASH_RETENTION_DAYS } from '../lib/server/api/recipes';
+import { useHideUnsafe, applyDietaryVisibility } from '../lib/app/useHideUnsafe';
+import { getFolders, createFolder, addRecipesToFolder } from '../lib/server/api/folders';
+import { getMyProfile } from '../lib/server/api/profile';
 import {
   getActiveAllergyDetails,
   dotsForRecipe,
   severityColor,
-} from '../lib/api/allergies';
-import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/storage';
-import { useCachedResource } from '../lib/cache';
-import { usePullToRefresh } from '../lib/usePullToRefresh';
-import { useAuth } from '../lib/auth-context';
-import { confirmDiscard, useRegisterUnsaved } from '../lib/unsavedChanges';
-import { alertSaveFailed } from '../lib/connectivity';
+} from '../lib/server/api/allergies';
+import { loadJson, saveJson, KEYS, getRecipeOpenedMap } from '../lib/app/storage';
+import { useCachedResource } from '../lib/app/cache';
+import { usePullToRefresh } from '../lib/server/usePullToRefresh';
+import { useAuth } from '../lib/server/auth-context';
+import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
 import { colors } from '../styles/theme';
 import {
   FolderIcon,
@@ -43,8 +43,8 @@ import {
   DEFAULT_RECIPE_SORT,
   normalizeSort,
   sortRecipes,
-} from '../lib/sort';
-import { appAlert } from '../lib/dialog';
+} from '../lib/app/sort';
+import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 
 const Home = ({ navigation, route }) => {
@@ -217,7 +217,7 @@ const Home = ({ navigation, route }) => {
     setNewFolderName('');
   };
 
-  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
   useRegisterUnsaved(folderPickerOpen && creatingFolder && !!newFolderName.trim());
 
   // Backdrop tap / Android back — ask first if a new folder name is typed.
@@ -250,7 +250,7 @@ const Home = ({ navigation, route }) => {
   // --- Misc ---------------------------------------------------------------
 
   // Sort recipes by the selected field + direction, then apply the search
-  // filter. Missing values always sort to the bottom (see lib/sort).
+  // filter. Missing values always sort to the bottom (see lib/app/sort).
   const sortedRecipes = sortRecipes(recipes, sort, openedMap);
 
   const searchedRecipes = searchQuery.trim()

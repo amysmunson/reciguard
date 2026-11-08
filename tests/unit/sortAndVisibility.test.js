@@ -1,6 +1,6 @@
-import { sortRecipes, normalizeSort, DEFAULT_RECIPE_SORT } from '../../lib/sort';
-import { applyDietaryVisibility } from '../../lib/useHideUnsafe';
-import { dotsForRecipe, ingredientAllergyInfo } from '../../lib/api/allergies';
+import { sortRecipes, normalizeSort, DEFAULT_RECIPE_SORT } from '../../lib/app/sort';
+import { applyDietaryVisibility } from '../../lib/app/useHideUnsafe';
+import { dotsForRecipe, ingredientAllergyInfo } from '../../lib/server/api/allergies';
 
 const recipes = [
   { id: 'a', name: 'Banana bread', createdAt: '2026-01-01', ingredients: ['2 bananas', 'flour'] },

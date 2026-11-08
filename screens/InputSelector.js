@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
-import { fetchRecipeFromUrl } from '../lib/recipeUrlParser';
-import { createRecipe } from '../lib/api/recipes';
+import { fetchRecipeFromUrl } from '../lib/server/recipeUrlParser';
+import { createRecipe } from '../lib/server/api/recipes';
 import { BackIcon, EditIcon, LinkOutlineIcon } from '../components/icons';
 import AppModal from '../components/AppModal';
 

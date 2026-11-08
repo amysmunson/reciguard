@@ -1,4 +1,4 @@
-import { scaleIngredient, formatAmount, MULTIPLIERS } from '../../lib/scaleIngredient';
+import { scaleIngredient, formatAmount, MULTIPLIERS } from '../../lib/app/scaleIngredient';
 
 describe('scaleIngredient', () => {
   test.each([

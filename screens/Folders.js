@@ -10,24 +10,24 @@ import {
 import styles from '../styles/main_style';
 import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
-import { getFolders, createFolder, deleteFolders } from '../lib/api/folders';
-import { getMyProfile } from '../lib/api/profile';
-import { useCachedResource } from '../lib/cache';
-import { usePullToRefresh } from '../lib/usePullToRefresh';
-import { useAuth } from '../lib/auth-context';
-import { confirmDiscard, useRegisterUnsaved } from '../lib/unsavedChanges';
-import { alertSaveFailed } from '../lib/connectivity';
+import { getFolders, createFolder, deleteFolders } from '../lib/server/api/folders';
+import { getMyProfile } from '../lib/server/api/profile';
+import { useCachedResource } from '../lib/app/cache';
+import { usePullToRefresh } from '../lib/server/usePullToRefresh';
+import { useAuth } from '../lib/server/auth-context';
+import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { alertSaveFailed } from '../lib/server/connectivity';
 import { PlusIcon, SearchIcon, SelectCircleIcon, SortIcon, StarIcon, TrashIcon } from '../components/icons';
 import { SYSTEM_FOLDERS } from './FolderDetail';
 import SortMenu from '../components/SortMenu';
-import { loadJson, saveJson, KEYS } from '../lib/storage';
+import { loadJson, saveJson, KEYS } from '../lib/app/storage';
 import {
   FOLDER_SORT_OPTIONS,
   DEFAULT_FOLDER_SORT,
   normalizeSort,
   sortFolders,
-} from '../lib/sort';
-import { appAlert } from '../lib/dialog';
+} from '../lib/app/sort';
+import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 
 const Folders = ({ navigation }) => {
@@ -101,7 +101,7 @@ const Folders = ({ navigation }) => {
   // Backdrop tap / Android back — easy to hit by accident, so ask first if
   // a name has been typed. The Cancel button discards straight away.
   const dismissCreate = () => confirmDiscard(!!newName.trim(), closeCreate);
-  // Typed-but-unsaved modal input: hold off a theme remount (lib/unsavedChanges.js).
+  // Typed-but-unsaved modal input: hold off a theme remount (lib/app/unsavedChanges.js).
   useRegisterUnsaved(creating && !!newName.trim());
 
   // --- Selection helpers --------------------------------------------------

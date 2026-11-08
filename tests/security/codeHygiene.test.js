@@ -1,6 +1,6 @@
 // Static checks over the app source that ships in the bundle.
 const { appSourceFiles, read } = require('../helpers/repoFiles');
-import { checkConnection } from '../../lib/connectivity';
+import { checkConnection } from '../../lib/server/connectivity';
 
 const filesMatching = (re) => appSourceFiles().filter((f) => re.test(read(f)));
 
@@ -9,17 +9,17 @@ test('no eval or dynamic code construction', () => {
 });
 
 test('no console logging in app code (could leak tokens, profiles, or dietary data)', () => {
-  // The single allowed warning is the missing-config notice in lib/supabase.js.
+  // The single allowed warning is the missing-config notice in lib/server/supabase.js.
   const offenders = appSourceFiles().filter((f) => {
     const hits = read(f).match(/console\.(log|info|debug|warn|error|trace)\s*\(/g) ?? [];
-    return f === 'lib/supabase.js' ? hits.length > 1 : hits.length > 0;
+    return f === 'lib/server/supabase.js' ? hits.length > 1 : hits.length > 0;
   });
   expect(offenders).toEqual([]);
 });
 
 test('every network request goes to the Supabase client, the health check, or a user-chosen recipe URL', () => {
   const fetchers = filesMatching(/\bfetch\s*\(/);
-  expect(fetchers.sort()).toEqual(['lib/connectivity.js', 'lib/recipeUrlParser.js']);
+  expect(fetchers.sort()).toEqual(['lib/server/connectivity.js', 'lib/server/recipeUrlParser.js']);
 });
 
 test('the connectivity check sends no user data — only the public key, over HTTPS', async () => {
@@ -32,6 +32,6 @@ test('the connectivity check sends no user data — only the public key, over HT
 });
 
 test('the auth session is never written to AsyncStorage by app code', () => {
-  // Session storage goes through lib/secureStoreAdapter.js only.
+  // Session storage goes through lib/server/secureStoreAdapter.js only.
   expect(filesMatching(/AsyncStorage[\s\S]{0,80}(session|access_token|refresh_token)/i)).toEqual([]);
 });

@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
-import { useRegisterUnsaved, useHasUnsavedChanges, confirmDiscard } from '../../lib/unsavedChanges';
-import * as dialog from '../../lib/dialog';
+import { useRegisterUnsaved, useHasUnsavedChanges, confirmDiscard } from '../../lib/app/unsavedChanges';
+import * as dialog from '../../lib/app/dialog';
 
 test('the app-wide unsaved registry reflects every dirty source', async () => {
   const tracker = await renderHook(() => useHasUnsavedChanges());

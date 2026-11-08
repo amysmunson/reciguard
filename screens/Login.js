@@ -9,8 +9,8 @@ import {
 import styles from '../styles/main_style';
 import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
-import { signIn } from '../lib/api/auth';
-import { appAlert } from '../lib/dialog';
+import { signIn } from '../lib/server/api/auth';
+import { appAlert } from '../lib/app/dialog';
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState('');

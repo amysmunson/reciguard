@@ -4,12 +4,14 @@ import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/
 import { StatusBar } from 'expo-status-bar';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { AuthProvider, useAuth } from './lib/auth-context';
-import { useCacheWarmup } from './lib/useCacheWarmup';
-import { ThemeProvider, useTheme } from './lib/theme-context';
+import { AuthProvider, useAuth } from './lib/server/auth-context';
+import { useCacheWarmup } from './lib/server/useCacheWarmup';
+import { ThemeProvider, useTheme } from './lib/app/theme-context';
 import { colors } from './styles/theme';
 import DialogHost from './components/DialogHost';
 import StatusBarBackdrop from './components/StatusBarBackdrop';
+import OfflineBanner from './components/OfflineBanner';
+import { TAB_ROUTES } from './components/NavigationBar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import Landing from './screens/Landing';
@@ -91,7 +93,7 @@ const AppStack = () => {
 };
 
 // Last navigation state, so a theme switch (which remounts the navigator,
-// see lib/theme-context.js) puts the user back on the same screen. A module
+// see lib/app/theme-context.js) puts the user back on the same screen. A module
 // variable rather than a ref: it's only read when the container mounts.
 // Tagged with the auth state so a signed-out remount never restores
 // signed-in screens.
@@ -149,7 +151,10 @@ const RootNavigator = () => {
           overlaps them. Not on Landing (its photo runs under the status bar);
           with no session and no route yet, Landing is the first screen. */}
       {(routeName ?? (session ? 'Home' : 'Landing')) !== 'Landing' && <StatusBarBackdrop />}
-      {/* Root host for appAlert() dialogs (lib/dialog.js); in-app modals
+      {/* Offline warning for every screen: floats on top of the nav bar on
+          tab screens, at the bottom edge everywhere else. */}
+      <OfflineBanner aboveNavBar={TAB_ROUTES.has(routeName ?? (session ? 'Home' : ''))} />
+      {/* Root host for appAlert() dialogs (lib/app/dialog.js); in-app modals
           add their own via AppModal. */}
       <DialogHost />
     </>

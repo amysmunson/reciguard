@@ -1,4 +1,4 @@
-import { toItem, normalizeItems, itemTexts, normalizeRecipe } from '../../lib/recipeItems';
+import { toItem, normalizeItems, itemTexts, normalizeRecipe } from '../../lib/app/recipeItems';
 
 test('strings and items normalize to { text, isHeader }', () => {
   expect(toItem('salt')).toEqual({ text: 'salt', isHeader: false });
