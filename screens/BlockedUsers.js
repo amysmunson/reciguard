@@ -18,6 +18,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 import { useRegisterUnsaved } from '../lib/app/unsavedChanges';
+import { alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
 
 // Strip non-alphanumeric, uppercase, max 8 chars — same normalization as
 // the friend-code inputs in Friends.js/FriendProfile.js.
@@ -44,7 +45,7 @@ const BlockedUsers = ({ navigation }) => {
     try {
       setBlocks(await getMyBlocks());
     } catch (err) {
-      appAlert('Could not load', err.message ?? 'Unknown error');
+      alertLoadFailed(err);
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ const BlockedUsers = ({ navigation }) => {
       await unblockUser(person.blockedId);
       load();
     } catch (err) {
-      appAlert('Could not unblock', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not unblock');
     }
   };
 
@@ -101,7 +102,7 @@ const BlockedUsers = ({ navigation }) => {
       load();
       appAlert('Blocked', `${profile.name ?? 'That user'} has been blocked.`);
     } catch (err) {
-      appAlert('Could not block', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not block');
     } finally {
       setBusy(false);
     }

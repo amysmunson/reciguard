@@ -33,7 +33,7 @@ import { useAuth } from '../lib/server/auth-context';
 import { EditHeader } from '../components/EditHeader';
 import SectionHeading from '../components/SectionHeading';
 import { useUnsavedChangesGuard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertSaveFailed, isOfflineError, alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
 import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 
@@ -126,11 +126,12 @@ const FriendProfile = ({ route, navigation }) => {
         return;
       }
       if (serverLoadedRef.current) return; // keep what's on screen
-      if (identityShownRef.current) {
+      // Offline, or a cached name is showing: say so on screen, no popup.
+      if (identityShownRef.current || isOfflineError(err)) {
         setDetailsFailed(true);
         return;
       }
-      appAlert('Could not load friend', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load friend');
     }
   }, [friendshipId, userId, applyProfile]);
 
@@ -205,7 +206,7 @@ const FriendProfile = ({ route, navigation }) => {
       setCodeInput('');
       load();
     } catch (err) {
-      appAlert('Could not link', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not link');
     } finally {
       setBusy(false);
     }
@@ -226,7 +227,7 @@ const FriendProfile = ({ route, navigation }) => {
               setFriend(updated);
               setTheirAllergies([]);
             } catch (err) {
-              appAlert('Could not unlink', err.message ?? 'Unknown error');
+              alertActionFailed(err, 'Could not unlink');
             }
           },
         },
@@ -245,7 +246,7 @@ const FriendProfile = ({ route, navigation }) => {
             await deleteFriend(friendshipId);
             leaveWithoutPrompt(() => navigation.goBack());
           } catch (err) {
-            appAlert('Could not remove friend', err.message ?? 'Unknown error');
+            alertActionFailed(err, 'Could not remove friend');
           }
         },
       },
@@ -270,7 +271,11 @@ const FriendProfile = ({ route, navigation }) => {
             </Text>
           </>
         ) : (
-          <Text style={[styles.emptyText, { marginTop: 100 }]}>Loading…</Text>
+          <Text style={[styles.emptyText, { marginTop: 100 }]}>
+            {detailsFailed
+              ? "Couldn't load this friend. Connect to the internet and try again."
+              : 'Loading…'}
+          </Text>
         )}
       </View>
     );

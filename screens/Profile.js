@@ -20,8 +20,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { EditHeader } from '../components/EditHeader';
 import SectionHeading from '../components/SectionHeading';
 import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
-import { appAlert } from '../lib/app/dialog';
+import { alertSaveFailed, alertLoadFailed } from '../lib/server/connectivity';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -94,9 +93,7 @@ const Profile = ({ navigation }) => {
       setServerLoaded(true);
     } catch (err) {
       // Stay quiet if the cached copy is already on screen (e.g. offline).
-      if (!cachedShownRef.current) {
-        appAlert('Could not load profile', err.message ?? 'Unknown error');
-      }
+      if (!cachedShownRef.current) alertLoadFailed(err, 'Could not load profile');
     } finally {
       setLoading(false);
     }

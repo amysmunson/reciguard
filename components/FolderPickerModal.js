@@ -16,7 +16,7 @@ import {
   addRecipesToFolder,
   removeRecipesFromFolder,
 } from '../lib/server/api/folders';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertActionFailed, alertSaveFailed } from '../lib/server/connectivity';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
 import { CheckboxIcon, PlusIcon } from './icons';
 import AppModal from './AppModal';
@@ -51,7 +51,7 @@ const FolderPickerModal = ({ visible, onClose, recipeId }) => {
       } catch (err) {
         if (!cancelled) {
           onClose();
-          alertSaveFailed(err, 'Could not load folders');
+          alertActionFailed(err, 'Could not load folders');
         }
       }
     })();

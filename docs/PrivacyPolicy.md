@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: October 24, 2026
+Last updated: November 15, 2026
 
 This policy explains what information the app collects, how it is used, and the choices you have. We only collect what the app needs to work for you.
 
@@ -17,7 +17,7 @@ The app does not collect your location, contacts, photo library, device identifi
 
 ## How we collect it
 
-Everything above is entered directly by you while using the app, or, when you import a recipe from a link, read from that recipe's web page. The only automatic collection is keeping you signed in. The app also checks from time to time whether it can reach our server, so it can warn you when you're offline; that check sends no personal information. Your password is handled by our authentication provider (Supabase) and is stored in a securely hashed form — it is never visible to us.
+Everything above is entered directly by you while using the app, or, when you import a recipe from a link, read from that recipe's web page. The only automatic collection is keeping you signed in. The app also notices when its normal requests to our server don't get through, so it can warn you when you're offline; this sends nothing extra. Your password is handled by our authentication provider (Supabase) and is stored in a securely hashed form — it is never visible to us.
 
 ## How we use it
 

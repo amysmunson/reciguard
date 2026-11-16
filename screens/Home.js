@@ -26,7 +26,7 @@ import { useCachedResource } from '../lib/app/cache';
 import { usePullToRefresh } from '../lib/server/usePullToRefresh';
 import { useAuth } from '../lib/server/auth-context';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertSaveFailed, alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
 import { colors } from '../styles/theme';
 import {
   FolderIcon,
@@ -101,7 +101,7 @@ const Home = ({ navigation, route }) => {
       });
       setActiveAllergies(details);
     } catch (err) {
-      appAlert('Could not load dietary needs', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load dietary needs');
     }
   }, []);
 
@@ -207,7 +207,7 @@ const Home = ({ navigation, route }) => {
       setNewFolderName('');
       setFolderPickerOpen(true);
     } catch (err) {
-      appAlert('Could not load folders', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not load folders');
     }
   };
 

@@ -12,7 +12,7 @@ const PrivacyPolicy = ({ navigation }) => (
 
     <ScrollView contentContainerStyle={styles.screen_policyPad}>
       <Text style={styles.header_policyMain}>Privacy Policy</Text>
-      <Text style={styles.policy_updated}>Last updated: October 24, 2026</Text>
+      <Text style={styles.policy_updated}>Last updated: November 15, 2026</Text>
 
       <Text style={styles.policy_body}>
         This policy explains what information the app collects, how it is used, and the
@@ -38,9 +38,9 @@ const PrivacyPolicy = ({ navigation }) => (
       <Text style={styles.policy_body}>
         Everything above is entered directly by you while using the app, or, when you import
         a recipe from a link, read from that recipe&apos;s web page. The only automatic
-        collection is keeping you signed in. The app also checks from time to time whether it
-        can reach our server, so it can warn you when you&apos;re offline; that check sends no
-        personal information. Your password is handled by our
+        collection is keeping you signed in. The app also notices when its normal requests to
+        our server don&apos;t get through, so it can warn you when you&apos;re offline; this
+        sends nothing extra. Your password is handled by our
         authentication provider (Supabase) and is stored in a securely hashed form &mdash;
         it is never visible to us.
       </Text>

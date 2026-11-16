@@ -56,7 +56,7 @@ recipes/
 │   │   ├── supabase.js             # Single createClient() instance (SecureStore session storage + URL polyfill)
 │   │   ├── secureStoreAdapter.js   # Chunked expo-secure-store adapter used as the auth session storage above
 │   │   ├── auth-context.js         # AuthProvider + useAuth() hook (session, user, loading)
-│   │   ├── connectivity.js         # Server ping: useIsOnline(), checkConnection(), alertSaveFailed()
+│   │   ├── connectivity.js         # Online/offline from real requests (trackedFetch), useIsOnline(), alertLoad/Action/SaveFailed()
 │   │   ├── recipeUrlParser.js      # fetchRecipeFromUrl(): downloads a recipe page → name/ingredients/steps/servings/times (+ sections)
 │   │   ├── useCacheWarmup.js       # On launch/sign-in: quietly refresh folders, folder memberships, friends, cached recipes
 │   │   ├── useContrastSetting.js   # High-contrast mode toggle (saved to the profile) shared by Accessibility + Settings → Display
@@ -504,9 +504,16 @@ Exports:
 - **`sortRecipes(recipes, { by, dir }, openedMap = {})`** — returns a
   new sorted array. Uses `openedMap` (the per-user recipe-opens map from
   storage.js) for the `opened_at` key. Recipes missing the active key
-  sort to the bottom regardless of direction. `name` uses locale-aware
-  comparison so accented characters order correctly; everything else
-  sorts lexicographically on ISO timestamps.
+  sort to the bottom regardless of direction. `name` uses `compareText`;
+  everything else sorts lexicographically on ISO timestamps.
+- **`compareText(a, b)`**: the one text order for every name sort in the
+  app (recipe and folder grids, the friends list, Sharing, Blocked, the
+  AllergyOverview roster). Case-insensitive first, then plain character
+  order as the tie-breaker, so "Apple" < "apple" < "Banana". It's written
+  by hand rather than with `localeCompare`, whose result depends on the JS
+  engine's Intl support: on Hermes it can fall back to raw character codes,
+  which sorts every capitalized name before every lowercase one. One
+  trade-off: accented first letters (É, Ñ) sort after z.
 - **`sortFolders(folders, { by, dir })`** — same contract for folders.
 
 Adding a new sort option is one entry in `RECIPE_SORT_OPTIONS` or
@@ -675,9 +682,9 @@ Cached data is only what paints first: every screen still calls the server
 when it opens/regains focus, and [lib/server/usePullToRefresh.js](lib/server/usePullToRefresh.js)
 adds a manual pull-down refetch on top. `usePullToRefresh(refresh)` returns a
 `<RefreshControl>` for a FlatList/ScrollView's `refreshControl` prop; the
-spinner runs until `refresh()` settles, and `checkConnection()` runs
-alongside so the offline banner updates on the same pull. Failures leave the
-current data on screen.
+spinner runs until `refresh()` settles. Those requests also update the
+offline banner, so a pull is how it clears once you're back online.
+Failures leave the current data on screen, with no popup.
 
 | Screen | Refetches |
 |---|---|
@@ -831,8 +838,8 @@ Home's top region is a single inline action bar sitting **below** the
 `createdAt` / `updatedAt` come straight off the Supabase row;
 `opened_at` is looked up from the in-memory copy of
 `KEYS.recipeOpenedAt(userId)` (the recipe-opens map) that the screen
-passes in; `name` uses `String.prototype.localeCompare` so accented
-characters order correctly. Recipes with no value for the active key
+passes in; `name` uses `compareText` (case-insensitive, then case as the
+tie-breaker). Recipes with no value for the active key
 always sort to the bottom — so an unopened recipe under the "Recently
 opened" sort just falls off the end — regardless of direction.
 
@@ -1411,12 +1418,46 @@ sharing, no `SharedWith`/`SharingWith` entry required first.
 ### Offline banner & failed saves
 
 [lib/server/connectivity.js](lib/server/connectivity.js) tracks server reachability
-app-wide by pinging Supabase's `/auth/v1/health` (5 s timeout). Any HTTP
-response below 500 counts as online; a network error, timeout, or 5xx
-counts as offline. Polling runs only while something is subscribed via
-`useIsOnline()` — every 20 s while online, every 5 s while offline so the
-banner clears quickly — plus an immediate check whenever the app returns to
-the foreground. Concurrent checks share one request.
+app-wide using only the requests the app already makes. There is no polling
+and no health ping. The Supabase client is created with
+`global: { fetch: trackedFetch }`, so every request (database, auth, token
+refresh) reports back:
+
+- **Online:** any response below 500. The server was reached and is working.
+- **Offline:** a network error, timeout, or 5xx (for example a paused
+  project).
+- **No change:** a request the app cancels itself (`AbortError`).
+
+So the banner appears with the first load or save that fails, and clears on
+the next request that gets through: a pull-to-refresh, opening a recipe,
+coming back to a screen. The flip side: while offline and idle, the banner
+stays until you do something that makes a request. Link import
+(`recipeUrlParser`) uses plain `fetch` to third-party sites and doesn't
+affect the status.
+
+**Popups when something fails** (all in `connectivity.js`):
+
+| Helper | Use for | Offline | Real server error |
+|---|---|---|---|
+| `alertLoadFailed(err, title)` | Automatic loads: screen open or focus, background refresh, pull-to-refresh | **No popup.** The banner covers it. | One alert |
+| `alertActionFailed(err, title)` | Taps that need the server but save nothing: opening Add to folder, linking or removing a friend, sign in, send feedback, delete | One "You're offline — connect and try again" | One alert |
+| `alertSaveFailed(err, title)` | Saves | One "Your changes have not been saved…" | One alert, also saying nothing was saved |
+
+`isOfflineError(err)` decides "offline". It's true for a network-looking
+error *or* when the failed request just marked the app offline. The second
+case matters because offline failures don't always look like network errors:
+`requireUser()` in `lib/server/api/recipes.js` surfaces a failed auth check
+as "Not signed in".
+
+Screens with nothing to show when a load fails offline say so on screen
+instead of popping up:
+- **RecipeCard:** a recipe that isn't among the 5 saved on the device shows
+  "This recipe isn't saved on this device…", with a back button.
+- **FriendProfile:** "Couldn't load this friend…", or the cached name plus
+  "Couldn't load their notes and dietary needs…".
+- **EditRecipe:** when the server can't be reached it edits the device's
+  saved copy. Only if there's none does it show one popup.
+
 
 - [components/OfflineBanner.js](components/OfflineBanner.js) is mounted in
   only two places, so no screen or popup has to add it:
@@ -1432,13 +1473,6 @@ the foreground. Concurrent checks share one request.
   of the NavigationBar, using the bar's measured position. Everywhere else it's
   pinned to the bottom edge and padded past the home indicator. While typing,
   the keyboard covers it, and a failed save still shows `alertSaveFailed`.
-- `alertSaveFailed(err, title)` replaces the plain error alert on recipe,
-  dietary needs, profile, and folder saves. It always says the changes were
-  **not** saved; if the error looks like a network failure *or* a fresh ping
-  fails, it shows "You're offline … stay on this page and try again once
-  you're reconnected" instead. The re-ping matters because offline failures
-  don't always look like network errors — `requireUser()` in
-  `lib/server/api/recipes.js` surfaces a failed auth check as "Not signed in".
 
 ### Servings
 

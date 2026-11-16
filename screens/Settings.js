@@ -16,7 +16,7 @@ import { THEME_PREFERENCES, useTheme } from '../lib/app/theme-context';
 import { useCachingEnabled } from '../lib/app/cachePreference';
 import { useContrastSetting } from '../lib/server/useContrastSetting';
 import { applyCachingPreference } from '../lib/app/cache';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertSaveFailed, isOfflineError, alertActionFailed } from '../lib/server/connectivity';
 import { appAlert } from '../lib/app/dialog';
 
 const Row = ({ label, onPress, danger }) => (
@@ -77,7 +77,7 @@ const Settings = ({ navigation }) => {
           try {
             await signOut();
           } catch (err) {
-            appAlert('Sign out failed', err.message ?? 'Unknown error');
+            alertActionFailed(err, 'Sign out failed');
           }
         },
       },
@@ -97,11 +97,13 @@ const Settings = ({ navigation }) => {
             try {
               await deleteAccount();
             } catch (err) {
-              appAlert(
-                'Could not delete account',
-                (err.message ?? 'Unknown error') +
-                  '\n\nThis requires a `delete_current_user` Postgres function in Supabase.'
-              );
+              if (isOfflineError(err)) alertActionFailed(err);
+              else
+                appAlert(
+                  'Could not delete account',
+                  (err.message ?? 'Unknown error') +
+                    '\n\nThis requires a `delete_current_user` Postgres function in Supabase.'
+                );
             }
           },
         },

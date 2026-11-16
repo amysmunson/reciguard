@@ -56,7 +56,7 @@ import { usePullToRefresh } from '../lib/server/usePullToRefresh';
 import AllergyFilterControl from '../components/AllergyFilterControl';
 import SortMenu from '../components/SortMenu';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertSaveFailed, alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
 import {
   RECIPE_SORT_OPTIONS,
   DEFAULT_RECIPE_SORT,
@@ -148,7 +148,7 @@ const FolderDetail = ({ route, navigation }) => {
       // when the cached first paint was already current.
       setLoadedRecipes((prev) => (sameJson(prev, list) ? prev : list));
     } catch (err) {
-      appAlert('Could not load folder', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load folder');
     }
   }, [folderId, isFavorites, isTrash]);
 
@@ -185,7 +185,7 @@ const FolderDetail = ({ route, navigation }) => {
       });
       setActiveAllergies(details);
     } catch (err) {
-      appAlert('Could not load dietary needs', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load dietary needs');
     }
   }, []);
 
@@ -292,7 +292,7 @@ const FolderDetail = ({ route, navigation }) => {
       setPickerSelected(new Set());
       setPickerOpen(true);
     } catch (err) {
-      appAlert('Could not load recipes', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load recipes');
     }
   };
 
@@ -452,7 +452,7 @@ const FolderDetail = ({ route, navigation }) => {
             await deleteFolder(folderId);
             navigation.goBack();
           } catch (err) {
-            appAlert('Could not delete folder', err.message ?? 'Unknown error');
+            alertActionFailed(err, 'Could not delete folder');
           }
         },
       },

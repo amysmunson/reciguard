@@ -1,6 +1,5 @@
 // Static checks over the app source that ships in the bundle.
 const { appSourceFiles, read } = require('../helpers/repoFiles');
-import { checkConnection } from '../../lib/server/connectivity';
 
 const filesMatching = (re) => appSourceFiles().filter((f) => re.test(read(f)));
 
@@ -17,18 +16,18 @@ test('no console logging in app code (could leak tokens, profiles, or dietary da
   expect(offenders).toEqual([]);
 });
 
-test('every network request goes to the Supabase client, the health check, or a user-chosen recipe URL', () => {
+test('every network request goes through the Supabase client or to a user-chosen recipe URL', () => {
+  // connectivity.js only wraps the Supabase client's own fetch (trackedFetch).
   const fetchers = filesMatching(/\bfetch\s*\(/);
   expect(fetchers.sort()).toEqual(['lib/server/connectivity.js', 'lib/server/recipeUrlParser.js']);
+  expect(read('lib/server/supabase.js')).toMatch(/global:\s*\{\s*fetch:\s*trackedFetch\s*\}/);
 });
 
-test('the connectivity check sends no user data — only the public key, over HTTPS', async () => {
-  global.fetch = jest.fn(async () => ({ status: 200 }));
-  await checkConnection();
-  const [url, init] = global.fetch.mock.calls[0];
-  expect(url).toBe('https://example.supabase.co/auth/v1/health');
-  expect(Object.keys(init.headers)).toEqual(['apikey']);
-  expect(init.body).toBeUndefined();
+test('no background polling: connectivity makes no requests of its own', () => {
+  const src = read('lib/server/connectivity.js');
+  expect(src).not.toMatch(/setInterval|setTimeout|AppState|\/health/);
+  // The only fetch is the pass-through inside trackedFetch.
+  expect(src.match(/\bfetch\s*\(/g)).toHaveLength(1);
 });
 
 test('the auth session is never written to AsyncStorage by app code', () => {

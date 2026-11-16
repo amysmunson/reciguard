@@ -11,6 +11,7 @@ import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
 import { signUp } from '../lib/server/api/auth';
 import { appAlert } from '../lib/app/dialog';
+import { alertActionFailed } from '../lib/server/connectivity';
 
 const SignUp = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -36,7 +37,7 @@ const SignUp = ({ navigation }) => {
       setLoading(true);
       await signUp({ email: email.trim(), password, name: name.trim() });
     } catch (err) {
-      appAlert('Sign up failed', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Sign up failed');
     } finally {
       setLoading(false);
     }

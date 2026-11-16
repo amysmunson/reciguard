@@ -11,6 +11,7 @@ import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
 import { requestPasswordReset, verifyPasswordResetOtp, updatePassword } from '../lib/server/api/auth';
 import { appAlert } from '../lib/app/dialog';
+import { alertActionFailed } from '../lib/server/connectivity';
 
 const ForgotPassword = ({ navigation }) => {
   // 'request' = collect email and send the code; 'reset' = enter code + new password.
@@ -32,7 +33,7 @@ const ForgotPassword = ({ navigation }) => {
       setStep('reset');
       appAlert('Check your email', 'We sent a 6-digit code to reset your password.');
     } catch (err) {
-      appAlert('Could not send code', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not send code');
     } finally {
       setLoading(false);
     }
@@ -61,7 +62,7 @@ const ForgotPassword = ({ navigation }) => {
       // swaps in the app stack automatically
       appAlert('Password updated', 'Your password has been reset.');
     } catch (err) {
-      appAlert('Reset failed', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Reset failed');
     } finally {
       setLoading(false);
     }

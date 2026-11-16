@@ -35,8 +35,10 @@ import FolderPickerModal from '../components/FolderPickerModal';
 import ReorderableList from '../components/ReorderableList';
 import RemoveBadge from '../components/RemoveBadge';
 import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
-import { toItem } from '../lib/app/recipeItems';
+import { alertActionFailed, alertSaveFailed, isOfflineError } from '../lib/server/connectivity';
+import { useAuth } from '../lib/server/auth-context';
+import { getCachedRecipe } from '../lib/app/recipeCache';
+import { normalizeRecipe, toItem } from '../lib/app/recipeItems';
 import { resolveTotalMinutes } from '../lib/app/recipeTimes';
 import { appAlert } from '../lib/app/dialog';
 
@@ -93,6 +95,8 @@ const EditRecipe = ({ route, navigation }) => {
   const isNew = !recipeId;
   // If create new recipe, go back to home after saving
   const fromCreate = !!route.params?.fromCreate;
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -128,8 +132,20 @@ const EditRecipe = ({ route, navigation }) => {
   useEffect(() => {
     if (isNew) return;
     const load = async () => {
+      let r;
       try {
-        const r = await getRecipe(recipeId);
+        r = await getRecipe(recipeId);
+      } catch (err) {
+        // Offline: edit the copy saved on this device (one of the recently
+        // opened recipes), if there is one. Saving still needs a connection.
+        r = isOfflineError(err) ? normalizeRecipe(await getCachedRecipe(userId, recipeId)) : null;
+        if (!r) {
+          alertActionFailed(err, 'Could not load recipe');
+          setLoading(false);
+          return;
+        }
+      }
+      try {
         const form = {
           name: r.name,
           servings: asInputText(r.servings),
@@ -151,14 +167,12 @@ const EditRecipe = ({ route, navigation }) => {
         setSteps(form.steps);
         setUserNotes(form.userNotes);
         setBaseline(snapshot(form));
-      } catch (err) {
-        appAlert('Could not load recipe', err.message ?? 'Unknown error');
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [recipeId, isNew]);
+  }, [recipeId, isNew, userId]);
 
   // The form as a recipe payload (blank rows dropped, row keys stripped).
   const formValues = () => {

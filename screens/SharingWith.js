@@ -9,7 +9,7 @@ import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
 import { getSharingWith, revokeMyAccess, blockUser } from '../lib/server/api/friends';
 import ConfirmModal from '../components/ConfirmModal';
-import { appAlert } from '../lib/app/dialog';
+import { alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
 
 const relativeTime = (iso) => {
   if (!iso) return '';
@@ -32,7 +32,7 @@ const SharingWith = ({ navigation }) => {
     try {
       setPeople(await getSharingWith());
     } catch (err) {
-      appAlert('Could not load', err.message ?? 'Unknown error');
+      alertLoadFailed(err);
     } finally {
       setLoading(false);
     }
@@ -60,10 +60,7 @@ const SharingWith = ({ navigation }) => {
       else await blockUser(person.sharerId);
       load();
     } catch (err) {
-      appAlert(
-        action === 'remove' ? 'Could not remove' : 'Could not block',
-        err.message ?? 'Unknown error'
-      );
+      alertActionFailed(err, action === 'remove' ? 'Could not remove' : 'Could not block');
     }
   };
 
