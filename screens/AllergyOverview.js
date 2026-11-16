@@ -20,8 +20,9 @@ import {
   SEVERITY_RANK,
 } from '../lib/server/api/allergies';
 import { loadJson, saveJson, KEYS } from '../lib/app/storage';
-import { appAlert } from '../lib/app/dialog';
+import { compareText } from '../lib/app/sort';
 import AppModal from '../components/AppModal';
+import { alertLoadFailed } from '../lib/server/connectivity';
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
@@ -89,7 +90,7 @@ const AllergyOverview = ({ navigation, route }) => {
         setSelectedFriendIds(new Set(allFriendIds));
       }
     } catch (err) {
-      appAlert('Could not load Dietary Needs Overview', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load Dietary Needs Overview');
     } finally {
       setLoading(false);
     }
@@ -166,7 +167,7 @@ const AllergyOverview = ({ navigation, route }) => {
         roster.push({ profileId: f.id, profileName: friendDisplayName(f) });
       }
     }
-    roster.sort((a, b) => a.profileName.localeCompare(b.profileName));
+    roster.sort((a, b) => compareText(a.profileName, b.profileName));
 
     return roster.map((r) => ({
       ...r,
