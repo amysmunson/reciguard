@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
+import StatusScreen from '../components/StatusScreen';
 import { colors } from '../styles/theme';
 import { BackIcon, CheckboxIcon, FilterIcon } from '../components/icons';
 import { useAuth } from '../lib/server/auth-context';
@@ -177,6 +178,19 @@ const AllergyOverview = ({ navigation, route }) => {
     }));
   }, [details, includeSelf, selectedFriendIds, friends, myName]);
 
+
+  // First load: the shared loading screen, so it matches every other page.
+  if (loading) {
+    return (
+      <StatusScreen
+        title="Dietary Needs Overview"
+        message="Loading…"
+        onBack={handleBack}
+        backIconStyle={styles.overlayIcon_sm}
+      />
+    );
+  }
+
   return (
     <ScrollView
       style={[styles.screen_base, styles.screen_cardPad]}
@@ -198,42 +212,36 @@ const AllergyOverview = ({ navigation, route }) => {
 
       <Text style={styles.header_card}>Dietary Needs Overview</Text>
 
-      {loading ? (
-        <Text style={styles.emptyText}>Loading…</Text>
+      {groups.length === 0 ? (
+        <Text style={styles.emptyText}>
+          Nobody selected. Tap the filter icon to choose who to show.
+        </Text>
       ) : (
-        <>
-          {groups.length === 0 ? (
-            <Text style={styles.emptyText}>
-              Nobody selected. Tap the filter icon to choose who to show.
+        groups.map((g) => (
+          <View key={g.profileId} style={{ marginBottom: 20 }}>
+            <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>
+              {g.profileName}
             </Text>
-          ) : (
-            groups.map((g) => (
-              <View key={g.profileId} style={{ marginBottom: 20 }}>
-                <Text style={[styles.header_section, { marginTop: 10, marginBottom: 10 }]}>
-                  {g.profileName}
-                </Text>
-                {g.allergies.length === 0 ? (
-                  <Text style={styles.emptyText}>No known dietary needs.</Text>
-                ) : (
-                  g.allergies.map((a, idx) => (
-                    <View key={a.name + idx} style={styles.allergyRow}>
-                      <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
-                      <View style={styles.severityChip}>
-                        <View
-                          style={[
-                            styles.severityDot,
-                            { backgroundColor: severityColor(a.severity) },
-                          ]}
-                        />
-                        <Text style={styles.severityChipLabel}>{severityLabel(a.severity)}</Text>
-                      </View>
-                    </View>
-                  ))
-                )}
-              </View>
-            ))
-          )}
-        </>
+            {g.allergies.length === 0 ? (
+              <Text style={styles.emptyText}>No known dietary needs.</Text>
+            ) : (
+              g.allergies.map((a, idx) => (
+                <View key={a.name + idx} style={styles.allergyRow}>
+                  <Text style={[styles.recipeItem, { flex: 1 }]}>• {cap(a.name)}</Text>
+                  <View style={styles.severityChip}>
+                    <View
+                      style={[
+                        styles.severityDot,
+                        { backgroundColor: severityColor(a.severity) },
+                      ]}
+                    />
+                    <Text style={styles.severityChipLabel}>{severityLabel(a.severity)}</Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        ))
       )}
 
       <AppModal visible={filterOpen} transparent animationType="fade" onRequestClose={dismissFilter}>

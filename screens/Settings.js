@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,10 @@ import { colors } from '../styles/theme';
 import NavigationBar from '../components/NavigationBar';
 import { signOut, deleteAccount } from '../lib/server/api/auth';
 import { useAuth } from '../lib/server/auth-context';
-import { loadJson, saveJson, KEYS } from '../lib/app/storage';
 import { THEME_PREFERENCES, useTheme } from '../lib/app/theme-context';
 import { useCachingEnabled } from '../lib/app/cachePreference';
 import { useContrastSetting } from '../lib/server/useContrastSetting';
+import { useProfileToggle } from '../lib/server/useProfileToggle';
 import { applyCachingPreference } from '../lib/app/cache';
 import { alertSaveFailed, isOfflineError, alertActionFailed } from '../lib/server/connectivity';
 import { appAlert } from '../lib/app/dialog';
@@ -38,18 +38,12 @@ const Settings = ({ navigation }) => {
   const { contrast, loading: contrastLoading, toggleContrast } = useContrastSetting();
 
   // Hide vs warn for recipes that conflict with the active dietary filter.
-  const [hideUnsafe, setHideUnsafe] = useState(false);
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-    (async () => {
-      const saved = await loadJson(KEYS.hideUnsafeRecipes(user.id), false);
-      if (!cancelled) setHideUnsafe(!!saved);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+  // Saved on the profile; flips instantly (lib/server/useProfileToggle.js).
+  const {
+    value: hideUnsafe,
+    ready: hideUnsafeReady,
+    toggle: toggleHideUnsafe,
+  } = useProfileToggle('hide_unsafe_recipes', 'Could not change this setting');
 
   // Data → keep copies on this device (lib/app/cachePreference.js). Off clears
   // the stored copies immediately.
@@ -60,11 +54,6 @@ const Settings = ({ navigation }) => {
     } catch (err) {
       alertSaveFailed(err, 'Could not change this setting');
     }
-  };
-
-  const handleToggleHideUnsafe = (next) => {
-    setHideUnsafe(next);
-    if (user?.id) saveJson(KEYS.hideUnsafeRecipes(user.id), next);
   };
 
   const handleSignOut = () => {
@@ -174,7 +163,8 @@ const Settings = ({ navigation }) => {
           </View>
           <Switch
             value={hideUnsafe}
-            onValueChange={handleToggleHideUnsafe}
+            onValueChange={toggleHideUnsafe}
+            disabled={!hideUnsafeReady}
             trackColor={{ false: colors.borderInput, true: colors.primary }}
             accessibilityLabel="Hide recipes with dietary conflicts"
           />

@@ -265,47 +265,24 @@ const FriendProfile = ({ route, navigation }) => {
     ]);
   };
 
-  // Before the full profile arrives: the cached name (if any) plus a status
-  // line — never a stale copy of their notes or dietary needs. A ScrollView
-  // like the loaded screen, so iOS insets it below the status bar and the
-  // back arrow stays reachable. Pull down to try again.
-  if (!friend && !identity) {
+  // Before the full profile arrives: the cached name (if any) as the title,
+  // plus the shared loading message — never a stale copy of their notes or
+  // dietary needs. Pull down to try again.
+  if (!friend) {
+    let message = 'Loading…';
+    if (detailsFailed) {
+      message = identity
+        ? "Couldn't load their notes and dietary needs. Connect to the internet, then pull down to try again."
+        : "Couldn't load this friend. Connect to the internet, then pull down to try again.";
+    }
     return (
       <StatusScreen
-        message={
-          detailsFailed
-            ? "Couldn't load this friend. Connect to the internet, then pull down to try again."
-            : 'Loading…'
-        }
+        title={identity?.name}
+        message={message}
         onBack={handleBackPress}
         refreshControl={retryControl}
         backIconStyle={styles.overlayIcon_sm}
       />
-    );
-  }
-  if (!friend) {
-    return (
-      <ScrollView
-        style={[styles.screen_base, styles.screen_cardPad]}
-        contentContainerStyle={styles.screen_baseScroll}
-        refreshControl={retryControl}
-      >
-        <TouchableOpacity
-          style={[styles.overlay_base, styles.overlay_topLeft_card]}
-          onPress={handleBackPress}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-        >
-          <BackIcon style={styles.overlayIcon_sm} />
-        </TouchableOpacity>
-        <Text style={styles.header_card}>{identity.name}</Text>
-        <Text style={styles.emptyText}>
-          {detailsFailed
-            ? "Couldn't load their notes and dietary needs. Connect to the internet, then pull down to try again."
-            : 'Loading details…'}
-        </Text>
-      </ScrollView>
     );
   }
 

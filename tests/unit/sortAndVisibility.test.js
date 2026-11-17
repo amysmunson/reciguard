@@ -1,5 +1,5 @@
 import { sortRecipes, sortFolders, normalizeSort, compareText, DEFAULT_RECIPE_SORT } from '../../lib/app/sort';
-import { applyDietaryVisibility } from '../../lib/app/useHideUnsafe';
+import { applyDietaryVisibility, hidesUnsafeRecipes } from '../../lib/app/dietaryVisibility';
 import { dotsForRecipe, ingredientAllergyInfo } from '../../lib/server/api/allergies';
 
 const recipes = [
@@ -29,6 +29,14 @@ test('name sorts ignore case first, then use case only to break ties', () => {
   // Untitled still sorts last, and leading spaces don't count.
   const folders = [{ name: 'dinner' }, { name: '' }, { name: '  Breakfast' }];
   expect(sortFolders(folders, { by: 'name', dir: 'asc' }).map((f) => f.name)).toEqual(['  Breakfast', 'dinner', '']);
+});
+
+test('hide-unsafe setting is read from the profile', () => {
+  expect(hidesUnsafeRecipes({ hide_unsafe_recipes: true })).toBe(true);
+  expect(hidesUnsafeRecipes({ hide_unsafe_recipes: false })).toBe(false);
+  // Before the migration runs (no column) or before the profile loads.
+  expect(hidesUnsafeRecipes({})).toBe(false);
+  expect(hidesUnsafeRecipes(null)).toBe(false);
 });
 
 test('allergy matching flags the right ingredient and recipe', () => {

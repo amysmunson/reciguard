@@ -5,6 +5,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
+import StatusScreen from '../components/StatusScreen';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
 import { getSharingWith, revokeMyAccess, blockUser } from '../lib/server/api/friends';
@@ -64,6 +65,19 @@ const SharingWith = ({ navigation }) => {
     }
   };
 
+
+  // First load: the shared loading screen, so it matches every other page.
+  if (loading) {
+    return (
+      <StatusScreen
+        title="Sharing With"
+        message="Loading…"
+        onBack={() => navigation.goBack()}
+        backIconStyle={styles.overlayIcon_sm}
+      />
+    );
+  }
+
   return (
     <ScrollView style={[styles.screen_base, styles.screen_cardPad]} contentContainerStyle={{ paddingBottom: 40 }}>
       <TouchableOpacity
@@ -86,7 +100,6 @@ const SharingWith = ({ navigation }) => {
         to your profile or block them here.
       </Text>
 
-      {loading && <Text style={styles.emptyText}>Loading…</Text>}
 
       {!loading && people.length === 0 && (
         <Text style={styles.emptyText}>You aren&apos;t sharing your profile with anyone yet.</Text>

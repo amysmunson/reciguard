@@ -59,6 +59,7 @@ recipes/
 │   │   ├── connectivity.js         # Online/offline from real requests (trackedFetch), useIsOnline(), alertLoad/Action/SaveFailed()
 │   │   ├── recipeUrlParser.js      # fetchRecipeFromUrl(): downloads a recipe page → name/ingredients/steps/servings/times (+ sections)
 │   │   ├── useCacheWarmup.js       # On launch/sign-in: quietly refresh folders, folder memberships, friends, cached recipes
+│   │   ├── useProfileToggle.js     # Instant Settings switches stored on the profile (contrast, hide_unsafe_recipes)
 │   │   ├── useContrastSetting.js   # High-contrast mode toggle (saved to the profile) shared by Accessibility + Settings → Display
 │   │   ├── usePullToRefresh.js     # usePullToRefresh(refresh) → <RefreshControl>; also re-pings the server
 │   │   └── api/                    # Per-table database functions screens import
@@ -78,7 +79,7 @@ recipes/
 │       ├── unsavedChanges.js       # useUnsavedChangesGuard() (leave-screen prompt) + confirmDiscard() (modals)
 │       ├── navBarOffset.js         # Where the nav bar's top edge is, so the offline banner can sit on it
 │       ├── theme-context.js        # ThemeProvider/useTheme: System/Light/Dark preference, applyColorScheme()
-│       ├── useHideUnsafe.js        # Settings "hide recipes with dietary conflicts": useHideUnsafe(), applyDietaryVisibility()
+│       ├── dietaryVisibility.js    # Hide vs warn: hidesUnsafeRecipes(profile), applyDietaryVisibility()
 │       ├── sort.js                 # Shared sort options + sortRecipes/sortFolders + normalizeSort
 │       ├── scaleIngredient.js      # Ingredient amount multiplier: scaleIngredient(), formatAmount(), MULTIPLIERS
 │       ├── recipeItems.js          # { text, isHeader } ingredient/step items: toItem, normalizeItems, itemTexts, normalizeRecipe
@@ -170,7 +171,8 @@ recipes/
 │
 ├── supabase/                       # Migration SQL to run in the Supabase SQL editor
 │   ├── recipes_add_servings.sql    # recipes.servings integer (nullable = not filled in, > 0)
-│   └── recipes_favorites_trash_times_sections.sql  # is_favorite, deleted_at, prep/cook/total minutes, is_header
+│   ├── recipes_favorites_trash_times_sections.sql  # is_favorite, deleted_at, prep/cook/total minutes, is_header
+│   └── profiles_add_hide_unsafe_recipes.sql        # profiles.hide_unsafe_recipes boolean (default false)
 │
 └── docs/
     └── ARCHITECTURE.md             # This file
@@ -335,9 +337,9 @@ Each screen is a default-exported React component that:
   longer keep their own `useState` list + manual `load()` in `useFocusEffect`.
 - Still calls `lib/server/api/*` directly inside `useFocusEffect`/`useEffect` for data
   that isn't cache-backed (e.g. Home's opened-map and active-allergy details).
-- The Accessibility screen also uses the profile cache, but writes the
-  `contrast` field optimistically so the switch responds immediately before the
-  Supabase update finishes.
+- Settings switches stored on the profile (high contrast, hide unsafe
+  recipes) go through `useProfileToggle`, which updates the cached profile
+  first, so the switch responds before the Supabase update finishes.
 - Renders styles from `styles/main_style.js`.
 - Calls `navigation.navigate(...)` for transitions.
 - Uses `appAlert()` ([lib/app/dialog.js](lib/app/dialog.js)) for errors and confirms —
@@ -571,7 +573,7 @@ Two non-hook helpers:
 
 **Launch warm-up** — [lib/server/useCacheWarmup.js](lib/server/useCacheWarmup.js) runs
 once per signed-in session from `AppStack` in [App.js](App.js). It
-prefetches `folders`, `folderMembers`, and `friends` (Home already fetches
+prefetches `folders` and `friends` (Home already fetches
 `recipes` and `profile` itself) and calls `refreshAllCachedRecipes()` so the
 recently opened recipes are current before the user goes offline. Failures
 are silent; every screen still refetches when opened.
@@ -580,7 +582,7 @@ are silent; every screen still refetches when opened.
 
 | Screen | First paint from | Then |
 |---|---|---|
-| FolderDetail | cached `recipes` list filtered by cached `folderMembers` (`{ folderId: [recipeId] }`, ids only, from `getFolderMemberships()`) | `getFolder` + `getRecipesInFolder`; state only replaced if different |
+| FolderDetail | Favorites only: cached `recipes` list filtered to starred. Regular folders wait for the server, since which recipes are in which folder isn't cached (only the folder list is) | `getFolder` + `getRecipesInFolder`; state only replaced if different |
 | Profile | cached `profile` | `getMyProfile` + `getMyAllergies` |
 | RecipeCard | `lib/app/recipeCache.js` (5 most recent) | `getRecipe`; only re-renders if different |
 
@@ -610,11 +612,14 @@ shared dietary needs are **never cached**; they always come from the server.
   (`useCacheWarmup`, even with caching off), and it stays in
   `CACHED_RESOURCES` so sign-out removes it too.
 
-EditRecipe deliberately loads from the server only — editing a
-cached copy could save over newer changes.
+EditRecipe loads from the server, and falls back to the device's saved copy
+only when the server can't be reached (saving still needs a connection).
 
-`folderMembers` is invalidated by every folder/mapping mutation in
-[lib/server/api/folders.js](lib/server/api/folders.js) (via `bustFolderCaches`).
+The `folders` list is invalidated by every folder/mapping mutation in
+[lib/server/api/folders.js](lib/server/api/folders.js) (via `bustFolderCaches`). Earlier
+builds also cached which recipes were in each folder (`folderMembers`).
+`useCacheWarmup` deletes that at every launch, and it stays in
+`CACHED_RESOURCES` so sign-out removes it too.
 
 **Keeping the recipe list light.** The `recipes` resource (Home) is
 `getRecipes()`, which selects only `id`, `name`, `photo`, `is_favorite`,
@@ -772,9 +777,10 @@ Key relationships:
 
 - A user has one profile row, auto-created by the `handle_new_user` trigger
   on `auth.users` insert.
-- The profile row carries `contrast` to control high-contrast accessibility
-  mode. The Accessibility screen updates this flag, and the profile cache keeps
-  the toggle responsive without waiting for a round trip.
+- The profile row carries two Settings switches: `contrast` (high-contrast
+  mode) and `hide_unsafe_recipes` (hide vs warn for dietary conflicts). Both
+  follow the user to any device. `useProfileToggle` keeps them instant (see
+  "Instant profile switches").
 - A recipe has many ordered ingredients and steps in child tables (designed
   this way so the future allergy-detection feature can join `allergies` to
   `recipe_ingredients` instead of unnesting JSONB).
@@ -1079,10 +1085,31 @@ plain `goBack()`.
 
 The Accessibility screen and Settings → Display both toggle
 `profiles.contrast` on and off, through one shared hook,
-[lib/server/useContrastSetting.js](lib/server/useContrastSetting.js), so the two switches
-always agree. That value is
-cached in the `profile` resource, so the switch updates immediately by mutating
-the cached profile first and then syncing the change to Supabase.
+[lib/server/useContrastSetting.js](lib/server/useContrastSetting.js) (a thin wrapper over
+`useProfileToggle`), so the two switches always agree.
+
+### Instant profile switches
+
+[lib/server/useProfileToggle.js](lib/server/useProfileToggle.js) backs every Settings switch
+stored on the profile (`contrast`, `hide_unsafe_recipes`):
+
+- **Flips immediately.** It updates the cached `profile` first
+  (`mutateCachedResource` now notifies screens *before* writing to disk), so
+  every screen reading the profile re-renders at once: the other copy of the
+  switch, the recipe lists, the contrast styling.
+- **One small request.** `setMyProfileFlags()` in
+  [lib/server/api/profile.js](lib/server/api/profile.js) reads the user id from the stored
+  session (no `getUser()` round trip), sends only whitelisted boolean flags
+  (`PROFILE_FLAGS`), asks for no response body, and doesn't invalidate the
+  cache, so nothing refetches.
+- **Fast repeated taps stay in order.** Only one write per field runs at a
+  time; when it finishes, only the latest value is sent next. So several
+  quick taps cost at most two requests and can't land out of order.
+- **Failure.** The switch goes back to the last saved value, with one
+  `alertSaveFailed` popup.
+- **Disabled only until a profile exists.** The switch needs the cached or
+  fetched profile, normally instant from the device cache, so the
+  optimistic update keeps the rest of the profile intact.
 
 The value is consumed by the profile-aware screens that need contrast-sensitive
 text rendering:
@@ -1450,17 +1477,20 @@ Two limits stop a dead connection from leaving a screen stuck:
 
 Every full-page loading or couldn't-load state uses one component,
 [components/StatusScreen.js](components/StatusScreen.js): RecipeCard, EditRecipe, Profile,
-and FriendProfile when there's no saved name. So they share the same
-padding, the message at the same height (a little above the middle,
-`statusScreen_container`), and a back arrow in the spot it has once the page
-loads (`backIconStyle` matches each page's arrow size). It's a ScrollView,
+FriendProfile, the Dietary Needs Overview, Sharing With and Blocked Users. So
+they share the same padding, the same "Loading…" text at the same height (a
+little above the middle), and a back arrow in the spot it has once the page
+loads (`backIconStyle` matches each page's arrow size). An optional `title`
+shows the page heading where it normally sits (a friend's cached name,
+"Sharing With"). The message is laid over the whole page
+(`statusScreen_messageLayer`) rather than placed under the title, so a title
+never moves it. It's a ScrollView,
 like the loaded screens, so iOS insets it below the status bar and the back
 arrow stays visible and reachable. In a plain View it sat under the status
 bar. Pages that pass `refreshControl` let you pull down to retry.
 
-Lists that load *under* a header (Sharing, Blocked, the Dietary Needs
-Overview, the Add to folder picker) keep a small inline "Loading…" instead,
-since the rest of the page is already showing.
+The Add to folder picker, a popup rather than a page, keeps its small inline
+"Loading…".
 
 **Popups when something fails** (all in `connectivity.js`):
 
@@ -1642,14 +1672,30 @@ RecipeCard shows "Prep 15 min · Cook 1 hr · Total 1 hr 15 min".
 
 ### Hide vs warn for dietary conflicts
 
-Settings → "Hide recipes with dietary conflicts" (`KEYS.hideUnsafeRecipes`,
-per user, default off). Off: recipes matching the active dietary filter show
-warning dots (the original behavior). On: Home, folders, and Favorites leave
-those recipes out (`applyDietaryVisibility()` in
-[lib/app/useHideUnsafe.js](lib/app/useHideUnsafe.js)) and say how many were hidden.
+Settings → "Hide recipes with dietary conflicts" is stored on the profile
+(`profiles.hide_unsafe_recipes`, default off, added by
+[supabase/profiles_add_hide_unsafe_recipes.sql](../supabase/profiles_add_hide_unsafe_recipes.sql)),
+so it follows the user to a new phone. Off: recipes matching the active
+dietary filter show warning dots (the original behavior). On: Home, folders,
+and Favorites leave those recipes out (`applyDietaryVisibility()` in
+[lib/app/dietaryVisibility.js](lib/app/dietaryVisibility.js)) and say how many were hidden.
 It only applies while a dietary filter is active, and never in Trash.
-`useHideUnsafe()` re-reads the setting on focus, so a change applies as soon
-as you return to a list.
+
+- **Reading it:** Home and FolderDetail read it from the profile they
+  already load (`hidesUnsafeRecipes(profile)`), so a change shows the moment
+  the switch flips.
+- **Changing it:** Settings goes through `useProfileToggle`.
+- **Before the migration is run:** the app works without the column.
+  `getMyProfile()` sees the column is missing from the row, fills
+  `hide_unsafe_recipes` in from the device copy (`KEYS.hideUnsafeRecipes`),
+  and lists it in `profile.deviceOnly`. `useProfileToggle` then saves that
+  switch on the device, with no request and no error. High contrast is
+  unaffected.
+- **Upgrading from an earlier build:** those builds saved the setting only
+  on the device. Once the column exists, `migrateHideUnsafeToProfile()`
+  (from `useCacheWarmup`) copies an "on" up to the profile once and deletes
+  the device copy. Until then it leaves the device copy alone, since that's
+  still the setting. If the save fails (offline), it retries next launch.
 
 ### Dark mode
 

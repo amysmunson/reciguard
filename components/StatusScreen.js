@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import styles from '../styles/main_style';
 import { BackIcon } from './icons';
 
@@ -7,13 +7,20 @@ import { BackIcon } from './icons';
 // shows it the same way: same padding, the message at the same height, and
 // the back arrow in the spot it has once the page loads.
 //
+// `title` (optional) shows the page's heading where it normally sits, e.g. a
+// friend's cached name or "Sharing With". The message is laid over the whole
+// page rather than below the title, so it lands at exactly the same height
+// with or without one.
+//
 // It's a ScrollView, like the loaded pages, so iOS insets it below the status
 // bar: in a plain View the back arrow sat under the status bar, out of reach.
 // Pass `refreshControl` to let the user pull down to try again.
 //
-// Used by RecipeCard, EditRecipe, Profile and FriendProfile.
+// Used by RecipeCard, EditRecipe, Profile, FriendProfile, AllergyOverview,
+// SharingWith and BlockedUsers.
 const StatusScreen = ({
   message,
+  title,
   onBack,
   refreshControl,
   backIconStyle = styles.overlayIcon_md,
@@ -24,6 +31,10 @@ const StatusScreen = ({
     contentContainerStyle={styles.statusScreen_container}
     refreshControl={refreshControl}
   >
+    <View pointerEvents="none" style={styles.statusScreen_messageLayer}>
+      <Text style={[styles.emptyText, textStyle]}>{message}</Text>
+    </View>
+    {title ? <Text style={styles.header_card}>{title}</Text> : null}
     {onBack && (
       <TouchableOpacity
         style={[styles.overlay_base, styles.overlay_topLeft_card]}
@@ -35,7 +46,6 @@ const StatusScreen = ({
         <BackIcon style={backIconStyle} />
       </TouchableOpacity>
     )}
-    <Text style={[styles.emptyText, textStyle]}>{message}</Text>
   </ScrollView>
 );
 

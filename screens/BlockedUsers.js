@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
+import StatusScreen from '../components/StatusScreen';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
 import { getMyBlocks, unblockUser, blockUserByCode } from '../lib/server/api/friends';
@@ -108,6 +109,19 @@ const BlockedUsers = ({ navigation }) => {
     }
   };
 
+
+  // First load: the shared loading screen, so it matches every other page.
+  if (loading) {
+    return (
+      <StatusScreen
+        title="Blocked Users"
+        message="Loading…"
+        onBack={() => navigation.goBack()}
+        backIconStyle={styles.overlayIcon_sm}
+      />
+    );
+  }
+
   return (
     <ScrollView style={[styles.screen_base, styles.screen_cardPad]} contentContainerStyle={{ paddingBottom: 40 }}>
       <TouchableOpacity
@@ -132,7 +146,6 @@ const BlockedUsers = ({ navigation }) => {
         ever shared with them.
       </Text>
 
-      {loading && <Text style={styles.emptyText}>Loading…</Text>}
 
       {!loading && blocks.length === 0 && (
         <Text style={styles.emptyText}>You haven&apos;t blocked anyone.</Text>

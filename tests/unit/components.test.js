@@ -47,4 +47,13 @@ test('StatusScreen: one loading/couldn\'t-load page with a working back arrow', 
   expect(screen.getByText('Loading…')).toBeTruthy();
   await fireEvent.press(screen.getByLabelText('Back'));
   expect(onBack).toHaveBeenCalled();
+
+  // A page title doesn't move the message: it's laid over the whole page.
+  const { StyleSheet } = require('react-native');
+  const layerOf = () => StyleSheet.flatten(screen.getByText('Loading…').parent.props.style);
+  const without = layerOf();
+  await render(<StatusScreen title="Sharing With" message="Loading…" onBack={onBack} />);
+  expect(screen.getByText('Sharing With')).toBeTruthy();
+  expect(layerOf()).toEqual(without);
+  expect(without.position).toBe('absolute');
 });

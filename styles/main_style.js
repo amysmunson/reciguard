@@ -1374,11 +1374,20 @@ const buildStyles = () => StyleSheet.create({
   // A star's visual center sits below its box's middle (the points meet
   // low), and "Edit" sits a bit high in its line box, so lift the star to
   // read level with the text.
-  // Full-page loading / couldn't-load screens (components/StatusScreen.js):
-  // the message sits a little above the middle of the screen, the same on
-  // every page. Fills the ScrollView so pull to refresh works anywhere.
+  // Full-page loading / couldn't-load screens (components/StatusScreen.js).
+  // The container fills the ScrollView so pull to refresh works anywhere; the
+  // message layer covers it and centers the message a little above the
+  // middle, so it's at the same height on every page, title or not.
   statusScreen_container: {
     flexGrow: 1,
+  },
+  statusScreen_messageLayer: {
+    // Spelled out: React Native 0.88 removed StyleSheet.absoluteFillObject.
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     paddingBottom: 80,
   },

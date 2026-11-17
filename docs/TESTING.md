@@ -55,12 +55,14 @@ security/
 | `recipeTimes.test.js` | ISO 8601 / text durations, formatting, prep + cook total |
 | `recipeItems.test.js` | `{ text, isHeader }` items, headers excluded from ingredient text, defaults for old cached copies |
 | `recipeUrlParser.test.js` | Link import: name, servings, times, step sections, WP Recipe Maker ingredient sections (including the US/Metric toggle title), count-mismatch fallback, error messages |
-| `sortAndVisibility.test.js` | Sorting, invalid saved sort values, allergy matching and dots, hide-vs-warn |
+| `sortAndVisibility.test.js` | Sorting (names: case-insensitive, then case as tie-breaker), invalid saved sort values, allergy matching and dots, hide-vs-warn |
 | `recipesApi.test.js` | Queries scoped to the user, Recently Deleted excluded, header rows written, soft delete and restore, favorites don't touch `updated_at`, copies |
 | `caching.test.js` | 5-recent-recipe eviction, turning caching off (clears and stops writes), `clearUserCache` |
 | `unsavedChanges.test.js` | App-wide unsaved-edit registry (holds theme switches), `confirmDiscard` |
 | `dialog.test.js` | `appAlert` card, button handling, queued dialogs |
-| `components.test.js` | Drag-and-drop accessibility Move up / Move down, `EditHeader` |
+| `components.test.js` | Drag-and-drop accessibility Move up / Move down, `EditHeader`, `StatusScreen` (message and back arrow) |
+| `connectivity.test.js` | Online/offline learned from real requests (2xx–4xx online; network error or 5xx offline; cancels ignored). Requests time out after 15 s; the quick ping answers within 3 s; nothing is requested while idle. No popup for automatic loads when offline; one popup for a failed tap or save |
+| `profileSettings.test.js` | Settings switches on the profile: one small request (no `getUser`, no response body, only allowed fields), flips before the save finishes, quick repeated taps stay in order, a failed save reverts with one popup. Before the `hide_unsafe_recipes` migration: read and saved on the device with no request; after it: copied up once |
 | `offlineBanner.test.js` | Offline banner: hidden online, pinned to the bottom edge past the home indicator, on top of the nav bar on tab screens, lets touches through |
 
 ### Security (`tests/security`)
@@ -72,7 +74,7 @@ security/
 | `signOut.test.js` | Sign-out and account deletion leave no per-user data on the device: caches, cached recipes, cached friend names, and preferences. |
 | `friendCache.test.js` | FriendProfile caches only `{ id, name }`, never notes, bio, or dietary data. First-time friends get a name from the cached friends list. Full profiles cached by earlier builds are purged, even with caching off. |
 | `inputs.test.js` | Source links open only if they're `http(s)`. Link import refuses non-http(s) URLs and oversized pages, and keeps imported text plain. Feedback limits on length, type, and empty messages. |
-| `codeHygiene.test.js` | No `eval` or `new Function`. No console logging in app code. Network calls only through Supabase, the health check, or the user's recipe URL. The health check sends only the public key. No session data written to AsyncStorage. |
+| `codeHygiene.test.js` | No `eval` or `new Function`. No console logging in app code. Network calls only through the Supabase client (via `trackedFetch`) or the user's recipe URL. No background polling; the on-demand reachability ping sends only the public key. No session data written to AsyncStorage. |
 
 ### Dependency audit
 

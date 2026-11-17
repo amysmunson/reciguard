@@ -6,7 +6,7 @@
 // Use from a test with:
 //   jest.mock('../../lib/server/supabase', () => require('./fakeSupabase').module);
 //   const fake = require('./fakeSupabase');
-const METHODS = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'is', 'not', 'in', 'lt', 'order', 'single'];
+const METHODS = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'is', 'not', 'in', 'lt', 'order', 'single', 'maybeSingle'];
 
 const state = {
   log: [],
