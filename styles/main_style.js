@@ -278,6 +278,13 @@ const buildStyles = () => StyleSheet.create({
   input_spaced: {
     marginBottom: 12,
   },
+  // Sign in / sign up / forgot password: the roomier padding input_base had
+  // before the in-app inputs were tightened (4/6), so the auth fields keep
+  // their original look. Compose after input_base.
+  input_auth: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
   // Inline row input — fills the row to the left of a trailing action
   // button (e.g. delete icon in an ingredient row).
   // Underline-only — used when the input doubles as a heading

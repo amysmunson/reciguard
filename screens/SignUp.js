@@ -54,7 +54,7 @@ const SignUp = ({ navigation }) => {
       <View style={{ width: '100%', paddingBottom: 8 }}>
         <Text style={styles.input_label}>Name</Text>
         <TextInput
-          style={[styles.input_base, styles.input_spaced]}
+          style={[styles.input_base, styles.input_auth, styles.input_spaced]}
           placeholder="Name"
           placeholderTextColor={colors.borderInput}
           value={name}
@@ -62,7 +62,7 @@ const SignUp = ({ navigation }) => {
         />
         <Text style={styles.input_label}>Email</Text>
         <TextInput
-          style={[styles.input_base, styles.input_spaced]}
+          style={[styles.input_base, styles.input_auth, styles.input_spaced]}
           placeholder="Email"
           placeholderTextColor={colors.borderInput}
           autoCapitalize="none"
@@ -72,7 +72,7 @@ const SignUp = ({ navigation }) => {
         />
         <Text style={styles.input_label}>Password</Text>
         <TextInput
-          style={[styles.input_base, styles.input_spaced]}
+          style={[styles.input_base, styles.input_auth, styles.input_spaced]}
           placeholder="Password"
           placeholderTextColor={colors.borderInput}
           secureTextEntry
@@ -81,7 +81,7 @@ const SignUp = ({ navigation }) => {
         />
         <Text style={styles.input_label}>Re-enter Password</Text>
         <TextInput
-          style={[styles.input_base]}
+          style={[styles.input_base, styles.input_auth]}
           placeholder="Re-enter Password"
           placeholderTextColor={colors.borderInput}
           secureTextEntry

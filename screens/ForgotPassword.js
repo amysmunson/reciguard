@@ -80,7 +80,7 @@ const ForgotPassword = ({ navigation }) => {
         <View style={{ width: '100%', paddingBottom: 8 }}>
           <Text style={styles.input_label}>Email</Text>
           <TextInput
-            style={[styles.input_base, styles.input_spaced]}
+            style={[styles.input_base, styles.input_auth, styles.input_spaced]}
             placeholder="Email"
             placeholderTextColor={colors.borderInput}
             autoCapitalize="none"
@@ -96,7 +96,7 @@ const ForgotPassword = ({ navigation }) => {
         <View style={{ width: '100%', paddingBottom: 8 }}>
           <Text style={styles.input_label}>Reset Code</Text>
           <TextInput
-            style={[styles.input_base, styles.input_spaced, styles.input_code]}
+            style={[styles.input_base, styles.input_auth, styles.input_spaced, styles.input_code]}
             placeholder="000000"
             placeholderTextColor={colors.borderInput}
             autoCapitalize="none"
@@ -106,7 +106,7 @@ const ForgotPassword = ({ navigation }) => {
           />
           <Text style={styles.input_label}>New Password</Text>
           <TextInput
-            style={[styles.input_base, styles.input_spaced]}
+            style={[styles.input_base, styles.input_auth, styles.input_spaced]}
             placeholder="Password"
             placeholderTextColor={colors.borderInput}
             secureTextEntry
@@ -115,7 +115,7 @@ const ForgotPassword = ({ navigation }) => {
           />
           <Text style={styles.input_label}>Re-enter Password</Text>
           <TextInput
-            style={[styles.input_base]}
+            style={[styles.input_base, styles.input_auth]}
             placeholder="Re-enter Password"
             placeholderTextColor={colors.borderInput}
             secureTextEntry
