@@ -43,11 +43,12 @@ import { loadJson, KEYS, recordRecipeOpened } from '../lib/app/storage';
 import { cacheRecentRecipe, getCachedRecipe } from '../lib/app/recipeCache';
 import { useCachedResource } from '../lib/app/cache';
 import { usePullToRefresh } from '../lib/server/usePullToRefresh';
-import { alertLoadFailed, alertSaveFailed, isOfflineError } from '../lib/server/connectivity';
+import { alertLoadFailed, alertSaveFailed, isOfflineError, pingServer } from '../lib/server/connectivity';
 import { normalizeRecipe } from '../lib/app/recipeItems';
 import { formatMinutes } from '../lib/app/recipeTimes';
 import { isSafeWebUrl } from '../lib/app/safeUrl';
 import ActionMenu from '../components/ActionMenu';
+import StatusScreen from '../components/StatusScreen';
 import FolderPickerModal from '../components/FolderPickerModal';
 import { MULTIPLIERS, formatAmount, scaleIngredient } from '../lib/app/scaleIngredient';
 import { appAlert } from '../lib/app/dialog';
@@ -90,6 +91,13 @@ const RecipeCard = ({ route, navigation }) => {
         // Record this open so Home's "Recently opened" sort can use it, and
         // so the recent-recipe cache keeps this one.
         if (userId) await recordRecipeOpened(userId, recipeId);
+        // Nothing on screen yet: check the server is reachable first (a few
+        // seconds at most), so offline shows the message right away instead
+        // of waiting out the full request.
+        if (!cached && !(await pingServer())) {
+          if (!cancelled) setLoadFailed(true);
+          return;
+        }
         try {
           const r = await getRecipe(recipeId);
           // Quiet background refresh: only re-render if something changed.
@@ -134,24 +142,31 @@ const RecipeCard = ({ route, navigation }) => {
 
   // Pull down to refetch the recipe from the server (and refresh its cached
   // copy). On failure the current copy stays up; the offline banner covers it.
+  // With nothing on screen yet, it's the retry: quick check first, as on open.
   const refreshControl = usePullToRefresh(async () => {
+    if (!recipe && !(await pingServer())) {
+      setLoadFailed(true);
+      return;
+    }
     const r = await getRecipe(recipeId);
     setRecipe(r);
+    setLoadFailed(false);
     if (user?.id) cacheRecentRecipe(user.id, r);
   });
 
+  // Still loading, or offline with no saved copy. Pull down to try again.
   if (!recipe) {
     return (
-      <View style={[styles.screen_base, styles.screen_cardPad]}>
-        <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={() => navigation.goBack()}>
-          <BackIcon style={styles.overlayIcon_md} />
-        </TouchableOpacity>
-        <Text style={[styles.emptyText, { marginTop: 100 }, contrast && { color: colors.text }]}>
-          {loadFailed
-            ? "This recipe isn't saved on this device. Connect to the internet to open it."
-            : 'Loading…'}
-        </Text>
-      </View>
+      <StatusScreen
+        message={
+          loadFailed
+            ? "This recipe isn't saved on this device. Connect to the internet, then pull down to try again."
+            : 'Loading…'
+        }
+        onBack={() => navigation.goBack()}
+        refreshControl={refreshControl}
+        textStyle={contrast && { color: colors.text }}
+      />
     );
   }
 

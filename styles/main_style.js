@@ -1374,6 +1374,14 @@ const buildStyles = () => StyleSheet.create({
   // A star's visual center sits below its box's middle (the points meet
   // low), and "Edit" sits a bit high in its line box, so lift the star to
   // read level with the text.
+  // Full-page loading / couldn't-load screens (components/StatusScreen.js):
+  // the message sits a little above the middle of the screen, the same on
+  // every page. Fills the ScrollView so pull to refresh works anywhere.
+  statusScreen_container: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: 80,
+  },
   recipeCard_star: {
     transform: [{ translateY: -0.5 }],
   },

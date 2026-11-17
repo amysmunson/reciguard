@@ -39,3 +39,12 @@ test('EditHeader: back, Save, and ⋯ only when there are menu actions', async (
   );
   expect(screen.getByLabelText('More actions')).toBeTruthy();
 });
+
+test('StatusScreen: one loading/couldn\'t-load page with a working back arrow', async () => {
+  const StatusScreen = require('../../components/StatusScreen').default;
+  const onBack = jest.fn();
+  await render(<StatusScreen message="Loading…" onBack={onBack} />);
+  expect(screen.getByText('Loading…')).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText('Back'));
+  expect(onBack).toHaveBeenCalled();
+});

@@ -31,9 +31,11 @@ import {
 import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../lib/server/auth-context';
 import { EditHeader } from '../components/EditHeader';
+import StatusScreen from '../components/StatusScreen';
 import SectionHeading from '../components/SectionHeading';
 import { useUnsavedChangesGuard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
-import { alertSaveFailed, isOfflineError, alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
+import { alertSaveFailed, isOfflineError, alertLoadFailed, alertActionFailed, pingServer } from '../lib/server/connectivity';
+import { usePullToRefresh } from '../lib/server/usePullToRefresh';
 import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
 
@@ -108,6 +110,13 @@ const FriendProfile = ({ route, navigation }) => {
   // on screen just says details need a connection; with nothing to show, it
   // alerts.
   const load = useCallback(async ({ preserveEdits = false } = {}) => {
+    // Nothing from the server on screen yet: a quick reachability check
+    // first, so offline shows the message in seconds instead of waiting out
+    // the full requests.
+    if (!serverLoadedRef.current && !(await pingServer())) {
+      setDetailsFailed(true);
+      return;
+    }
     try {
       const f = await getFriend(friendshipId);
       const [mine, theirs] = await Promise.all([
@@ -136,6 +145,9 @@ const FriendProfile = ({ route, navigation }) => {
   }, [friendshipId, userId, applyProfile]);
 
   const isDirty = name !== baseline.name || notes !== baseline.notes;
+
+  // Retry from the loading / couldn't-load screen.
+  const retryControl = usePullToRefresh(() => load());
 
   // The in-screen back button only leaves edit mode (handleBackPress below);
   // this covers actually leaving the screen mid-edit — swipe back, Android
@@ -254,30 +266,46 @@ const FriendProfile = ({ route, navigation }) => {
   };
 
   // Before the full profile arrives: the cached name (if any) plus a status
-  // line — never a stale copy of their notes or dietary needs.
+  // line — never a stale copy of their notes or dietary needs. A ScrollView
+  // like the loaded screen, so iOS insets it below the status bar and the
+  // back arrow stays reachable. Pull down to try again.
+  if (!friend && !identity) {
+    return (
+      <StatusScreen
+        message={
+          detailsFailed
+            ? "Couldn't load this friend. Connect to the internet, then pull down to try again."
+            : 'Loading…'
+        }
+        onBack={handleBackPress}
+        refreshControl={retryControl}
+        backIconStyle={styles.overlayIcon_sm}
+      />
+    );
+  }
   if (!friend) {
     return (
-      <View style={[styles.screen_base, styles.screen_cardPad]}>
-        <TouchableOpacity style={[styles.overlay_base, styles.overlay_topLeft_card]} onPress={handleBackPress}>
+      <ScrollView
+        style={[styles.screen_base, styles.screen_cardPad]}
+        contentContainerStyle={styles.screen_baseScroll}
+        refreshControl={retryControl}
+      >
+        <TouchableOpacity
+          style={[styles.overlay_base, styles.overlay_topLeft_card]}
+          onPress={handleBackPress}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
           <BackIcon style={styles.overlayIcon_sm} />
         </TouchableOpacity>
-        {identity ? (
-          <>
-            <Text style={styles.header_card}>{identity.name}</Text>
-            <Text style={styles.emptyText}>
-              {detailsFailed
-                ? "Couldn't load their notes and dietary needs. Connect to the internet and try again."
-                : 'Loading details…'}
-            </Text>
-          </>
-        ) : (
-          <Text style={[styles.emptyText, { marginTop: 100 }]}>
-            {detailsFailed
-              ? "Couldn't load this friend. Connect to the internet and try again."
-              : 'Loading…'}
-          </Text>
-        )}
-      </View>
+        <Text style={styles.header_card}>{identity.name}</Text>
+        <Text style={styles.emptyText}>
+          {detailsFailed
+            ? "Couldn't load their notes and dietary needs. Connect to the internet, then pull down to try again."
+            : 'Loading details…'}
+        </Text>
+      </ScrollView>
     );
   }
 

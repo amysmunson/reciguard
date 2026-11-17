@@ -17,7 +17,7 @@ The app does not collect your location, contacts, photo library, device identifi
 
 ## How we collect it
 
-Everything above is entered directly by you while using the app, or, when you import a recipe from a link, read from that recipe's web page. The only automatic collection is keeping you signed in. The app also notices when its normal requests to our server don't get through, so it can warn you when you're offline; this sends nothing extra. Your password is handled by our authentication provider (Supabase) and is stored in a securely hashed form — it is never visible to us.
+Everything above is entered directly by you while using the app, or, when you import a recipe from a link, read from that recipe's web page. The only automatic collection is keeping you signed in. The app also notices when its normal requests to our server don't get through, so it can warn you when you're offline. When you open something that isn't saved on your device, it first does a quick check that our server can be reached; that check sends no personal information. Your password is handled by our authentication provider (Supabase) and is stored in a securely hashed form — it is never visible to us.
 
 ## How we use it
 

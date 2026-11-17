@@ -124,6 +124,7 @@ recipes/
 │   ├── AppModal.js                 # Drop-in for RN Modal; mounts a DialogHost so dialogs show over it
 │   ├── ActionMenu.js               # ⋯ pop-down action menu (RecipeCard, EditHeader)
 │   ├── EditHeader.js               # EditHeader (back | Save ⋯) — the standard edit-screen header
+│   ├── StatusScreen.js             # Shared full-page "Loading…" / couldn't-load screen with a back arrow
 │   ├── SectionHeading.js           # Section heading with an optional right-aligned action ("Edit")
 │   ├── FolderPickerModal.js        # One recipe's folder memberships: checkbox per folder + "New folder"
 │   ├── RemoveBadge.js              # Red minus on an input's top-right corner (EditRecipe rows' remove control)
@@ -1434,6 +1435,32 @@ coming back to a screen. The flip side: while offline and idle, the banner
 stays until you do something that makes a request. Link import
 (`recipeUrlParser`) uses plain `fetch` to third-party sites and doesn't
 affect the status.
+
+Two limits stop a dead connection from leaving a screen stuck:
+- **Every request times out after 15 s** (`REQUEST_TIMEOUT_MS`). The error
+  is "Network request timed out" and marks the app offline.
+- **`pingServer()` runs a quick check first**, only on screens that would
+  otherwise sit on "Loading…" with nothing to show: RecipeCard with no saved
+  copy, EditRecipe, and FriendProfile before its first server load. It
+  fetches `/auth/v1/health` with only the public key and answers within 3 s
+  (`PING_TIMEOUT_MS`). If it fails, the screen shows its offline message
+  right away and skips the full request (and supabase-js's token-refresh
+  retries, which can add about 30 s). It only runs when one of those
+  screens opens or is pulled to refresh, never in the background.
+
+Every full-page loading or couldn't-load state uses one component,
+[components/StatusScreen.js](components/StatusScreen.js): RecipeCard, EditRecipe, Profile,
+and FriendProfile when there's no saved name. So they share the same
+padding, the message at the same height (a little above the middle,
+`statusScreen_container`), and a back arrow in the spot it has once the page
+loads (`backIconStyle` matches each page's arrow size). It's a ScrollView,
+like the loaded screens, so iOS insets it below the status bar and the back
+arrow stays visible and reachable. In a plain View it sat under the status
+bar. Pages that pass `refreshControl` let you pull down to retry.
+
+Lists that load *under* a header (Sharing, Blocked, the Dietary Needs
+Overview, the Add to folder picker) keep a small inline "Loading…" instead,
+since the rest of the page is already showing.
 
 **Popups when something fails** (all in `connectivity.js`):
 

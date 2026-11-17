@@ -23,11 +23,23 @@ test('every network request goes through the Supabase client or to a user-chosen
   expect(read('lib/server/supabase.js')).toMatch(/global:\s*\{\s*fetch:\s*trackedFetch\s*\}/);
 });
 
-test('no background polling: connectivity makes no requests of its own', () => {
+test('no background polling: connectivity never schedules requests', () => {
   const src = read('lib/server/connectivity.js');
-  expect(src).not.toMatch(/setInterval|setTimeout|AppState|\/health/);
-  // The only fetch is the pass-through inside trackedFetch.
+  // setTimeout is only the per-request time limit; nothing repeats or
+  // listens for the app coming to the foreground.
+  expect(src).not.toMatch(/setInterval|AppState/);
+  // The only fetch is the shared, time-limited one (trackedFetch / pingServer).
   expect(src.match(/\bfetch\s*\(/g)).toHaveLength(1);
+});
+
+test('the quick reachability ping sends no user data — only the public key, over HTTPS', async () => {
+  const { pingServer } = require('../../lib/server/connectivity');
+  global.fetch = jest.fn(async () => ({ status: 200 }));
+  await pingServer();
+  const [url, init] = global.fetch.mock.calls[0];
+  expect(url).toBe('https://example.supabase.co/auth/v1/health');
+  expect(Object.keys(init.headers)).toEqual(['apikey']);
+  expect(init.body).toBeUndefined();
 });
 
 test('the auth session is never written to AsyncStorage by app code', () => {
