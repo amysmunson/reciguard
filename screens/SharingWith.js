@@ -5,11 +5,12 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../styles/main_style';
+import StatusScreen from '../components/StatusScreen';
 import { colors } from '../styles/theme';
 import { BackIcon } from '../components/icons';
 import { getSharingWith, revokeMyAccess, blockUser } from '../lib/server/api/friends';
 import ConfirmModal from '../components/ConfirmModal';
-import { appAlert } from '../lib/app/dialog';
+import { alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
 
 const relativeTime = (iso) => {
   if (!iso) return '';
@@ -32,7 +33,7 @@ const SharingWith = ({ navigation }) => {
     try {
       setPeople(await getSharingWith());
     } catch (err) {
-      appAlert('Could not load', err.message ?? 'Unknown error');
+      alertLoadFailed(err);
     } finally {
       setLoading(false);
     }
@@ -60,12 +61,22 @@ const SharingWith = ({ navigation }) => {
       else await blockUser(person.sharerId);
       load();
     } catch (err) {
-      appAlert(
-        action === 'remove' ? 'Could not remove' : 'Could not block',
-        err.message ?? 'Unknown error'
-      );
+      alertActionFailed(err, action === 'remove' ? 'Could not remove' : 'Could not block');
     }
   };
+
+
+  // First load: the shared loading screen, so it matches every other page.
+  if (loading) {
+    return (
+      <StatusScreen
+        title="Sharing With"
+        message="Loading…"
+        onBack={() => navigation.goBack()}
+        backIconStyle={styles.overlayIcon_sm}
+      />
+    );
+  }
 
   return (
     <ScrollView style={[styles.screen_base, styles.screen_cardPad]} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -89,7 +100,6 @@ const SharingWith = ({ navigation }) => {
         to your profile or block them here.
       </Text>
 
-      {loading && <Text style={styles.emptyText}>Loading…</Text>}
 
       {!loading && people.length === 0 && (
         <Text style={styles.emptyText}>You aren&apos;t sharing your profile with anyone yet.</Text>

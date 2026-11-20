@@ -12,7 +12,7 @@ const PrivacyPolicy = ({ navigation }) => (
 
     <ScrollView contentContainerStyle={styles.screen_policyPad}>
       <Text style={styles.header_policyMain}>Privacy Policy</Text>
-      <Text style={styles.policy_updated}>Last updated: October 24, 2026</Text>
+      <Text style={styles.policy_updated}>Last updated: November 15, 2026</Text>
 
       <Text style={styles.policy_body}>
         This policy explains what information the app collects, how it is used, and the
@@ -26,7 +26,7 @@ const PrivacyPolicy = ({ navigation }) => (
         {'• Friends you add: their names, the private notes you write about them, and any dietary need information you record for them.\n'}
         {'• Feedback: the message you send from Settings → Send Feedback, linked to your account. We read feedback to improve the app but don’t reply to it.\n'}
         {'• On-device data: your sign-in session (stored securely on your device), small preference settings (such as your sort and filter choices and whether recipes with dietary conflicts are hidden), and a timestamp of when you last opened each recipe (used to sort “recently opened” and to choose which recipes are saved for offline use) are stored locally on your device. Your light/dark appearance choice is also stored on the device; it isn’t tied to your account and stays on the device after you sign out.\n'}
-        {'• Offline cache: to make the app load instantly and work without a connection, copies of some of your information are also kept on your device: your recipe and folder lists, which recipes are in each folder, full copies of your five most recently opened recipes, your friends list (including your private notes about them and, for linked friends, their shared name and bio), the names of friends you’ve opened (a friend’s dietary needs are never saved on the device — they’re loaded from our servers each time), and your profile. This mirrors what is already stored on our servers — it isn’t collected separately, and it is cleared from your device automatically when you sign out or delete your account. You can turn it off in Settings → Keep copies on this device, which deletes these copies immediately and stops the app from saving new ones.'}
+        {'• Offline cache: to make the app load instantly and work without a connection, copies of some of your information are also kept on your device: your recipe and folder lists, full copies of your five most recently opened recipes, your friends list (including your private notes about them and, for linked friends, their shared name and bio), the names of friends you’ve opened (a friend’s dietary needs are never saved on the device — they’re loaded from our servers each time), and your profile. This mirrors what is already stored on our servers — it isn’t collected separately, and it is cleared from your device automatically when you sign out or delete your account. You can turn it off in Settings → Keep copies on this device, which deletes these copies immediately and stops the app from saving new ones.'}
       </Text>
       <Text style={styles.policy_body}>
         The app does not collect your location, contacts, photo library, device
@@ -38,9 +38,11 @@ const PrivacyPolicy = ({ navigation }) => (
       <Text style={styles.policy_body}>
         Everything above is entered directly by you while using the app, or, when you import
         a recipe from a link, read from that recipe&apos;s web page. The only automatic
-        collection is keeping you signed in. The app also checks from time to time whether it
-        can reach our server, so it can warn you when you&apos;re offline; that check sends no
-        personal information. Your password is handled by our
+        collection is keeping you signed in. The app also notices when its normal requests to
+        our server don&apos;t get through, so it can warn you when you&apos;re offline. When
+        you open something that isn&apos;t saved on your device, it first does a quick check
+        that our server can be reached; that check sends no personal information. Your
+        password is handled by our
         authentication provider (Supabase) and is stored in a securely hashed form &mdash;
         it is never visible to us.
       </Text>

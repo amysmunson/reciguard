@@ -13,7 +13,7 @@ import styles from '../styles/main_style';
 import NavigationBar from '../components/NavigationBar';
 import AllergyFilterControl from '../components/AllergyFilterControl';
 import { getRecipes, trashRecipes, TRASH_RETENTION_DAYS } from '../lib/server/api/recipes';
-import { useHideUnsafe, applyDietaryVisibility } from '../lib/app/useHideUnsafe';
+import { hidesUnsafeRecipes, applyDietaryVisibility } from '../lib/app/dietaryVisibility';
 import { getFolders, createFolder, addRecipesToFolder } from '../lib/server/api/folders';
 import { getMyProfile } from '../lib/server/api/profile';
 import {
@@ -26,7 +26,7 @@ import { useCachedResource } from '../lib/app/cache';
 import { usePullToRefresh } from '../lib/server/usePullToRefresh';
 import { useAuth } from '../lib/server/auth-context';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertSaveFailed, alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
 import { colors } from '../styles/theme';
 import {
   FolderIcon,
@@ -49,7 +49,6 @@ import AppModal from '../components/AppModal';
 
 const Home = ({ navigation, route }) => {
   const { user } = useAuth();
-  const hideUnsafe = useHideUnsafe(user?.id);
   const { data: recipesData, refresh: refreshRecipes } = useCachedResource({
     resource: 'recipes',
     userId: user?.id,
@@ -60,6 +59,7 @@ const Home = ({ navigation, route }) => {
     userId: user?.id,
     fetcher: getMyProfile,
   });
+  const hideUnsafe = hidesUnsafeRecipes(profile);
   const contrast = !!profile?.contrast;
   const recipes = recipesData ?? [];
 
@@ -101,7 +101,7 @@ const Home = ({ navigation, route }) => {
       });
       setActiveAllergies(details);
     } catch (err) {
-      appAlert('Could not load dietary needs', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load dietary needs');
     }
   }, []);
 
@@ -207,7 +207,7 @@ const Home = ({ navigation, route }) => {
       setNewFolderName('');
       setFolderPickerOpen(true);
     } catch (err) {
-      appAlert('Could not load folders', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not load folders');
     }
   };
 

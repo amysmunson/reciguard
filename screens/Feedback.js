@@ -7,6 +7,7 @@ import { submitFeedback, FEEDBACK_MAX_LENGTH } from '../lib/server/api/feedback'
 import ConfirmModal from '../components/ConfirmModal';
 import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
 import { appAlert } from '../lib/app/dialog';
+import { alertActionFailed } from '../lib/server/connectivity';
 
 // Feedback only — no questions, since submissions aren't replied to. Every
 // row is saved with type 'suggestion' (an existing allowed value of
@@ -30,7 +31,7 @@ const Feedback = ({ navigation }) => {
         { text: 'OK', onPress: () => leaveWithoutPrompt(() => navigation.goBack()) },
       ]);
     } catch (err) {
-      appAlert('Could not send feedback', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not send feedback');
     } finally {
       setSubmitting(false);
     }

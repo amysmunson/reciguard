@@ -11,6 +11,7 @@ import { BackIcon } from '../components/icons';
 import { colors } from '../styles/theme';
 import { signIn } from '../lib/server/api/auth';
 import { appAlert } from '../lib/app/dialog';
+import { alertActionFailed } from '../lib/server/connectivity';
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -26,7 +27,7 @@ const Login = ({ navigation }) => {
       setLoading(true);
       await signIn({ email: email.trim(), password });
     } catch (err) {
-      appAlert('Sign in failed', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Sign in failed');
     } finally {
       setLoading(false);
     }
@@ -43,7 +44,7 @@ const Login = ({ navigation }) => {
       <View style={{ width: '100%', paddingBottom: 16 }}>
         <Text style={styles.input_label}>Email</Text>
         <TextInput
-          style={[styles.input_base, styles.input_spaced]}
+          style={[styles.input_base, styles.input_auth, styles.input_spaced]}
           placeholder="Email"
           placeholderTextColor={colors.borderInput}
           autoCapitalize="none"
@@ -53,7 +54,7 @@ const Login = ({ navigation }) => {
         />
         <Text style={styles.input_label}>Password</Text>
         <TextInput
-          style={[styles.input_base, styles.input_spaced]}
+          style={[styles.input_base, styles.input_auth, styles.input_spaced]}
           placeholder="Password"
           placeholderTextColor={colors.borderInput}
           secureTextEntry

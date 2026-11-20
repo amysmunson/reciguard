@@ -16,7 +16,7 @@ import { useCachedResource } from '../lib/app/cache';
 import { usePullToRefresh } from '../lib/server/usePullToRefresh';
 import { useAuth } from '../lib/server/auth-context';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertSaveFailed, alertActionFailed } from '../lib/server/connectivity';
 import { PlusIcon, SearchIcon, SelectCircleIcon, SortIcon, StarIcon, TrashIcon } from '../components/icons';
 import { SYSTEM_FOLDERS } from './FolderDetail';
 import SortMenu from '../components/SortMenu';
@@ -157,7 +157,7 @@ const Folders = ({ navigation }) => {
               await deleteFolders(ids);
               exitSelect();
             } catch (err) {
-              appAlert('Could not delete', err.message ?? 'Unknown error');
+              alertActionFailed(err, 'Could not delete');
             }
           },
         },

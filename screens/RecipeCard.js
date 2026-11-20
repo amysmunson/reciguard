@@ -43,11 +43,12 @@ import { loadJson, KEYS, recordRecipeOpened } from '../lib/app/storage';
 import { cacheRecentRecipe, getCachedRecipe } from '../lib/app/recipeCache';
 import { useCachedResource } from '../lib/app/cache';
 import { usePullToRefresh } from '../lib/server/usePullToRefresh';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertLoadFailed, alertSaveFailed, isOfflineError, pingServer } from '../lib/server/connectivity';
 import { normalizeRecipe } from '../lib/app/recipeItems';
 import { formatMinutes } from '../lib/app/recipeTimes';
 import { isSafeWebUrl } from '../lib/app/safeUrl';
 import ActionMenu from '../components/ActionMenu';
+import StatusScreen from '../components/StatusScreen';
 import FolderPickerModal from '../components/FolderPickerModal';
 import { MULTIPLIERS, formatAmount, scaleIngredient } from '../lib/app/scaleIngredient';
 import { appAlert } from '../lib/app/dialog';
@@ -59,6 +60,8 @@ const RecipeCard = ({ route, navigation }) => {
   const userId = user?.id;
   const { recipeId } = route.params;
   const [recipe, setRecipe] = useState(null);
+  // Offline with no copy saved on this device: shown instead of "Loading…".
+  const [loadFailed, setLoadFailed] = useState(false);
   const [activeAllergies, setActiveAllergies] = useState([]);
   // Index of the ingredient whose allergy popup is open.
   const [expandedIndex, setExpandedIndex] = useState(null);
@@ -88,14 +91,25 @@ const RecipeCard = ({ route, navigation }) => {
         // Record this open so Home's "Recently opened" sort can use it, and
         // so the recent-recipe cache keeps this one.
         if (userId) await recordRecipeOpened(userId, recipeId);
+        // Nothing on screen yet: check the server is reachable first (a few
+        // seconds at most), so offline shows the message right away instead
+        // of waiting out the full request.
+        if (!cached && !(await pingServer())) {
+          if (!cancelled) setLoadFailed(true);
+          return;
+        }
         try {
           const r = await getRecipe(recipeId);
           // Quiet background refresh: only re-render if something changed.
-          if (!cancelled) setRecipe((prev) => (sameJson(prev, r) ? prev : r));
+          if (!cancelled) {
+            setRecipe((prev) => (sameJson(prev, r) ? prev : r));
+            setLoadFailed(false);
+          }
           if (userId) cacheRecentRecipe(userId, r);
         } catch (err) {
           if (!cancelled && !cached) {
-            appAlert('Could not load recipe', err.message ?? 'Unknown error');
+            if (isOfflineError(err)) setLoadFailed(true);
+            else alertLoadFailed(err, 'Could not load recipe');
           }
         }
       };
@@ -128,17 +142,31 @@ const RecipeCard = ({ route, navigation }) => {
 
   // Pull down to refetch the recipe from the server (and refresh its cached
   // copy). On failure the current copy stays up; the offline banner covers it.
+  // With nothing on screen yet, it's the retry: quick check first, as on open.
   const refreshControl = usePullToRefresh(async () => {
+    if (!recipe && !(await pingServer())) {
+      setLoadFailed(true);
+      return;
+    }
     const r = await getRecipe(recipeId);
     setRecipe(r);
+    setLoadFailed(false);
     if (user?.id) cacheRecentRecipe(user.id, r);
   });
 
+  // Still loading, or offline with no saved copy. Pull down to try again.
   if (!recipe) {
     return (
-      <View style={[styles.screen_base, styles.screen_cardPad]}>
-        <Text style={[styles.emptyText, { marginTop: 100 }, contrast && { color: colors.text }]}>Loading…</Text>
-      </View>
+      <StatusScreen
+        message={
+          loadFailed
+            ? "This recipe isn't saved on this device. Connect to the internet, then pull down to try again."
+            : 'Loading…'
+        }
+        onBack={() => navigation.goBack()}
+        refreshControl={refreshControl}
+        textStyle={contrast && { color: colors.text }}
+      />
     );
   }
 

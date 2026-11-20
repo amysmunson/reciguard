@@ -34,9 +34,12 @@ import { EditHeader } from '../components/EditHeader';
 import FolderPickerModal from '../components/FolderPickerModal';
 import ReorderableList from '../components/ReorderableList';
 import RemoveBadge from '../components/RemoveBadge';
+import StatusScreen from '../components/StatusScreen';
 import { useUnsavedChangesGuard } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
-import { toItem } from '../lib/app/recipeItems';
+import { alertActionFailed, alertSaveFailed, isOfflineError, pingServer } from '../lib/server/connectivity';
+import { useAuth } from '../lib/server/auth-context';
+import { getCachedRecipe } from '../lib/app/recipeCache';
+import { normalizeRecipe, toItem } from '../lib/app/recipeItems';
 import { resolveTotalMinutes } from '../lib/app/recipeTimes';
 import { appAlert } from '../lib/app/dialog';
 
@@ -93,8 +96,13 @@ const EditRecipe = ({ route, navigation }) => {
   const isNew = !recipeId;
   // If create new recipe, go back to home after saving
   const fromCreate = !!route.params?.fromCreate;
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const [loading, setLoading] = useState(!isNew);
+  // Couldn't load an existing recipe (offline with no saved copy, or an
+  // error): show a message with a way back instead of an empty form.
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   // The recipe as loaded — supplies fields this screen doesn't edit (link,
   // source, photo) when making a copy.
@@ -128,8 +136,31 @@ const EditRecipe = ({ route, navigation }) => {
   useEffect(() => {
     if (isNew) return;
     const load = async () => {
+      // Offline: edit the copy saved on this device (one of the recently
+      // opened recipes), if there is one. Saving still needs a connection.
+      // A quick check first, so offline doesn't wait out the full request.
+      const loadSavedCopy = async (err) => {
+        const saved = normalizeRecipe(await getCachedRecipe(userId, recipeId));
+        if (!saved) alertActionFailed(err, 'Could not load recipe');
+        return saved;
+      };
+      let r;
+      if (!(await pingServer())) {
+        r = await loadSavedCopy(new Error('Network request failed'));
+      } else {
+        try {
+          r = await getRecipe(recipeId);
+        } catch (err) {
+          r = isOfflineError(err) ? await loadSavedCopy(err) : null;
+          if (!r && !isOfflineError(err)) alertActionFailed(err, 'Could not load recipe');
+        }
+      }
+      if (!r) {
+        setLoadFailed(true);
+        setLoading(false);
+        return;
+      }
       try {
-        const r = await getRecipe(recipeId);
         const form = {
           name: r.name,
           servings: asInputText(r.servings),
@@ -151,14 +182,12 @@ const EditRecipe = ({ route, navigation }) => {
         setSteps(form.steps);
         setUserNotes(form.userNotes);
         setBaseline(snapshot(form));
-      } catch (err) {
-        appAlert('Could not load recipe', err.message ?? 'Unknown error');
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [recipeId, isNew]);
+  }, [recipeId, isNew, userId]);
 
   // The form as a recipe payload (blank rows dropped, row keys stripped).
   const formValues = () => {
@@ -307,11 +336,17 @@ const EditRecipe = ({ route, navigation }) => {
       : []),
   ];
 
-  if (loading) {
+  // Loading, or failed to load.
+  if (loading || loadFailed) {
     return (
-      <View style={[styles.screen_base, styles.screen_editPad]}>
-        <Text style={styles.emptyText}>Loading…</Text>
-      </View>
+      <StatusScreen
+        message={
+          loadFailed
+            ? "Couldn't open this recipe for editing. Connect to the internet and try again."
+            : 'Loading…'
+        }
+        onBack={() => navigation.goBack()}
+      />
     );
   }
 

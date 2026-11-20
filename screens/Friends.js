@@ -30,6 +30,7 @@ import { usePullToRefresh } from '../lib/server/usePullToRefresh';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
 import { appAlert } from '../lib/app/dialog';
 import AppModal from '../components/AppModal';
+import { alertActionFailed } from '../lib/server/connectivity';
 
 // Strip non-alphanumeric, uppercase, max 8 chars.
 const normalizeCode = (s) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -104,7 +105,7 @@ const Friends = ({ navigation }) => {
       closeModal();
       appAlert('Added', `Linked to ${friendDisplayName(friend)}.`);
     } catch (err) {
-      appAlert('Could not add by code', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not add by code');
     } finally {
       setBusy(false);
     }
@@ -117,7 +118,7 @@ const Friends = ({ navigation }) => {
       await addFriend({ friendName: nameInput.trim() });
       closeModal();
     } catch (err) {
-      appAlert('Could not add friend', err.message ?? 'Unknown error');
+      alertActionFailed(err, 'Could not add friend');
     } finally {
       setBusy(false);
     }

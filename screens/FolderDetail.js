@@ -29,7 +29,7 @@ import {
   emptyTrash,
   TRASH_RETENTION_DAYS,
 } from '../lib/server/api/recipes';
-import { useHideUnsafe, applyDietaryVisibility } from '../lib/app/useHideUnsafe';
+import { hidesUnsafeRecipes, applyDietaryVisibility } from '../lib/app/dietaryVisibility';
 import {
   getActiveAllergyDetails,
   dotsForRecipe,
@@ -56,7 +56,7 @@ import { usePullToRefresh } from '../lib/server/usePullToRefresh';
 import AllergyFilterControl from '../components/AllergyFilterControl';
 import SortMenu from '../components/SortMenu';
 import { confirmDiscard, useRegisterUnsaved } from '../lib/app/unsavedChanges';
-import { alertSaveFailed } from '../lib/server/connectivity';
+import { alertSaveFailed, alertLoadFailed, alertActionFailed } from '../lib/server/connectivity';
 import {
   RECIPE_SORT_OPTIONS,
   DEFAULT_RECIPE_SORT,
@@ -83,7 +83,6 @@ const FolderDetail = ({ route, navigation }) => {
   const isFavorites = systemFolder === 'favorites';
   const isTrash = systemFolder === 'trash';
   const isSystem = !!systemFolder;
-  const hideUnsafe = useHideUnsafe(user?.id);
   const [folder, setFolder] = useState({
     id: folderId,
     name: isSystem ? SYSTEM_FOLDERS[systemFolder].name : initialName,
@@ -130,6 +129,7 @@ const FolderDetail = ({ route, navigation }) => {
     userId: user?.id,
     fetcher: getMyProfile,
   });
+  const hideUnsafe = hidesUnsafeRecipes(profile);
   const contrast = !!profile?.contrast;
 
   const loadRecipes = useCallback(async () => {
@@ -148,32 +148,26 @@ const FolderDetail = ({ route, navigation }) => {
       // when the cached first paint was already current.
       setLoadedRecipes((prev) => (sameJson(prev, list) ? prev : list));
     } catch (err) {
-      appAlert('Could not load folder', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load folder');
     }
   }, [folderId, isFavorites, isTrash]);
 
-  // First paint from cache while loadRecipes fetches from the server:
-  // Home's cached recipe list, joined with the cached folder memberships
-  // (regular folder) or filtered to starred recipes (Favorites). Trash isn't
-  // cached — it's small and server-only.
+  // Favorites paints first from Home's cached recipe list (starred recipes)
+  // while loadRecipes fetches from the server. Regular folders wait for the
+  // server: which recipes are in which folder isn't kept on the device, only
+  // the folder list is. Trash isn't cached either; it's small and server-only.
   useEffect(() => {
-    if (!user?.id || isTrash) return;
+    if (!user?.id || !isFavorites) return;
     let cancelled = false;
     (async () => {
-      const [list, members] = await Promise.all([
-        readCachedResource('recipes', user.id),
-        isFavorites ? null : readCachedResource('folderMembers', user.id),
-      ]);
-      if (cancelled || !list || (!isFavorites && !members)) return;
-      const ids = isFavorites ? null : new Set(members[folderId] ?? []);
-      setLoadedRecipes(
-        (prev) => prev ?? list.filter((r) => (isFavorites ? r.isFavorite : ids.has(r.id)))
-      );
+      const list = await readCachedResource('recipes', user.id);
+      if (cancelled || !list) return;
+      setLoadedRecipes((prev) => prev ?? list.filter((r) => r.isFavorite));
     })();
     return () => {
       cancelled = true;
     };
-  }, [user?.id, folderId, isFavorites, isTrash]);
+  }, [user?.id, isFavorites]);
 
   // Recompute the active-allergy details for the current filter selection.
   const refreshActiveAllergies = useCallback(async (self, friendIds) => {
@@ -185,7 +179,7 @@ const FolderDetail = ({ route, navigation }) => {
       });
       setActiveAllergies(details);
     } catch (err) {
-      appAlert('Could not load dietary needs', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load dietary needs');
     }
   }, []);
 
@@ -292,7 +286,7 @@ const FolderDetail = ({ route, navigation }) => {
       setPickerSelected(new Set());
       setPickerOpen(true);
     } catch (err) {
-      appAlert('Could not load recipes', err.message ?? 'Unknown error');
+      alertLoadFailed(err, 'Could not load recipes');
     }
   };
 
@@ -452,7 +446,7 @@ const FolderDetail = ({ route, navigation }) => {
             await deleteFolder(folderId);
             navigation.goBack();
           } catch (err) {
-            appAlert('Could not delete folder', err.message ?? 'Unknown error');
+            alertActionFailed(err, 'Could not delete folder');
           }
         },
       },

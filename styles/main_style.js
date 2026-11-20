@@ -278,6 +278,13 @@ const buildStyles = () => StyleSheet.create({
   input_spaced: {
     marginBottom: 12,
   },
+  // Sign in / sign up / forgot password: the roomier padding input_base had
+  // before the in-app inputs were tightened (4/6), so the auth fields keep
+  // their original look. Compose after input_base.
+  input_auth: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
   // Inline row input — fills the row to the left of a trailing action
   // button (e.g. delete icon in an ingredient row).
   // Underline-only — used when the input doubles as a heading
@@ -823,14 +830,11 @@ const buildStyles = () => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 4,
     marginHorizontal: 4,
+    paddingVertical: 10,
     marginBottom: 8,
     backgroundColor: colors.background,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   selectBar_cancel: {
     fontSize: 16,
@@ -1377,6 +1381,23 @@ const buildStyles = () => StyleSheet.create({
   // A star's visual center sits below its box's middle (the points meet
   // low), and "Edit" sits a bit high in its line box, so lift the star to
   // read level with the text.
+  // Full-page loading / couldn't-load screens (components/StatusScreen.js).
+  // The container fills the ScrollView so pull to refresh works anywhere; the
+  // message layer covers it and centers the message a little above the
+  // middle, so it's at the same height on every page, title or not.
+  statusScreen_container: {
+    flexGrow: 1,
+  },
+  statusScreen_messageLayer: {
+    // Spelled out: React Native 0.88 removed StyleSheet.absoluteFillObject.
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingBottom: 80,
+  },
   recipeCard_star: {
     transform: [{ translateY: -0.5 }],
   },
